@@ -6,7 +6,7 @@ Solutions to [Advent of Code 2025](https://adventofcode.com/2025) implemented in
 
 This project takes a unique approach to Advent of Code:
 
-1. **Multi-language solutions**: Each day's puzzle is solved in 16 languages (ARM64 Assembly, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, and Brainfuck) to validate correctness through independent implementations.
+1. **Multi-language solutions**: Each day's puzzle is solved in 17 languages (ARM64 Assembly, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion, and Brainfuck) to validate correctness through independent implementations.
 
 2. **Parallel agent solving**: Solutions are developed by independent AI agents working in parallel, each implementing the solution in their assigned language without seeing other implementations. When all agents converge on the same answer, we have high confidence in correctness.
 
@@ -21,8 +21,8 @@ This project takes a unique approach to Advent of Code:
 
 | Day | Stars | Languages |
 |-----|-------|-----------|
-| 1   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, Brainfuck |
-| 2   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, Brainfuck |
+| 1   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion, Brainfuck |
+| 2   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion, Brainfuck |
 
 ## Benchmarks
 
@@ -48,6 +48,7 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Tim
 | Ruby        | 59.5         | 28.7        |
 | Bash        | 98.6         | 2.2         |
 | Clojure     | 491.7        | 150.1       |
+| ColdFusion  | 2,590.5      | 1,202.0     |
 
 ### Day 2: Gift Shop
 
@@ -68,6 +69,7 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Tim
 | Clojure     | 1,210        | 1,298       |
 | Ruby        | 2,092        | 28.2        |
 | Perl        | 2,461        | 4.3         |
+| ColdFusion  | 6,909.3      | 1,141.8     |
 | Bash        | 90,930       | 1.5         |
 
 ## Project Structure
@@ -98,6 +100,7 @@ advent2025/
     ├── bash/solution.sh
     ├── clojure/solution.clj
     ├── lisp/solution.lisp
+    ├── coldfusion/solution.cfm
     └── brainfuck/...
 ```
 
@@ -140,6 +143,7 @@ perl day01/perl/solution.pl
 bash day01/bash/solution.sh
 clojure -M day01/clojure/solution.clj
 sbcl --script day01/lisp/solution.lisp
+box day01/coldfusion/solution.cfm  # Requires CommandBox
 ```
 
 ### Submit an Answer
