@@ -41,7 +41,7 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Tim
 | Lisp        | 27.5         | 39.7        |
 | Brainfuck   | 29.2         | 14.8        |
 | Python      | 30.8         | 16.1        |
-| Java        | 49.1         | 50.4        |
+| Java        | 43.2         | 45.5        |
 | Node.js     | 50.9         | 41.5        |
 | PHP         | 53.4         | 24.8        |
 | Bash        | 98.6         | 2.2         |
