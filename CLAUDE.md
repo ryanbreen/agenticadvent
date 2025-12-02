@@ -104,6 +104,45 @@ Reference day01/python/solution.py for the algorithm.
 Run your solution and report the output.
 ```
 
+## IMPORTANT: Benchmarking Requirements
+
+Every solution must be benchmarked after implementation. When an agent completes a solution, they are responsible for:
+
+1. **Running the benchmark** using `/usr/bin/time -l` (macOS) or equivalent
+2. **Recording metrics** in the README.md benchmark tables
+3. **Metrics to capture**:
+   - **Runtime**: Total wall-clock time (real time in seconds)
+   - **Memory**: Peak memory footprint (in MB)
+   - **CPU**: User + System time (in seconds)
+
+**Benchmark command format:**
+```bash
+# For interpreted languages
+/usr/bin/time -l python3 solution.py 2>&1
+
+# For compiled languages (compile first, then benchmark the run)
+/usr/bin/time -l ./solution 2>&1
+```
+
+**Extracting metrics from output:**
+- Runtime: `X.XX real` line (first number)
+- Memory: `peak memory footprint` line (convert bytes to MB by dividing by 1048576)
+- CPU: Sum of `user` + `sys` times
+
+**Updating README.md:**
+After benchmarking, update the appropriate table in README.md with the results. Each day has a benchmark table organized by language showing Part 1+2 combined performance.
+
+**Example benchmark table format:**
+```markdown
+| Language | Runtime (s) | Memory (MB) | CPU (s) |
+|----------|-------------|-------------|---------|
+| C        | 0.02        | 1.2         | 0.01    |
+| Rust     | 0.03        | 2.1         | 0.02    |
+| Python   | 0.45        | 12.3        | 0.44    |
+```
+
+Solutions should be run from their respective directories with the input file at `../input.txt`.
+
 ## Playwright Session Management
 - Session state stored in `runner/auth-state.json`
 - User manually logs in via GitHub on first run
