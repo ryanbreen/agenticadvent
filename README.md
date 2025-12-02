@@ -6,7 +6,7 @@ Solutions to [Advent of Code 2025](https://adventofcode.com/2025) implemented in
 
 This project takes a unique approach to Advent of Code:
 
-1. **Multi-language solutions**: Each day's puzzle is solved in 11 languages (C, C++, Rust, Go, Node.js, Python, Perl, Bash, Clojure, Common Lisp, and Brainfuck) to validate correctness through independent implementations.
+1. **Multi-language solutions**: Each day's puzzle is solved in 12 languages (C, C++, Rust, Go, Node.js, Python, PHP, Perl, Bash, Clojure, Common Lisp, and Brainfuck) to validate correctness through independent implementations.
 
 2. **Parallel agent solving**: Solutions are developed by independent AI agents working in parallel, each implementing the solution in their assigned language without seeing other implementations. When all agents converge on the same answer, we have high confidence in correctness.
 
@@ -21,8 +21,8 @@ This project takes a unique approach to Advent of Code:
 
 | Day | Stars | Languages |
 |-----|-------|-----------|
-| 1   | ⭐⭐   | C, C++, Rust, Go, Node.js, Python, Perl, Bash, Clojure, Common Lisp, Brainfuck |
-| 2   | ⭐⭐   | C, C++, Rust, Go, Node.js, Python, Perl, Bash, Clojure, Common Lisp, Brainfuck |
+| 1   | ⭐⭐   | C, C++, Rust, Go, Node.js, Python, PHP, Perl, Bash, Clojure, Common Lisp, Brainfuck |
+| 2   | ⭐⭐   | C, C++, Rust, Go, Node.js, Python, PHP, Perl, Bash, Clojure, Common Lisp, Brainfuck |
 
 ## Benchmarks
 
@@ -41,6 +41,7 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Tim
 | Brainfuck   | 29.2         | 14.8        |
 | Python      | 30.8         | 16.1        |
 | Node.js     | 50.9         | 41.5        |
+| PHP         | 53.4         | 24.8        |
 | Bash        | 98.6         | 2.2         |
 | Clojure     | 491.7        | 150.1       |
 
@@ -54,6 +55,7 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Tim
 | Go          | 217          | 10.0        |
 | Node.js     | 315          | 87.6        |
 | Lisp        | 587          | 89.4        |
+| PHP         | 610          | 24.4        |
 | Brainfuck   | 1,131        | 14.8        |
 | Python      | 1,192        | 15.6        |
 | Clojure     | 1,210        | 1,298       |
@@ -79,6 +81,7 @@ advent2025/
     ├── go/solution.go
     ├── node/solution.js
     ├── python/solution.py
+    ├── php/solution.php
     ├── perl/solution.pl
     ├── bash/solution.sh
     ├── clojure/solution.clj
