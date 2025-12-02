@@ -28,6 +28,8 @@ This project takes a unique approach to Advent of Code:
 
 All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Times shown in milliseconds for precision.
 
+**Note on runtime overhead**: Some languages (ColdFusion, Clojure, Java) have significant startup overhead that dominates these benchmarks. ColdFusion runs via CommandBox/Lucee, which spins up a full JVM and servlet engine for each execution (~2.5s baseline). These languages are designed for long-running server processes, not CLI scripts, so the benchmarks reflect startup cost more than computational efficiency.
+
 ### Day 1: Secret Entrance
 
 | Language    | Runtime (ms) | Memory (MB) |
