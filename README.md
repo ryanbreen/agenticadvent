@@ -6,7 +6,7 @@ Solutions to [Advent of Code 2025](https://adventofcode.com/2025) implemented in
 
 This project takes a unique approach to Advent of Code:
 
-1. **Multi-language solutions**: Each day's puzzle is solved in 14 languages (ARM64 Assembly, C, C++, Rust, Go, Java, Node.js, Python, PHP, Perl, Bash, Clojure, Common Lisp, and Brainfuck) to validate correctness through independent implementations.
+1. **Multi-language solutions**: Each day's puzzle is solved in 16 languages (ARM64 Assembly, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, and Brainfuck) to validate correctness through independent implementations.
 
 2. **Parallel agent solving**: Solutions are developed by independent AI agents working in parallel, each implementing the solution in their assigned language without seeing other implementations. When all agents converge on the same answer, we have high confidence in correctness.
 
@@ -21,8 +21,8 @@ This project takes a unique approach to Advent of Code:
 
 | Day | Stars | Languages |
 |-----|-------|-----------|
-| 1   | ⭐⭐   | ARM64, C, C++, Rust, Go, Java, Node.js, Python, PHP, Perl, Bash, Clojure, Common Lisp, Brainfuck |
-| 2   | ⭐⭐   | ARM64, C, C++, Rust, Go, Java, Node.js, Python, PHP, Perl, Bash, Clojure, Common Lisp, Brainfuck |
+| 1   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, Brainfuck |
+| 2   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, Brainfuck |
 
 ## Benchmarks
 
@@ -32,6 +32,7 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Tim
 
 | Language    | Runtime (ms) | Memory (MB) |
 |-------------|--------------|-------------|
+| Zig         | 5.6          | 1.9         |
 | C           | 6.9          | 1.9         |
 | C++         | 6.9          | 1.9         |
 | ARM64 asm   | 7.0          | 1.9         |
@@ -44,6 +45,7 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Tim
 | Java        | 43.2         | 45.5        |
 | Node.js     | 50.9         | 41.5        |
 | PHP         | 53.4         | 24.8        |
+| Ruby        | 59.5         | 28.7        |
 | Bash        | 98.6         | 2.2         |
 | Clojure     | 491.7        | 150.1       |
 
@@ -51,6 +53,7 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Tim
 
 | Language    | Runtime (ms) | Memory (MB) |
 |-------------|--------------|-------------|
+| Zig         | 37           | 1.9         |
 | ARM64 asm   | 65           | 1.9         |
 | Rust        | 136          | 1.9         |
 | C++         | 198          | 1.9         |
@@ -63,6 +66,7 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Tim
 | Brainfuck   | 1,131        | 14.8        |
 | Python      | 1,192        | 15.6        |
 | Clojure     | 1,210        | 1,298       |
+| Ruby        | 2,092        | 28.2        |
 | Perl        | 2,461        | 4.3         |
 | Bash        | 90,930       | 1.5         |
 
@@ -83,10 +87,12 @@ advent2025/
     ├── c/solution.c
     ├── cpp/solution.cpp
     ├── rust/src/main.rs
+    ├── zig/solution.zig
     ├── go/solution.go
     ├── java/Solution.java
     ├── node/solution.js
     ├── python/solution.py
+    ├── ruby/solution.rb
     ├── php/solution.php
     ├── perl/solution.pl
     ├── bash/solution.sh
@@ -122,12 +128,14 @@ cd day01/arm64 && make && ./solution    # ARM64 assembly (macOS only)
 gcc -O2 -o solution day01/c/solution.c && ./solution
 g++ -std=c++17 -O2 -o solution day01/cpp/solution.cpp && ./solution
 cd day01/rust && cargo run --release
+cd day01/zig && zig build-exe solution.zig -O ReleaseFast -femit-bin=solution && ./solution
 cd day01/go && go run solution.go
 cd day01/java && javac Solution.java && java Solution
 
 # Interpreted languages
 node day01/node/solution.js
 python3 day01/python/solution.py
+ruby day01/ruby/solution.rb
 perl day01/perl/solution.pl
 bash day01/bash/solution.sh
 clojure -M day01/clojure/solution.clj
