@@ -17,8 +17,8 @@ venv/
 
 # C compiled binaries
 *.out
-day01/c/solution
-day01/c/test
+*/c/solution
+*/c/test
 
 # Rust
 target/
