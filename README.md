@@ -6,7 +6,7 @@ Solutions to [Advent of Code 2025](https://adventofcode.com/2025) implemented in
 
 This project takes a unique approach to Advent of Code:
 
-1. **Multi-language solutions**: Each day's puzzle is solved in 13 languages (ARM64 Assembly, C, C++, Rust, Go, Node.js, Python, PHP, Perl, Bash, Clojure, Common Lisp, and Brainfuck) to validate correctness through independent implementations.
+1. **Multi-language solutions**: Each day's puzzle is solved in 14 languages (ARM64 Assembly, C, C++, Rust, Go, Java, Node.js, Python, PHP, Perl, Bash, Clojure, Common Lisp, and Brainfuck) to validate correctness through independent implementations.
 
 2. **Parallel agent solving**: Solutions are developed by independent AI agents working in parallel, each implementing the solution in their assigned language without seeing other implementations. When all agents converge on the same answer, we have high confidence in correctness.
 
@@ -21,8 +21,8 @@ This project takes a unique approach to Advent of Code:
 
 | Day | Stars | Languages |
 |-----|-------|-----------|
-| 1   | ⭐⭐   | ARM64, C, C++, Rust, Go, Node.js, Python, PHP, Perl, Bash, Clojure, Common Lisp, Brainfuck |
-| 2   | ⭐⭐   | ARM64, C, C++, Rust, Go, Node.js, Python, PHP, Perl, Bash, Clojure, Common Lisp, Brainfuck |
+| 1   | ⭐⭐   | ARM64, C, C++, Rust, Go, Java, Node.js, Python, PHP, Perl, Bash, Clojure, Common Lisp, Brainfuck |
+| 2   | ⭐⭐   | ARM64, C, C++, Rust, Go, Java, Node.js, Python, PHP, Perl, Bash, Clojure, Common Lisp, Brainfuck |
 
 ## Benchmarks
 
@@ -41,6 +41,7 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Tim
 | Lisp        | 27.5         | 39.7        |
 | Brainfuck   | 29.2         | 14.8        |
 | Python      | 30.8         | 16.1        |
+| Java        | 49.1         | 50.4        |
 | Node.js     | 50.9         | 41.5        |
 | PHP         | 53.4         | 24.8        |
 | Bash        | 98.6         | 2.2         |
@@ -55,6 +56,7 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Tim
 | C++         | 198          | 1.9         |
 | C           | 211          | 1.9         |
 | Go          | 217          | 10.0        |
+| Java        | 289          | 596.0       |
 | Node.js     | 315          | 87.6        |
 | Lisp        | 587          | 89.4        |
 | PHP         | 610          | 24.4        |
@@ -82,6 +84,7 @@ advent2025/
     ├── cpp/solution.cpp
     ├── rust/src/main.rs
     ├── go/solution.go
+    ├── java/Solution.java
     ├── node/solution.js
     ├── python/solution.py
     ├── php/solution.php
@@ -120,6 +123,7 @@ gcc -O2 -o solution day01/c/solution.c && ./solution
 g++ -std=c++17 -O2 -o solution day01/cpp/solution.cpp && ./solution
 cd day01/rust && cargo run --release
 cd day01/go && go run solution.go
+cd day01/java && javac Solution.java && java Solution
 
 # Interpreted languages
 node day01/node/solution.js

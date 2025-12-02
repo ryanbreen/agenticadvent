@@ -15,15 +15,14 @@ venv/
 .vscode/
 .idea/
 
-# C compiled binaries
-*.out
-*/c/solution
-*/c/test
+# Compiled binaries (convention: output named 'solution')
+*/*/solution
+*/*/solution.o
+*/*/test
+*/*/*.class
 
 # Rust
 target/
 
 # OS
 .DS_Store
-day01/cpp/solution
-day02/cpp/solution
