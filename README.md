@@ -24,6 +24,7 @@ This project takes a unique approach to Advent of Code:
 | 1   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 2   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 3   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 4   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -93,6 +94,27 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Tim
 | Clojure     | 664.1        | 932.6       |
 | ColdFusion  | 2,808.6      | 1,080.5     |
 | Bash        | 7,360.1      | 1.9         |
+
+### Day 4: Printing Department
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| Zig         | 7.1          | 1.9         |
+| C           | 8.5          | 1.9         |
+| C++         | 9.4          | 1.9         |
+| ARM64 asm   | 10.3         | 1.9         |
+| Rust        | 48.6         | 1.9         |
+| Java        | 72.5         | 48.5        |
+| Go          | 75.5         | 27.1        |
+| Node.js     | 88.6         | 53.1        |
+| PHP         | 160.0        | 26.4        |
+| Python      | 260.6        | 16.3        |
+| Lisp        | 301.7        | 45.3        |
+| Ruby        | 424.5        | 29.9        |
+| Perl        | 502.3        | 8.5         |
+| Clojure     | 658.6        | 537.5       |
+| ColdFusion  | 3,613.0      | 1,119.9     |
+| Bash        | 312,264      | 2.8         |
 
 ## Project Structure
 
