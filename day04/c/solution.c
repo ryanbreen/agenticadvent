@@ -72,39 +72,64 @@ int part2() {
         strcpy(working_grid[r], grid[r]);
     }
 
+    // Precompute neighbor counts for all rolls
+    int neighbor_count[MAX_SIZE][MAX_SIZE];
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+            if (working_grid[r][c] == '@') {
+                neighbor_count[r][c] = count_neighbors(r, c, working_grid);
+            } else {
+                neighbor_count[r][c] = 0;
+            }
+        }
+    }
+
+    // Initialize queue with all accessible rolls (< 4 neighbors)
+    int queue[MAX_SIZE * MAX_SIZE][2];
+    int queue_start = 0;
+    int queue_end = 0;
+
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+            if (working_grid[r][c] == '@' && neighbor_count[r][c] < 4) {
+                queue[queue_end][0] = r;
+                queue[queue_end][1] = c;
+                queue_end++;
+            }
+        }
+    }
+
     int total_removed = 0;
 
-    while (1) {
-        // Find all accessible rolls
-        int accessible_positions[MAX_SIZE * MAX_SIZE][2];
-        int accessible_count = 0;
+    // Process queue
+    while (queue_start < queue_end) {
+        int r = queue[queue_start][0];
+        int c = queue[queue_start][1];
+        queue_start++;
 
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                if (working_grid[r][c] == '@') {
-                    int neighbors = count_neighbors(r, c, working_grid);
-                    if (neighbors < 4) {
-                        accessible_positions[accessible_count][0] = r;
-                        accessible_positions[accessible_count][1] = c;
-                        accessible_count++;
-                    }
+        // Skip if already removed
+        if (working_grid[r][c] != '@') {
+            continue;
+        }
+
+        // Remove this roll
+        working_grid[r][c] = '.';
+        total_removed++;
+
+        // Decrement neighbor counts for all adjacent rolls
+        for (int i = 0; i < 8; i++) {
+            int nr = r + dx[i];
+            int nc = c + dy[i];
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && working_grid[nr][nc] == '@') {
+                neighbor_count[nr][nc]--;
+                // If this neighbor just became accessible, add to queue
+                if (neighbor_count[nr][nc] == 3) {
+                    queue[queue_end][0] = nr;
+                    queue[queue_end][1] = nc;
+                    queue_end++;
                 }
             }
         }
-
-        // If no accessible rolls found, stop
-        if (accessible_count == 0) {
-            break;
-        }
-
-        // Remove all accessible rolls
-        for (int i = 0; i < accessible_count; i++) {
-            int r = accessible_positions[i][0];
-            int c = accessible_positions[i][1];
-            working_grid[r][c] = '.';
-        }
-
-        total_removed += accessible_count;
     }
 
     return total_removed;

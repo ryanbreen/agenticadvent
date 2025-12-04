@@ -1,116 +1,130 @@
 #!/bin/bash
 
-# Read the input file into an array
+# Day 4: Printing Department - Optimized Pure Bash Solution
+#
+# Key optimizations over naive implementation:
+# 1. Global variables instead of subshells (125x faster per call)
+# 2. Parallel arrays for directions (no here-string parsing)
+# 3. Work-queue algorithm for Part 2 (O(rolls) vs O(iterations × cells))
+# 4. Sparse arrays for O(1) roll existence checks
+# 5. Precomputed neighbor lists with word-splitting iteration
+
 input_file="../input.txt"
 
-# Read file line by line into array (compatible with older bash)
-grid=()
-while IFS= read -r line; do
-    grid+=("$line")
-done < "$input_file"
+# ============== INPUT PARSING ==============
+# Read input using efficient pattern matching to find @ positions
+declare -a roll_at roll_positions pos_to_index
+num_rolls=0
+cols=0
+rows=0
 
-rows=${#grid[@]}
-cols=${#grid[0]}
+# Read all lines
+lines=()
+while IFS= read -r line; do lines+=("$line"); done < "$input_file"
 
-# 8 directions: N, NE, E, SE, S, SW, W, NW
-directions=("-1 -1" "-1 0" "-1 1" "0 -1" "0 1" "1 -1" "1 0" "1 1")
+rows=${#lines[@]}
+cols=${#lines[0]}
 
-# Function to count adjacent rolls at a given position
-count_adjacent() {
-    local r=$1
-    local c=$2
-    local count=0
+# Find all @ positions using pattern matching (faster than per-char loop)
+for ((r=0; r<rows; r++)); do
+    line="${lines[r]}"
+    tmp="$line"
+    c=0
+    while [[ "$tmp" == *@* ]]; do
+        prefix="${tmp%%@*}"
+        c=$((c + ${#prefix}))
+        pos=$((r * cols + c))
+        roll_at[$pos]=1
+        pos_to_index[$pos]=$num_rolls
+        roll_positions[$num_rolls]=$pos
+        ((num_rolls++))
+        ((c++))
+        tmp="${tmp#*@}"
+    done
+done
 
-    for dir in "${directions[@]}"; do
-        local dr dc
-        read -r dr dc <<< "$dir"
-        local nr=$((r + dr))
-        local nc=$((c + dc))
+# ============== PRECOMPUTE NEIGHBORS ==============
+# Store neighbors as space-separated strings for fast word-split iteration
+declare -a roll_neighbors
 
-        # Check bounds
-        if [[ $nr -ge 0 && $nr -lt $rows && $nc -ge 0 && $nc -lt $cols ]]; then
-            # Check if it's a roll
-            local char="${grid[$nr]:$nc:1}"
-            if [[ "$char" == "@" ]]; then
-                ((count++))
+for ((i=0; i<num_rolls; i++)); do
+    pos=${roll_positions[i]}
+    r=$((pos / cols))
+    c=$((pos % cols))
+    n=""
+    
+    # 8 directions with boundary checks
+    ((r > 0 && c > 0)) && n+="$((pos - cols - 1)) "
+    ((r > 0)) && n+="$((pos - cols)) "
+    ((r > 0 && c < cols-1)) && n+="$((pos - cols + 1)) "
+    ((c > 0)) && n+="$((pos - 1)) "
+    ((c < cols-1)) && n+="$((pos + 1)) "
+    ((r < rows-1 && c > 0)) && n+="$((pos + cols - 1)) "
+    ((r < rows-1)) && n+="$((pos + cols)) "
+    ((r < rows-1 && c < cols-1)) && n+="$((pos + cols + 1)) "
+    
+    roll_neighbors[$i]=$n
+done
+
+# ============== PART 1 ==============
+# Count rolls with fewer than 4 neighbors
+p1=0
+for ((i=0; i<num_rolls; i++)); do
+    cnt=0
+    for np in ${roll_neighbors[i]}; do
+        ((roll_at[np])) && ((cnt++))
+    done
+    ((cnt < 4)) && ((p1++))
+done
+echo "Part 1: $p1"
+
+# ============== PART 2 ==============
+# Work-queue algorithm: only recheck neighbors of removed rolls
+
+# Copy active state
+declare -a active
+for pos in "${!roll_at[@]}"; do active[$pos]=1; done
+
+# Compute initial neighbor counts
+declare -a ncnt
+for ((i=0; i<num_rolls; i++)); do
+    c=0
+    for np in ${roll_neighbors[i]}; do
+        ((active[np])) && ((c++))
+    done
+    ncnt[$i]=$c
+done
+
+# Initialize queue with accessible rolls (neighbor count < 4)
+queue=""
+declare -a inq
+for ((i=0; i<num_rolls; i++)); do
+    ((ncnt[i] < 4)) && { queue+="$i "; inq[$i]=1; }
+done
+
+# Process queue
+p2=0
+while [[ -n "$queue" ]]; do
+    next_queue=""
+    for idx in $queue; do
+        pos=${roll_positions[idx]}
+        ((active[pos])) || continue
+        
+        # Remove this roll
+        unset active[$pos]
+        ((p2++))
+        
+        # Update neighbors - only they might become newly accessible
+        for np in ${roll_neighbors[idx]}; do
+            if ((active[np])); then
+                ni=${pos_to_index[np]}
+                ((ncnt[ni]--))
+                # Add to queue if now accessible and not already queued
+                ((ncnt[ni] < 4 && !inq[ni])) && { next_queue+="$ni "; inq[$ni]=1; }
             fi
-        fi
-    done
-
-    echo "$count"
-}
-
-# Part 1: Count accessible rolls (fewer than 4 adjacent rolls)
-part1() {
-    local accessible=0
-
-    for ((r=0; r<rows; r++)); do
-        for ((c=0; c<cols; c++)); do
-            local char="${grid[$r]:$c:1}"
-            if [[ "$char" == "@" ]]; then
-                local adj_count=$(count_adjacent "$r" "$c")
-                if [[ $adj_count -lt 4 ]]; then
-                    ((accessible++))
-                fi
-            fi
         done
     done
+    queue=$next_queue
+done
 
-    echo "$accessible"
-}
-
-# Part 2: Iteratively remove accessible rolls
-part2() {
-    # Create a mutable copy of the grid
-    local -a working_grid=()
-    for line in "${grid[@]}"; do
-        working_grid+=("$line")
-    done
-
-    local total_removed=0
-
-    while true; do
-        local -a removable=()
-
-        # Find all removable rolls in this iteration
-        for ((r=0; r<rows; r++)); do
-            for ((c=0; c<cols; c++)); do
-                local char="${working_grid[$r]:$c:1}"
-                if [[ "$char" == "@" ]]; then
-                    # Use count_adjacent helper, but need to pass working_grid
-                    # Since count_adjacent uses global grid array, temporarily swap it
-                    local -a original_grid=("${grid[@]}")
-                    grid=("${working_grid[@]}")
-                    local adj_count=$(count_adjacent "$r" "$c")
-                    grid=("${original_grid[@]}")
-
-                    # If fewer than 4 adjacent rolls, mark for removal
-                    if [[ $adj_count -lt 4 ]]; then
-                        removable+=("$r $c")
-                    fi
-                fi
-            done
-        done
-
-        # If no rolls can be removed, we're done
-        if [[ ${#removable[@]} -eq 0 ]]; then
-            break
-        fi
-
-        # Remove all accessible rolls
-        for pos in "${removable[@]}"; do
-            local r c
-            read -r r c <<< "$pos"
-            # Replace character at position with '.'
-            working_grid[$r]="${working_grid[$r]:0:$c}.${working_grid[$r]:$((c+1))}"
-        done
-
-        total_removed=$((total_removed + ${#removable[@]}))
-    done
-
-    echo "$total_removed"
-}
-
-# Run both parts
-echo "Part 1: $(part1)"
-echo "Part 2: $(part2)"
+echo "Part 2: $p2"
