@@ -7,6 +7,36 @@ $input_text = rtrim($input_text);
 // Parse input
 $lines = explode("\n", $input_text);
 
+// Directions for 8 neighbors (including diagonals)
+const DIRECTIONS = [
+    [-1, -1], [-1, 0], [-1, 1],
+    [0, -1],           [0, 1],
+    [1, -1],  [1, 0],  [1, 1]
+];
+
+/**
+ * Count the number of adjacent rolls ('@') around position ($r, $c).
+ */
+function count_adjacent_rolls($grid, $r, $c) {
+    $rows = is_array($grid) && count($grid) > 0 ? (is_array($grid[0]) ? count($grid) : count($grid)) : 0;
+    $cols = is_array($grid) && count($grid) > 0 ? (is_array($grid[0]) ? count($grid[0]) : strlen($grid[0])) : 0;
+    $count = 0;
+
+    foreach (DIRECTIONS as [$dr, $dc]) {
+        $nr = $r + $dr;
+        $nc = $c + $dc;
+        // Check bounds
+        if ($nr >= 0 && $nr < $rows && $nc >= 0 && $nc < $cols) {
+            $cell = is_array($grid[$nr]) ? $grid[$nr][$nc] : $grid[$nr][$nc];
+            if ($cell === '@') {
+                $count++;
+            }
+        }
+    }
+
+    return $count;
+}
+
 function part1($lines) {
     /**
      * Count rolls of paper that can be accessed by a forklift.
@@ -18,31 +48,12 @@ function part1($lines) {
     $rows = count($grid);
     $cols = $rows > 0 ? strlen($grid[0]) : 0;
 
-    // Directions for 8 neighbors (including diagonals)
-    $directions = [
-        [-1, -1], [-1, 0], [-1, 1],
-        [0, -1],           [0, 1],
-        [1, -1],  [1, 0],  [1, 1]
-    ];
-
     $accessible_count = 0;
 
     for ($r = 0; $r < $rows; $r++) {
         for ($c = 0; $c < $cols; $c++) {
             if ($grid[$r][$c] === '@') {
-                // Count adjacent rolls
-                $adjacent_rolls = 0;
-                foreach ($directions as [$dr, $dc]) {
-                    $nr = $r + $dr;
-                    $nc = $c + $dc;
-                    // Check bounds
-                    if ($nr >= 0 && $nr < $rows && $nc >= 0 && $nc < $cols) {
-                        if ($grid[$nr][$nc] === '@') {
-                            $adjacent_rolls++;
-                        }
-                    }
-                }
-
+                $adjacent_rolls = count_adjacent_rolls($grid, $r, $c);
                 // Accessible if fewer than 4 adjacent rolls
                 if ($adjacent_rolls < 4) {
                     $accessible_count++;
@@ -71,13 +82,6 @@ function part2($lines) {
     $rows = count($grid);
     $cols = $rows > 0 ? count($grid[0]) : 0;
 
-    // Directions for 8 neighbors (including diagonals)
-    $directions = [
-        [-1, -1], [-1, 0], [-1, 1],
-        [0, -1],           [0, 1],
-        [1, -1],  [1, 0],  [1, 1]
-    ];
-
     $total_removed = 0;
 
     while (true) {
@@ -87,19 +91,7 @@ function part2($lines) {
         for ($r = 0; $r < $rows; $r++) {
             for ($c = 0; $c < $cols; $c++) {
                 if ($grid[$r][$c] === '@') {
-                    // Count adjacent rolls
-                    $adjacent_rolls = 0;
-                    foreach ($directions as [$dr, $dc]) {
-                        $nr = $r + $dr;
-                        $nc = $c + $dc;
-                        // Check bounds
-                        if ($nr >= 0 && $nr < $rows && $nc >= 0 && $nc < $cols) {
-                            if ($grid[$nr][$nc] === '@') {
-                                $adjacent_rolls++;
-                            }
-                        }
-                    }
-
+                    $adjacent_rolls = count_adjacent_rolls($grid, $r, $c);
                     // Can be removed if fewer than 4 adjacent rolls
                     if ($adjacent_rolls < 4) {
                         $removable[] = [$r, $c];

@@ -8,18 +8,39 @@ const input = readFileSync(join(__dirname, '..', 'input.txt'), 'utf-8').trim();
 // Parse input
 const lines = input.split('\n');
 
+// Direction offsets for 8 neighbors (including diagonals)
+const DIRECTIONS = [
+  [-1, -1], [-1, 0], [-1, 1],  // top-left, top, top-right
+  [0, -1],           [0, 1],   // left, right
+  [1, -1],  [1, 0],  [1, 1]    // bottom-left, bottom, bottom-right
+];
+
+// Count the number of adjacent rolls ('@') around position (row, col)
+function countAdjacentRolls(grid, row, col) {
+  const rows = grid.length;
+  const cols = grid[0].length;
+  let count = 0;
+
+  for (const [dr, dc] of DIRECTIONS) {
+    const newRow = row + dr;
+    const newCol = col + dc;
+
+    // Check if neighbor is within bounds and is a paper roll
+    if (newRow >= 0 && newRow < rows &&
+        newCol >= 0 && newCol < cols &&
+        grid[newRow][newCol] === '@') {
+      count++;
+    }
+  }
+
+  return count;
+}
+
 // Part 1
 function part1() {
   const grid = lines.map(line => line.split(''));
   const rows = grid.length;
   const cols = grid[0].length;
-
-  // Direction offsets for 8 neighbors (including diagonals)
-  const directions = [
-    [-1, -1], [-1, 0], [-1, 1],  // top-left, top, top-right
-    [0, -1],           [0, 1],   // left, right
-    [1, -1],  [1, 0],  [1, 1]    // bottom-left, bottom, bottom-right
-  ];
 
   let accessibleCount = 0;
 
@@ -28,21 +49,7 @@ function part1() {
     for (let col = 0; col < cols; col++) {
       // Only count if this cell contains a paper roll
       if (grid[row][col] === '@') {
-        // Count adjacent paper rolls
-        let adjacentRolls = 0;
-
-        for (const [dr, dc] of directions) {
-          const newRow = row + dr;
-          const newCol = col + dc;
-
-          // Check if neighbor is within bounds and is a paper roll
-          if (newRow >= 0 && newRow < rows &&
-              newCol >= 0 && newCol < cols &&
-              grid[newRow][newCol] === '@') {
-            adjacentRolls++;
-          }
-        }
-
+        const adjacentRolls = countAdjacentRolls(grid, row, col);
         // A roll is accessible if it has fewer than 4 adjacent rolls
         if (adjacentRolls < 4) {
           accessibleCount++;
@@ -61,13 +68,6 @@ function part2() {
   const rows = grid.length;
   const cols = grid[0].length;
 
-  // Direction offsets for 8 neighbors (including diagonals)
-  const directions = [
-    [-1, -1], [-1, 0], [-1, 1],  // top-left, top, top-right
-    [0, -1],           [0, 1],   // left, right
-    [1, -1],  [1, 0],  [1, 1]    // bottom-left, bottom, bottom-right
-  ];
-
   let totalRemoved = 0;
 
   // Loop until no more rolls can be removed
@@ -79,21 +79,7 @@ function part2() {
       for (let col = 0; col < cols; col++) {
         // Only check cells that still contain a paper roll
         if (grid[row][col] === '@') {
-          // Count adjacent paper rolls
-          let adjacentRolls = 0;
-
-          for (const [dr, dc] of directions) {
-            const newRow = row + dr;
-            const newCol = col + dc;
-
-            // Check if neighbor is within bounds and is a paper roll
-            if (newRow >= 0 && newRow < rows &&
-                newCol >= 0 && newCol < cols &&
-                grid[newRow][newCol] === '@') {
-              adjacentRolls++;
-            }
-          }
-
+          const adjacentRolls = countAdjacentRolls(grid, row, col);
           // A roll can be removed if it has fewer than 4 adjacent rolls
           if (adjacentRolls < 4) {
             rollsToRemove.push([row, col]);

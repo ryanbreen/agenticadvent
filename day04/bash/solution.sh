@@ -77,21 +77,12 @@ part2() {
             for ((c=0; c<cols; c++)); do
                 local char="${working_grid[$r]:$c:1}"
                 if [[ "$char" == "@" ]]; then
-                    # Count adjacent rolls in the working grid
-                    local adj_count=0
-                    for dir in "${directions[@]}"; do
-                        local dr dc
-                        read -r dr dc <<< "$dir"
-                        local nr=$((r + dr))
-                        local nc=$((c + dc))
-
-                        if [[ $nr -ge 0 && $nr -lt $rows && $nc -ge 0 && $nc -lt $cols ]]; then
-                            local neighbor="${working_grid[$nr]:$nc:1}"
-                            if [[ "$neighbor" == "@" ]]; then
-                                ((adj_count++))
-                            fi
-                        fi
-                    done
+                    # Use count_adjacent helper, but need to pass working_grid
+                    # Since count_adjacent uses global grid array, temporarily swap it
+                    local -a original_grid=("${grid[@]}")
+                    grid=("${working_grid[@]}")
+                    local adj_count=$(count_adjacent "$r" "$c")
+                    grid=("${original_grid[@]}")
 
                     # If fewer than 4 adjacent rolls, mark for removal
                     if [[ $adj_count -lt 4 ]]; then

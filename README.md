@@ -105,11 +105,11 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Tim
 | ARM64 asm   | 10.3         | 1.9         |
 | Rust        | 48.6         | 1.9         |
 | Java        | 72.5         | 48.5        |
+| Lisp        | 74.9         | 40.6        |
 | Go          | 75.5         | 27.1        |
 | Node.js     | 88.6         | 53.1        |
 | PHP         | 160.0        | 26.4        |
 | Python      | 260.6        | 16.3        |
-| Lisp        | 301.7        | 45.3        |
 | Ruby        | 424.5        | 29.9        |
 | Perl        | 502.3        | 8.5         |
 | Clojure     | 658.6        | 537.5       |

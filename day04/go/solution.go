@@ -6,6 +6,18 @@ import (
 	"os"
 )
 
+// 8 directions: N, NE, E, SE, S, SW, W, NW
+var directions = [][2]int{
+	{-1, 0},  // N
+	{-1, 1},  // NE
+	{0, 1},   // E
+	{1, 1},   // SE
+	{1, 0},   // S
+	{1, -1},  // SW
+	{0, -1},  // W
+	{-1, -1}, // NW
+}
+
 func readInput(filename string) ([][]rune, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -31,18 +43,6 @@ func countNeighbors(grid [][]rune, row, col int) int {
 	count := 0
 	rows := len(grid)
 	cols := len(grid[0])
-
-	// 8 directions: N, NE, E, SE, S, SW, W, NW
-	directions := [][2]int{
-		{-1, 0},  // N
-		{-1, 1},  // NE
-		{0, 1},   // E
-		{1, 1},   // SE
-		{1, 0},   // S
-		{1, -1},  // SW
-		{0, -1},  // W
-		{-1, -1}, // NW
-	}
 
 	for _, dir := range directions {
 		newRow := row + dir[0]
