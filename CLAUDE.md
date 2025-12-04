@@ -1,26 +1,31 @@
-# Advent of Code 2025 - Project Guidelines
+# Advent of Code - Project Guidelines
 
 ## Overview
-This project solves Advent of Code 2025 challenges in both Node.js and Python, with automated problem extraction via Playwright.
+This project solves Advent of Code challenges across multiple years in 16 languages, with automated problem extraction via Playwright.
 
 ## Project Structure
 ```
-advent2025/
+advent/
 ├── CLAUDE.md
-├── runner/                    # AoC runner utilities
+├── README.md
+├── runner/                    # AoC runner utilities (shared)
 │   ├── package.json
 │   ├── session.js            # Playwright session management
 │   ├── extract.js            # Problem/input extraction
+│   ├── benchmark.py          # Benchmarking script
 │   └── auth-state.json       # Persisted browser session (gitignored)
-├── day01/
-│   ├── problem.md            # Extracted problem statement (both parts)
-│   ├── input.txt             # Puzzle input for this account
-│   ├── node/
-│   │   ├── solution.js       # Node.js solution
-│   │   └── package.json
-│   └── python/
-│       └── solution.py       # Python solution
-├── day02/
+├── 2024/
+│   ├── day01/
+│   │   ├── problem.md
+│   │   ├── input.txt
+│   │   ├── node/solution.js
+│   │   ├── python/solution.py
+│   │   └── ... (other languages)
+│   ├── day02/
+│   └── ...
+├── 2025/
+│   ├── day01/
+│   ├── day02/
 │   └── ...
 └── ...
 ```
@@ -99,8 +104,8 @@ Expected output: Part 1: 1150, Part 2: 6738
 **Example - DO this:**
 ```
 Implement Day 1 in Go.
-Read day01/problem.md for the problem description.
-Reference day01/python/solution.py for the algorithm.
+Read 2025/day01/problem.md for the problem description.
+Reference 2025/day01/python/solution.py for the algorithm.
 Run your solution and report the output.
 ```
 
@@ -108,20 +113,19 @@ Run your solution and report the output.
 
 Every solution must be benchmarked after implementation. When an agent completes a solution, they are responsible for:
 
-1. **Running the benchmark** using `/usr/bin/time -l` (macOS) or equivalent
+1. **Running the benchmark** using the benchmark script
 2. **Recording metrics** in the README.md benchmark tables
 3. **Metrics to capture**:
-   - **Runtime**: Total wall-clock time (real time in seconds)
+   - **Runtime**: Total wall-clock time (in milliseconds)
    - **Memory**: Peak memory footprint (in MB)
-   - **CPU**: User + System time (in seconds)
 
 **Benchmark command format:**
 
 Use the high-precision benchmark script for accurate millisecond timing:
 ```bash
 # From the project root - runs command 3-5 times and averages
-python3 runner/benchmark.py "cd day01/c && ./solution" 5
-python3 runner/benchmark.py "cd day01/python && python3 solution.py" 5
+python3 runner/benchmark.py "cd 2025/day01/c && ./solution" 5
+python3 runner/benchmark.py "cd 2025/day01/python && python3 solution.py" 5
 ```
 
 The script outputs:
@@ -133,15 +137,6 @@ The script outputs:
 **Updating README.md:**
 After benchmarking, update the appropriate table in README.md with the results. Each day has a benchmark table organized by language showing Part 1+2 combined performance.
 
-**Example benchmark table format:**
-```markdown
-| Language | Runtime (s) | Memory (MB) | CPU (s) |
-|----------|-------------|-------------|---------|
-| C        | 0.02        | 1.2         | 0.01    |
-| Rust     | 0.03        | 2.1         | 0.02    |
-| Python   | 0.45        | 12.3        | 0.44    |
-```
-
 Solutions should be run from their respective directories with the input file at `../input.txt`.
 
 ## Playwright Session Management
@@ -152,22 +147,24 @@ Solutions should be run from their respective directories with the input file at
 
 ## Workflow
 1. Launch Playwright browser for login (if needed)
-2. Extract problem statement to `dayXX/problem.md`
-3. Extract input to `dayXX/input.txt`
-4. Implement solution in both `node/` and `python/`
-5. Run and verify answers match
+2. Extract problem statement to `<year>/dayXX/problem.md`
+3. Extract input to `<year>/dayXX/input.txt`
+4. Implement solution in multiple languages
+5. Run and verify answers match across implementations
 
 ## Commands
 ```bash
 # Start login session (opens browser for manual GitHub auth)
 node runner/session.js login
 
-# Extract problem for a specific day
+# Extract problem for a specific day and year
+node runner/extract.js --year 2024 --day 1
+node runner/extract.js 2024 1  # Shorthand
+
+# Extract for current year
 node runner/extract.js --day 1
 
-# Run Node solution
-node day01/node/solution.js
-
-# Run Python solution
-python day01/python/solution.py
+# Run solutions (from year directory)
+node 2025/day01/node/solution.js
+python 2025/day01/python/solution.py
 ```

@@ -1,6 +1,10 @@
-# Advent of Code 2025
+# Advent of Code
 
-Solutions to [Advent of Code 2025](https://adventofcode.com/2025) implemented in multiple programming languages, solved collaboratively with Claude.
+Solutions to [Advent of Code](https://adventofcode.com/) challenges across multiple years, implemented in 16 programming languages, solved collaboratively with Claude.
+
+## Years
+- [2025](#2025) - In progress
+- [2024](#2024) - Coming soon
 
 ## Approach
 
@@ -17,7 +21,11 @@ This project takes a unique approach to Advent of Code:
    - Problem and input extraction
    - Answer submission
 
-## Progress
+---
+
+## 2025
+
+### Progress
 
 | Day | Stars | Languages |
 |-----|-------|-----------|
@@ -26,7 +34,7 @@ This project takes a unique approach to Advent of Code:
 | 3   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 4   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
-## Benchmarks
+### Benchmarks
 
 All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Times shown in milliseconds for precision.
 
@@ -116,35 +124,47 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs. Tim
 | ColdFusion  | 3,613.0      | 1,119.9     |
 | Bash        | 7,068        | 8.5         |
 
+---
+
+## 2024
+
+*Coming soon*
+
+---
+
 ## Project Structure
 
 ```
-advent2025/
+advent/
 ├── README.md
 ├── CLAUDE.md              # Project guidelines for Claude
-├── runner/                # AoC automation tools
+├── runner/                # AoC automation tools (shared)
 │   ├── session.js         # Login/session management
 │   ├── extract.js         # Problem & input extraction
+│   ├── benchmark.py       # Performance benchmarking
 │   └── submit.js          # Answer submission
-└── dayXX/
-    ├── problem.md         # Extracted problem statement
-    ├── input.txt          # Puzzle input
-    ├── arm64/solution.s   # ARM64 assembly (macOS)
-    ├── c/solution.c
-    ├── cpp/solution.cpp
-    ├── rust/src/main.rs
-    ├── zig/solution.zig
-    ├── go/solution.go
-    ├── java/Solution.java
-    ├── node/solution.js
-    ├── python/solution.py
-    ├── ruby/solution.rb
-    ├── php/solution.php
-    ├── perl/solution.pl
-    ├── bash/solution.sh
-    ├── clojure/solution.clj
-    ├── lisp/solution.lisp
-    └── coldfusion/solution.cfm
+├── 2024/
+│   └── dayXX/             # Same structure as 2025
+└── 2025/
+    └── dayXX/
+        ├── problem.md     # Extracted problem statement
+        ├── input.txt      # Puzzle input
+        ├── arm64/         # ARM64 assembly (macOS)
+        ├── c/
+        ├── cpp/
+        ├── rust/
+        ├── zig/
+        ├── go/
+        ├── java/
+        ├── node/
+        ├── python/
+        ├── ruby/
+        ├── php/
+        ├── perl/
+        ├── bash/
+        ├── clojure/
+        ├── lisp/
+        └── coldfusion/
 ```
 
 ## Running Solutions
@@ -163,37 +183,27 @@ node session.js login
 ### Extract a Day's Problem
 
 ```bash
+# Extract with year
+node runner/extract.js --year 2024 --day 1
+node runner/extract.js 2024 1  # Shorthand
+
+# Current year (defaults to 2025)
 node runner/extract.js --day 1
 ```
 
 ### Run Solutions
 
 ```bash
-# Compiled languages (build first)
-cd day01/arm64 && make && ./solution    # ARM64 assembly (macOS only)
-gcc -O2 -o solution day01/c/solution.c && ./solution
-g++ -std=c++17 -O2 -o solution day01/cpp/solution.cpp && ./solution
-cd day01/rust && cargo run --release
-cd day01/zig && zig build-exe solution.zig -O ReleaseFast -femit-bin=solution && ./solution
-cd day01/go && go run solution.go
-cd day01/java && javac Solution.java && java Solution
+# From the year directory (e.g., 2025/)
+cd 2025/day01/c && gcc -O2 -o solution solution.c && ./solution
+cd 2025/day01/rust && cargo run --release
+cd 2025/day01/go && go run solution.go
 
 # Interpreted languages
-node day01/node/solution.js
-python3 day01/python/solution.py
-ruby day01/ruby/solution.rb
-perl day01/perl/solution.pl
-bash day01/bash/solution.sh
-clojure -M day01/clojure/solution.clj
-sbcl --script day01/lisp/solution.lisp
-box day01/coldfusion/solution.cfm  # Requires CommandBox
-```
-
-### Submit an Answer
-
-```bash
-node runner/submit.js <day> <part> <answer>
-# e.g., node runner/submit.js 1 1 1150
+python3 2025/day01/python/solution.py
+node 2025/day01/node/solution.js
+ruby 2025/day01/ruby/solution.rb
+bash 2025/day01/bash/solution.sh
 ```
 
 ## Philosophy

@@ -6,15 +6,18 @@ import { createAuthenticatedContext, hasAuthState } from './session.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..');
-const AOC_BASE = 'https://adventofcode.com/2025';
 
-function getDayDir(day) {
-  const dayStr = String(day).padStart(2, '0');
-  return join(PROJECT_ROOT, `day${dayStr}`);
+function getAocBase(year) {
+  return `https://adventofcode.com/${year}`;
 }
 
-function ensureDayStructure(day) {
-  const dayDir = getDayDir(day);
+function getDayDir(year, day) {
+  const dayStr = String(day).padStart(2, '0');
+  return join(PROJECT_ROOT, String(year), `day${dayStr}`);
+}
+
+function ensureDayStructure(year, day) {
+  const dayDir = getDayDir(year, day);
   const nodeDir = join(dayDir, 'node');
   const pythonDir = join(dayDir, 'python');
 
@@ -87,8 +90,8 @@ if __name__ == "__main__":
   return dayDir;
 }
 
-async function extractProblem(page, day) {
-  const url = `${AOC_BASE}/day/${day}`;
+async function extractProblem(page, year, day) {
+  const url = `${getAocBase(year)}/day/${day}`;
   console.log(`Fetching problem from ${url}...`);
 
   await page.goto(url);
@@ -146,8 +149,8 @@ async function extractProblem(page, day) {
   return markdown.trim();
 }
 
-async function extractInput(page, day) {
-  const url = `${AOC_BASE}/day/${day}/input`;
+async function extractInput(page, year, day) {
+  const url = `${getAocBase(year)}/day/${day}/input`;
   console.log(`Fetching input from ${url}...`);
 
   await page.goto(url);
@@ -158,13 +161,13 @@ async function extractInput(page, day) {
   return input;
 }
 
-async function extractDay(day) {
+async function extractDay(year, day) {
   if (!hasAuthState()) {
     console.error('No saved session. Run "node session.js login" first.');
     process.exit(1);
   }
 
-  console.log(`\n=== Extracting Day ${day} ===\n`);
+  console.log(`\n=== Extracting Year ${year} Day ${day} ===\n`);
 
   const browser = await chromium.launch({ headless: true });
   const context = await createAuthenticatedContext(browser);
@@ -172,17 +175,17 @@ async function extractDay(day) {
 
   try {
     // Extract problem statement
-    const problem = await extractProblem(page, day);
+    const problem = await extractProblem(page, year, day);
     if (!problem) {
       await browser.close();
       return;
     }
 
     // Extract input
-    const input = await extractInput(page, day);
+    const input = await extractInput(page, year, day);
 
     // Set up directory structure and save files
-    const dayDir = ensureDayStructure(day);
+    const dayDir = ensureDayStructure(year, day);
 
     const problemPath = join(dayDir, 'problem.md');
     const inputPath = join(dayDir, 'input.txt');
@@ -207,24 +210,38 @@ async function extractDay(day) {
 // CLI handling
 const args = process.argv.slice(2);
 let day = null;
+let year = new Date().getFullYear(); // Default to current year
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--day' || args[i] === '-d') {
     day = parseInt(args[i + 1], 10);
-    break;
-  }
-  // Also support just a number
-  const num = parseInt(args[i], 10);
-  if (!isNaN(num)) {
-    day = num;
-    break;
+    i++;
+  } else if (args[i] === '--year' || args[i] === '-y') {
+    year = parseInt(args[i + 1], 10);
+    i++;
+  } else {
+    // Support positional: year day (e.g., "2024 1")
+    const num = parseInt(args[i], 10);
+    if (!isNaN(num)) {
+      if (num > 2000) {
+        year = num;
+      } else {
+        day = num;
+      }
+    }
   }
 }
 
 if (!day || day < 1 || day > 25) {
-  console.log('Usage: node extract.js --day <1-25>');
-  console.log('   or: node extract.js <day>');
+  console.log('Usage: node extract.js --year <year> --day <1-25>');
+  console.log('   or: node extract.js <year> <day>');
+  console.log('   or: node extract.js <day>  (uses current year)');
   process.exit(1);
 }
 
-await extractDay(day);
+if (year < 2015 || year > new Date().getFullYear()) {
+  console.log(`Invalid year: ${year}. AoC started in 2015.`);
+  process.exit(1);
+}
+
+await extractDay(year, day);
