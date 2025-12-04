@@ -211,18 +211,22 @@ part1:
     // Sort left list
     adrp x0, left_list@PAGE
     add x0, x0, left_list@PAGEOFF
-    adrp x1, num_count@PAGE
-    add x1, x1, num_count@PAGEOFF
-    ldr x1, [x1]
-    bl bubble_sort
+    mov x1, #0  // low = 0
+    adrp x2, num_count@PAGE
+    add x2, x2, num_count@PAGEOFF
+    ldr x2, [x2]
+    sub x2, x2, #1  // high = count - 1
+    bl quicksort
 
     // Sort right list
     adrp x0, right_list@PAGE
     add x0, x0, right_list@PAGEOFF
-    adrp x1, num_count@PAGE
-    add x1, x1, num_count@PAGEOFF
-    ldr x1, [x1]
-    bl bubble_sort
+    mov x1, #0  // low = 0
+    adrp x2, num_count@PAGE
+    add x2, x2, num_count@PAGEOFF
+    ldr x2, [x2]
+    sub x2, x2, #1  // high = count - 1
+    bl quicksort
 
     // Calculate total distance
     adrp x19, left_list@PAGE
@@ -249,49 +253,104 @@ part1_done:
     ldp x29, x30, [sp], #16
     ret
 
-// Bubble sort
-// x0 = array, x1 = length
-bubble_sort:
+// Quicksort
+// x0 = array, x1 = low, x2 = high
+quicksort:
     stp x29, x30, [sp, #-16]!
     mov x29, sp
     stp x19, x20, [sp, #-16]!
     stp x21, x22, [sp, #-16]!
 
     mov x19, x0  // Array
-    mov x20, x1  // Length
-    cbz x20, bs_done
-    cmp x20, #1
-    b.le bs_done
+    mov x20, x1  // Low
+    mov x21, x2  // High
 
-bs_outer:
-    mov x21, #0  // i
-    sub x22, x20, #1  // n-1
+    // Base case: if low >= high, return
+    cmp x20, x21
+    b.ge qs_done
 
-bs_inner:
-    cmp x21, x22
-    b.ge bs_outer_check
+    // Partition
+    mov x0, x19  // array
+    mov x1, x20  // low
+    mov x2, x21  // high
+    bl partition
+    mov x22, x0  // pivot_index
 
-    // Compare array[i] and array[i+1]
-    ldr x3, [x19, x21, lsl #3]
-    add x4, x21, #1
-    ldr x5, [x19, x4, lsl #3]
+    // Recursively sort left partition: quicksort(arr, low, pivot_index - 1)
+    mov x0, x19
+    mov x1, x20
+    sub x2, x22, #1
+    bl quicksort
 
-    cmp x3, x5
-    b.le bs_no_swap
+    // Recursively sort right partition: quicksort(arr, pivot_index + 1, high)
+    mov x0, x19
+    add x1, x22, #1
+    mov x2, x21
+    bl quicksort
 
-    // Swap
-    str x5, [x19, x21, lsl #3]
-    str x3, [x19, x4, lsl #3]
+qs_done:
+    ldp x21, x22, [sp], #16
+    ldp x19, x20, [sp], #16
+    ldp x29, x30, [sp], #16
+    ret
 
-bs_no_swap:
-    add x21, x21, #1
-    b bs_inner
+// Partition function for quicksort
+// x0 = array, x1 = low, x2 = high
+// Returns pivot index in x0
+partition:
+    stp x29, x30, [sp, #-16]!
+    mov x29, sp
+    stp x19, x20, [sp, #-16]!
+    stp x21, x22, [sp, #-16]!
+    stp x23, x24, [sp, #-16]!
 
-bs_outer_check:
-    subs x22, x22, #1
-    b.gt bs_outer
+    mov x19, x0  // Array
+    mov x20, x1  // Low
+    mov x21, x2  // High
 
-bs_done:
+    // pivot = arr[high]
+    ldr x22, [x19, x21, lsl #3]
+
+    // i = low - 1
+    sub x23, x20, #1
+
+    // for j = low to high - 1
+    mov x24, x20  // j = low
+
+partition_loop:
+    cmp x24, x21
+    b.ge partition_done
+
+    // if arr[j] <= pivot
+    ldr x3, [x19, x24, lsl #3]
+    cmp x3, x22
+    b.gt partition_next
+
+    // i++
+    add x23, x23, #1
+
+    // swap(arr[i], arr[j])
+    ldr x4, [x19, x23, lsl #3]
+    ldr x5, [x19, x24, lsl #3]
+    str x5, [x19, x23, lsl #3]
+    str x4, [x19, x24, lsl #3]
+
+partition_next:
+    add x24, x24, #1
+    b partition_loop
+
+partition_done:
+    // swap(arr[i + 1], arr[high])
+    add x23, x23, #1
+    ldr x4, [x19, x23, lsl #3]
+    ldr x5, [x19, x21, lsl #3]
+    str x5, [x19, x23, lsl #3]
+    str x4, [x19, x21, lsl #3]
+
+    // return i + 1
+    mov x0, x23
+
+    ldp x23, x24, [sp], #16
     ldp x21, x22, [sp], #16
     ldp x19, x20, [sp], #16
     ldp x29, x30, [sp], #16
@@ -302,7 +361,6 @@ part2:
     stp x29, x30, [sp, #-16]!
     mov x29, sp
     stp x19, x20, [sp, #-16]!
-    stp x21, x22, [sp, #-16]!
 
     adrp x19, left_list@PAGE
     add x19, x19, left_list@PAGEOFF
@@ -342,7 +400,6 @@ part2_calc:
     b part2_outer
 
 part2_done:
-    ldp x21, x22, [sp], #16
     ldp x19, x20, [sp], #16
     ldp x29, x30, [sp], #16
     ret
