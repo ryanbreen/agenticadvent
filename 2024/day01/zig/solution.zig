@@ -60,13 +60,20 @@ pub fn main() !void {
         part1_sum += if (diff > 0) diff else -diff;
     }
 
-    // Part 2: Calculate similarity score
+    // Part 2: Calculate similarity score using hash map
+    var right_counts = std.AutoHashMap(i32, i32).init(allocator);
+    defer right_counts.deinit();
+
+    // Build frequency map of right list
+    for (right_list.items) |num| {
+        const count = right_counts.get(num) orelse 0;
+        try right_counts.put(num, count + 1);
+    }
+
+    // Calculate similarity score
     var part2_sum: i64 = 0;
     for (left_list.items) |num| {
-        var count: i32 = 0;
-        for (right_list.items) |r| {
-            if (r == num) count += 1;
-        }
+        const count = right_counts.get(num) orelse 0;
         part2_sum += @as(i64, num) * @as(i64, count);
     }
 

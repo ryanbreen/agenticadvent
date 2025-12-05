@@ -64,7 +64,6 @@ public class Solution {
             }
 
             // Try removing each level one at a time
-            boolean foundSafe = false;
             for (int i = 0; i < levels.size(); i++) {
                 List<Integer> modified = new ArrayList<>();
                 for (int j = 0; j < levels.size(); j++) {
@@ -74,7 +73,6 @@ public class Solution {
                 }
                 if (isSafe(modified)) {
                     safeCount++;
-                    foundSafe = true;
                     break;
                 }
             }

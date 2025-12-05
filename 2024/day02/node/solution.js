@@ -49,12 +49,10 @@ function part2() {
     }
 
     // Try removing each level one at a time
-    let foundSafe = false;
     for (let i = 0; i < levels.length; i++) {
       const modified = [...levels.slice(0, i), ...levels.slice(i + 1)];
       if (isSafe(modified)) {
         safeCount++;
-        foundSafe = true;
         break;
       }
     }

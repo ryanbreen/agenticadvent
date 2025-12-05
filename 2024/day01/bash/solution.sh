@@ -35,15 +35,11 @@ part1() {
 }
 
 part2() {
-    # For Bash 3.x compatibility, use grep to count occurrences
-    # Sort the right list once for efficient searching
-    local sorted_right=$(printf '%s\n' "${right_list[@]}" | sort -n)
-
     local similarity_score=0
 
     for num in "${left_list[@]}"; do
-        # Count occurrences of num in sorted_right using grep
-        local count=$(echo "$sorted_right" | grep -c "^${num}$")
+        # Count occurrences of num in right_list using grep
+        local count=$(printf '%s\n' "${right_list[@]}" | grep -c "^${num}$")
         similarity_score=$((similarity_score + num * count))
     done
 

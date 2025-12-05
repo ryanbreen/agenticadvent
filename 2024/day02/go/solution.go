@@ -67,18 +67,15 @@ func part2(lines []string) int {
 		}
 
 		// Try removing each level one at a time
-		foundSafe := false
 		for i := 0; i < len(levels); i++ {
 			modified := make([]int, 0, len(levels)-1)
 			modified = append(modified, levels[:i]...)
 			modified = append(modified, levels[i+1:]...)
 			if isSafe(modified) {
 				safeCount++
-				foundSafe = true
 				break
 			}
 		}
-		_ = foundSafe
 	}
 	return safeCount
 }
