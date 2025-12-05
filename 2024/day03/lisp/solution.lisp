@@ -61,13 +61,13 @@
 
 (defun try-parse-do (data pos)
   "Try to parse do() at position pos. Returns new-pos or nil."
-  (when (and (< (+ pos 4) (length data))
+  (when (and (<= (+ pos 4) (length data))
              (string= data "do()" :start1 pos :end1 (+ pos 4)))
     (+ pos 4)))
 
 (defun try-parse-dont (data pos)
   "Try to parse don't() at position pos. Returns new-pos or nil."
-  (when (and (< (+ pos 7) (length data))
+  (when (and (<= (+ pos 7) (length data))
              (string= data "don't()" :start1 pos :end1 (+ pos 7)))
     (+ pos 7)))
 

@@ -36,7 +36,7 @@ function part2(data) {
                 x: 0,
                 y: 0
             });
-            i++;
+            i += 7;
         }
         // Check for do()
         else if (mid(data, i, 4) == "do()") {
@@ -46,7 +46,7 @@ function part2(data) {
                 x: 0,
                 y: 0
             });
-            i++;
+            i += 4;
         }
         // Check for mul(
         else if (mid(data, i, 4) == "mul(") {
