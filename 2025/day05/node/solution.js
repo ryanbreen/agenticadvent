@@ -37,6 +37,9 @@ function part2() {
   // Sort ranges by start position
   const sortedRanges = [...ranges].sort((a, b) => a.start - b.start);
 
+  // Handle empty array edge case
+  if (sortedRanges.length === 0) return 0;
+
   // Merge overlapping ranges
   const mergedRanges = [];
   let current = sortedRanges[0];

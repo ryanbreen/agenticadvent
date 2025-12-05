@@ -3,14 +3,14 @@
 $input_text = file_get_contents(__DIR__ . '/../input.txt');
 $lines = explode("\n", trim($input_text));
 
-function part1($lines) {
+function parseInput($lines) {
     // Find the blank line separator
     $blank_idx = array_search("", $lines);
 
     // Parse ranges from the first section
     $ranges = [];
     for ($i = 0; $i < $blank_idx; $i++) {
-        list($start, $end) = array_map('intval', explode("-", $lines[$i]));
+        [$start, $end] = array_map('intval', explode("-", $lines[$i]));
         $ranges[] = [$start, $end];
     }
 
@@ -22,10 +22,16 @@ function part1($lines) {
         }
     }
 
+    return [$ranges, $ingredient_ids];
+}
+
+function part1($lines) {
+    [$ranges, $ingredient_ids] = parseInput($lines);
+
     // Count how many ingredient IDs fall within any range
     $fresh_count = 0;
     foreach ($ingredient_ids as $ingredient_id) {
-        foreach ($ranges as list($start, $end)) {
+        foreach ($ranges as [$start, $end]) {
             if ($ingredient_id >= $start && $ingredient_id <= $end) {
                 $fresh_count++;
                 break; // Found a match, no need to check other ranges
@@ -37,15 +43,7 @@ function part1($lines) {
 }
 
 function part2($lines) {
-    // Find the blank line separator
-    $blank_idx = array_search("", $lines);
-
-    // Parse ranges from the first section
-    $ranges = [];
-    for ($i = 0; $i < $blank_idx; $i++) {
-        list($start, $end) = array_map('intval', explode("-", $lines[$i]));
-        $ranges[] = [$start, $end];
-    }
+    [$ranges, $ingredient_ids] = parseInput($lines);
 
     // Sort ranges by start position
     usort($ranges, function($a, $b) {
@@ -54,7 +52,7 @@ function part2($lines) {
 
     // Merge overlapping ranges
     $merged = [];
-    foreach ($ranges as list($start, $end)) {
+    foreach ($ranges as [$start, $end]) {
         if (!empty($merged) && $start <= $merged[count($merged) - 1][1] + 1) {
             // Overlapping or adjacent - merge with the last range
             $last_idx = count($merged) - 1;
@@ -67,7 +65,7 @@ function part2($lines) {
 
     // Count total unique IDs covered by merged ranges
     $total_count = 0;
-    foreach ($merged as list($start, $end)) {
+    foreach ($merged as [$start, $end]) {
         $total_count += ($end - $start + 1);
     }
 

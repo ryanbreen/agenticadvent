@@ -53,6 +53,10 @@ long long part2(Range *ranges, int range_count) {
             }
         } else {
             // No overlap - add as new range
+            if (merged_count >= MAX_RANGES) {
+                fprintf(stderr, "Too many merged ranges (max %d)\n", MAX_RANGES);
+                exit(1);
+            }
             merged[merged_count].start = ranges[i].start;
             merged[merged_count].end = ranges[i].end;
             merged_count++;
@@ -97,6 +101,11 @@ int main() {
             // Parse range (format: "start-end")
             long long start, end;
             if (sscanf(line, "%lld-%lld", &start, &end) == 2) {
+                if (range_count >= MAX_RANGES) {
+                    fprintf(stderr, "Too many ranges (max %d)\n", MAX_RANGES);
+                    fclose(file);
+                    exit(1);
+                }
                 ranges[range_count].start = start;
                 ranges[range_count].end = end;
                 range_count++;
@@ -105,6 +114,11 @@ int main() {
             // Parse ingredient ID
             long long id;
             if (sscanf(line, "%lld", &id) == 1) {
+                if (ingredient_count >= MAX_INGREDIENTS) {
+                    fprintf(stderr, "Too many ingredients (max %d)\n", MAX_INGREDIENTS);
+                    fclose(file);
+                    exit(1);
+                }
                 ingredients[ingredient_count] = id;
                 ingredient_count++;
             }

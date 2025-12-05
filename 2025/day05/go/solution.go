@@ -13,6 +13,14 @@ type Range struct {
 	end   int
 }
 
+// must is a helper that panics on error, useful for mandatory conversions
+func must(val int, err error) int {
+	if err != nil {
+		panic(err)
+	}
+	return val
+}
+
 func main() {
 	// Read input file
 	data, err := os.ReadFile("../input.txt")
@@ -41,8 +49,8 @@ func part1(lines []string) int {
 	var ranges []Range
 	for i := 0; i < blankIdx; i++ {
 		parts := strings.Split(lines[i], "-")
-		start, _ := strconv.Atoi(parts[0])
-		end, _ := strconv.Atoi(parts[1])
+		start := must(strconv.Atoi(parts[0]))
+		end := must(strconv.Atoi(parts[1]))
 		ranges = append(ranges, Range{start, end})
 	}
 
@@ -50,7 +58,7 @@ func part1(lines []string) int {
 	var ingredientIDs []int
 	for i := blankIdx + 1; i < len(lines); i++ {
 		if lines[i] != "" {
-			id, _ := strconv.Atoi(lines[i])
+			id := must(strconv.Atoi(lines[i]))
 			ingredientIDs = append(ingredientIDs, id)
 		}
 	}
@@ -83,8 +91,8 @@ func part2(lines []string) int {
 	var ranges []Range
 	for i := 0; i < blankIdx; i++ {
 		parts := strings.Split(lines[i], "-")
-		start, _ := strconv.Atoi(parts[0])
-		end, _ := strconv.Atoi(parts[1])
+		start := must(strconv.Atoi(parts[0]))
+		end := must(strconv.Atoi(parts[1]))
 		ranges = append(ranges, Range{start, end})
 	}
 

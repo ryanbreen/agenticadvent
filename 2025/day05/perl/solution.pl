@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
+use List::Util qw(max);
 use FindBin qw($RealBin);
 
 # Read input file
@@ -10,7 +11,7 @@ my @lines = <$fh>;
 chomp @lines;
 close($fh);
 
-sub part1 {
+sub parse_input {
     my @lines = @_;
 
     # Find the blank line separator
@@ -36,10 +37,18 @@ sub part1 {
         push @ingredient_ids, int($lines[$i]);
     }
 
+    return (\@ranges, \@ingredient_ids);
+}
+
+sub part1 {
+    my @lines = @_;
+
+    my ($ranges, $ingredient_ids) = parse_input(@lines);
+
     # Count how many ingredient IDs fall within any range
     my $fresh_count = 0;
-    for my $ingredient_id (@ingredient_ids) {
-        for my $range (@ranges) {
+    for my $ingredient_id (@$ingredient_ids) {
+        for my $range (@$ranges) {
             my ($start, $end) = @$range;
             if ($ingredient_id >= $start && $ingredient_id <= $end) {
                 $fresh_count++;
@@ -54,33 +63,18 @@ sub part1 {
 sub part2 {
     my @lines = @_;
 
-    # Find the blank line separator
-    my $blank_idx = -1;
-    for my $i (0..$#lines) {
-        if ($lines[$i] eq "") {
-            $blank_idx = $i;
-            last;
-        }
-    }
-
-    # Parse ranges from the first section
-    my @ranges;
-    for my $i (0..$blank_idx-1) {
-        my ($start, $end) = split(/-/, $lines[$i]);
-        push @ranges, [$start, $end];
-    }
+    my ($ranges, $ingredient_ids) = parse_input(@lines);
 
     # Sort ranges by start position
-    @ranges = sort { $a->[0] <=> $b->[0] } @ranges;
+    my @sorted_ranges = sort { $a->[0] <=> $b->[0] } @$ranges;
 
     # Merge overlapping ranges
     my @merged;
-    for my $range (@ranges) {
+    for my $range (@sorted_ranges) {
         my ($start, $end) = @$range;
         if (@merged && $start <= $merged[-1][1] + 1) {
             # Overlapping or adjacent - merge with the last range
-            my $max_end = $end > $merged[-1][1] ? $end : $merged[-1][1];
-            $merged[-1][1] = $max_end;
+            $merged[-1][1] = max($end, $merged[-1][1]);
         } else {
             # No overlap - add as new range
             push @merged, [$start, $end];

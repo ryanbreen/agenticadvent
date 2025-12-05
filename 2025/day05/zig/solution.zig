@@ -9,8 +9,8 @@ fn parseInput(allocator: std.mem.Allocator, content: []const u8) !struct {
     ranges: std.ArrayList(Range),
     ingredient_ids: std.ArrayList(u64),
 } {
-    var ranges: std.ArrayList(Range) = .{};
-    var ingredient_ids: std.ArrayList(u64) = .{};
+    var ranges: std.ArrayList(Range) = .empty;
+    var ingredient_ids: std.ArrayList(u64) = .empty;
 
     var lines = std.mem.splitScalar(u8, content, '\n');
     var in_ranges = true;
@@ -76,7 +76,7 @@ fn part2(allocator: std.mem.Allocator, content: []const u8) !u64 {
     std.mem.sort(Range, parsed.ranges.items, {}, lessThan);
 
     // Merge overlapping ranges
-    var merged: std.ArrayList(Range) = .{};
+    var merged: std.ArrayList(Range) = .empty;
     defer merged.deinit(allocator);
 
     for (parsed.ranges.items) |range| {
