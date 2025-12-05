@@ -155,8 +155,35 @@ Solutions should be run from their respective directories with the input file at
 1. Launch Playwright browser for login (if needed)
 2. Extract problem statement to `<year>/dayXX/problem.md`
 3. Extract input to `<year>/dayXX/input.txt`
-4. Implement solution in multiple languages
+4. Implement solution in Python and Node.js first
 5. Run and verify answers match across implementations
+6. **SUBMIT ANSWERS** to Advent of Code (see Answer Submission below)
+7. Dispatch agents to implement remaining 14 languages in parallel
+8. Run benchmarks and update README.md
+
+## IMPORTANT: Answer Submission
+
+**ALWAYS submit answers to Advent of Code after verifying correctness.**
+
+This is a critical step that must not be skipped. Use the submit script:
+
+```bash
+# Submit answer for a specific day/part
+node runner/submit.js <year> <day> <part> <answer>
+
+# Examples:
+node runner/submit.js 2024 3 1 175700056
+node runner/submit.js 2024 3 2 71668682
+```
+
+**Submission workflow:**
+1. Implement Part 1, verify answer with 2+ implementations
+2. Submit Part 1 answer immediately
+3. Implement Part 2, verify answer with 2+ implementations
+4. Submit Part 2 answer immediately
+5. Then proceed with remaining language implementations
+
+Note: AoC has rate limiting (~5 seconds between submissions). If you get a rate limit error, wait and retry.
 
 ## Commands
 ```bash

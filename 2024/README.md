@@ -8,6 +8,7 @@ Solutions implemented in 16 languages.
 |-----|-------|-----------|
 | 1   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 2   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 3   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -54,3 +55,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Clojure     | 432.0        | 150.0       |
 | Bash        | 932.0        | 4.8         |
 | ColdFusion  | 2,705.6      | 1,149.0     |
+
+### Day 3: Mull It Over
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| ARM64 asm   | 6.5          | 1.3         |
+| Zig         | 6.5          | 1.9         |
+| C           | 7.4          | 1.9         |
+| Rust        | 7.8          | 1.9         |
+| Go          | 8.2          | 4.7         |
+| C++         | 10.8         | 1.9         |
+| Perl        | 17.6         | 6.4         |
+| Lisp        | 27.9         | 39.9        |
+| Python      | 29.4         | 15.9        |
+| Node.js     | 46.2         | 39.6        |
+| PHP         | 60.8         | 25.5        |
+| Ruby        | 61.8         | 28.3        |
+| Bash        | 78.6         | 1.9         |
+| Java        | 335.6        | 127.0       |
+| Clojure     | 424.7        | 127.7       |
+| ColdFusion  | 2,726.8      | 1,135.2     |
