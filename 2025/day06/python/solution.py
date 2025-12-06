@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 
 input_text = (Path(__file__).parent.parent / "input.txt").read_text().strip()
@@ -72,10 +73,7 @@ def solve_problem(numbers, op):
     if op == '+':
         return sum(numbers)
     elif op == '*':
-        result = 1
-        for n in numbers:
-            result *= n
-        return result
+        return math.prod(numbers)
     return 0
 
 

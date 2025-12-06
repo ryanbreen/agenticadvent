@@ -5,20 +5,23 @@
 #include <algorithm>
 #include <sstream>
 
-using namespace std;
-
 struct Problem {
-    vector<long long> numbers;
+    std::vector<long long> numbers;
     char op;
 };
 
 // Read input file into lines
-vector<string> readInput(const string& filename) {
-    ifstream file(filename);
-    vector<string> lines;
-    string line;
+std::vector<std::string> readInput(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file " << filename << std::endl;
+        return {};
+    }
 
-    while (getline(file, line)) {
+    std::vector<std::string> lines;
+    std::string line;
+
+    while (std::getline(file, line)) {
         lines.push_back(line);
     }
 
@@ -26,7 +29,7 @@ vector<string> readInput(const string& filename) {
 }
 
 // Parse problems for Part 1
-vector<Problem> parseProblems(const vector<string>& lines) {
+std::vector<Problem> parseProblems(const std::vector<std::string>& lines) {
     if (lines.empty()) {
         return {};
     }
@@ -34,7 +37,7 @@ vector<Problem> parseProblems(const vector<string>& lines) {
     // Find the operator row (last non-empty row with only +, *, and spaces)
     int opRowIdx = lines.size() - 1;
     while (opRowIdx >= 0) {
-        string trimmed = lines[opRowIdx];
+        std::string trimmed = lines[opRowIdx];
         // Remove leading/trailing whitespace
         trimmed.erase(0, trimmed.find_first_not_of(" \t\n\r"));
         trimmed.erase(trimmed.find_last_not_of(" \t\n\r") + 1);
@@ -62,32 +65,32 @@ vector<Problem> parseProblems(const vector<string>& lines) {
         return {};
     }
 
-    string opRow = lines[opRowIdx];
-    vector<string> numberRows(lines.begin(), lines.begin() + opRowIdx);
+    std::string opRow = lines[opRowIdx];
+    std::vector<std::string> numberRows(lines.begin(), lines.begin() + opRowIdx);
 
     // Find max width
     size_t maxWidth = 0;
     for (const auto& line : lines) {
-        maxWidth = max(maxWidth, line.length());
+        maxWidth = std::max(maxWidth, line.length());
     }
 
     // Pad all rows to the same width
-    vector<string> paddedNumberRows;
+    std::vector<std::string> paddedNumberRows;
     for (const auto& row : numberRows) {
-        string padded = row;
+        std::string padded = row;
         while (padded.length() < maxWidth) {
             padded += ' ';
         }
         paddedNumberRows.push_back(padded);
     }
 
-    string paddedOpRow = opRow;
+    std::string paddedOpRow = opRow;
     while (paddedOpRow.length() < maxWidth) {
         paddedOpRow += ' ';
     }
 
     // Find problem boundaries
-    vector<Problem> problems;
+    std::vector<Problem> problems;
     size_t col = 0;
 
     while (col < maxWidth) {
@@ -130,19 +133,19 @@ vector<Problem> parseProblems(const vector<string>& lines) {
         size_t endCol = col;
 
         // Extract numbers and operator for this problem
-        vector<long long> numbers;
+        std::vector<long long> numbers;
         for (const auto& row : paddedNumberRows) {
-            string numStr = row.substr(startCol, endCol - startCol);
+            std::string numStr = row.substr(startCol, endCol - startCol);
             // Trim whitespace
             numStr.erase(0, numStr.find_first_not_of(" \t"));
             numStr.erase(numStr.find_last_not_of(" \t") + 1);
 
             if (!numStr.empty()) {
-                numbers.push_back(stoll(numStr));
+                numbers.push_back(std::stoll(numStr));
             }
         }
 
-        string opStr = paddedOpRow.substr(startCol, endCol - startCol);
+        std::string opStr = paddedOpRow.substr(startCol, endCol - startCol);
         opStr.erase(0, opStr.find_first_not_of(" \t"));
         opStr.erase(opStr.find_last_not_of(" \t") + 1);
 
@@ -158,7 +161,7 @@ vector<Problem> parseProblems(const vector<string>& lines) {
 }
 
 // Parse problems for Part 2
-vector<Problem> parseProblemsPart2(const vector<string>& lines) {
+std::vector<Problem> parseProblemsPart2(const std::vector<std::string>& lines) {
     if (lines.empty()) {
         return {};
     }
@@ -166,7 +169,7 @@ vector<Problem> parseProblemsPart2(const vector<string>& lines) {
     // Find the operator row (last non-empty row with only +, *, and spaces)
     int opRowIdx = lines.size() - 1;
     while (opRowIdx >= 0) {
-        string trimmed = lines[opRowIdx];
+        std::string trimmed = lines[opRowIdx];
         // Remove leading/trailing whitespace
         trimmed.erase(0, trimmed.find_first_not_of(" \t\n\r"));
         trimmed.erase(trimmed.find_last_not_of(" \t\n\r") + 1);
@@ -194,32 +197,32 @@ vector<Problem> parseProblemsPart2(const vector<string>& lines) {
         return {};
     }
 
-    string opRow = lines[opRowIdx];
-    vector<string> numberRows(lines.begin(), lines.begin() + opRowIdx);
+    std::string opRow = lines[opRowIdx];
+    std::vector<std::string> numberRows(lines.begin(), lines.begin() + opRowIdx);
 
     // Find max width
     size_t maxWidth = 0;
     for (const auto& line : lines) {
-        maxWidth = max(maxWidth, line.length());
+        maxWidth = std::max(maxWidth, line.length());
     }
 
     // Pad all rows to the same width
-    vector<string> paddedNumberRows;
+    std::vector<std::string> paddedNumberRows;
     for (const auto& row : numberRows) {
-        string padded = row;
+        std::string padded = row;
         while (padded.length() < maxWidth) {
             padded += ' ';
         }
         paddedNumberRows.push_back(padded);
     }
 
-    string paddedOpRow = opRow;
+    std::string paddedOpRow = opRow;
     while (paddedOpRow.length() < maxWidth) {
         paddedOpRow += ' ';
     }
 
     // Find problem boundaries
-    vector<Problem> problems;
+    std::vector<Problem> problems;
     size_t col = 0;
 
     while (col < maxWidth) {
@@ -262,21 +265,21 @@ vector<Problem> parseProblemsPart2(const vector<string>& lines) {
         size_t endCol = col;
 
         // For Part 2: Read columns right-to-left, each column forms a number
-        vector<long long> numbers;
+        std::vector<long long> numbers;
         for (int c = endCol - 1; c >= (int)startCol; c--) {
-            string digits;
+            std::string digits;
             for (const auto& row : paddedNumberRows) {
                 char ch = row[c];
-                if (isdigit(ch)) {
+                if (std::isdigit(ch)) {
                     digits += ch;
                 }
             }
             if (!digits.empty()) {
-                numbers.push_back(stoll(digits));
+                numbers.push_back(std::stoll(digits));
             }
         }
 
-        string opStr = paddedOpRow.substr(startCol, endCol - startCol);
+        std::string opStr = paddedOpRow.substr(startCol, endCol - startCol);
         opStr.erase(0, opStr.find_first_not_of(" \t"));
         opStr.erase(opStr.find_last_not_of(" \t") + 1);
 
@@ -309,7 +312,7 @@ long long solveProblem(const Problem& problem) {
     return 0;
 }
 
-long long part1(const vector<string>& lines) {
+long long part1(const std::vector<std::string>& lines) {
     auto problems = parseProblems(lines);
     long long total = 0;
     for (const auto& problem : problems) {
@@ -318,7 +321,7 @@ long long part1(const vector<string>& lines) {
     return total;
 }
 
-long long part2(const vector<string>& lines) {
+long long part2(const std::vector<std::string>& lines) {
     auto problems = parseProblemsPart2(lines);
     long long total = 0;
     for (const auto& problem : problems) {
@@ -328,10 +331,10 @@ long long part2(const vector<string>& lines) {
 }
 
 int main() {
-    vector<string> lines = readInput("../input.txt");
+    std::vector<std::string> lines = readInput("../input.txt");
 
-    cout << "Part 1: " << part1(lines) << endl;
-    cout << "Part 2: " << part2(lines) << endl;
+    std::cout << "Part 1: " << part1(lines) << std::endl;
+    std::cout << "Part 2: " << part2(lines) << std::endl;
 
     return 0;
 }

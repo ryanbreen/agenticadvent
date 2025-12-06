@@ -13,8 +13,11 @@ type Problem struct {
 	operator string
 }
 
-func readInput() string {
-	exePath, _ := os.Executable()
+func readInput() (string, error) {
+	exePath, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("failed to get executable path: %w", err)
+	}
 	exeDir := filepath.Dir(exePath)
 	inputPath := filepath.Join(exeDir, "..", "input.txt")
 
@@ -24,11 +27,11 @@ func readInput() string {
 		inputPath = "../input.txt"
 		data, err = os.ReadFile(inputPath)
 		if err != nil {
-			panic(err)
+			return "", fmt.Errorf("failed to read input file: %w", err)
 		}
 	}
 
-	return strings.TrimSpace(string(data))
+	return strings.TrimSpace(string(data)), nil
 }
 
 func parseProblems(lines []string) []Problem {
@@ -284,7 +287,11 @@ func part2(lines []string) int {
 }
 
 func main() {
-	input := readInput()
+	input, err := readInput()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 	lines := strings.Split(input, "\n")
 
 	fmt.Printf("Part 1: %d\n", part1(lines))

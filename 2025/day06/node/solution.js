@@ -30,13 +30,28 @@ function parseProblems(lines) {
   const paddedNumberRows = numberRows.map(row => row.padEnd(maxWidth));
   const paddedOpRow = opRow.padEnd(maxWidth);
 
+  // Pre-compute separator columns once
+  const isSeparatorCol = new Array(maxWidth).fill(true);
+  for (let c = 0; c < maxWidth; c++) {
+    if (paddedOpRow[c] !== ' ') {
+      isSeparatorCol[c] = false;
+      continue;
+    }
+    for (const row of paddedNumberRows) {
+      if (row[c] !== ' ') {
+        isSeparatorCol[c] = false;
+        break;
+      }
+    }
+  }
+
   // Find problem boundaries by looking for columns that are all spaces
   const problems = [];
   let col = 0;
 
   while (col < maxWidth) {
     // Skip separator columns (all spaces)
-    while (col < maxWidth && paddedNumberRows.every(row => row[col] === ' ') && paddedOpRow[col] === ' ') {
+    while (col < maxWidth && isSeparatorCol[col]) {
       col++;
     }
 
@@ -46,8 +61,7 @@ function parseProblems(lines) {
     const startCol = col;
     while (col < maxWidth) {
       // Check if this is a separator column
-      const isSeparator = paddedNumberRows.every(row => row[col] === ' ') && paddedOpRow[col] === ' ';
-      if (isSeparator) break;
+      if (isSeparatorCol[col]) break;
       col++;
     }
 
@@ -112,13 +126,28 @@ function parseProblemsPart2(lines) {
   const paddedNumberRows = numberRows.map(row => row.padEnd(maxWidth));
   const paddedOpRow = opRow.padEnd(maxWidth);
 
+  // Pre-compute separator columns once
+  const isSeparatorCol = new Array(maxWidth).fill(true);
+  for (let c = 0; c < maxWidth; c++) {
+    if (paddedOpRow[c] !== ' ') {
+      isSeparatorCol[c] = false;
+      continue;
+    }
+    for (const row of paddedNumberRows) {
+      if (row[c] !== ' ') {
+        isSeparatorCol[c] = false;
+        break;
+      }
+    }
+  }
+
   // Find problem boundaries by looking for columns that are all spaces
   const problems = [];
   let col = 0;
 
   while (col < maxWidth) {
     // Skip separator columns (all spaces)
-    while (col < maxWidth && paddedNumberRows.every(row => row[col] === ' ') && paddedOpRow[col] === ' ') {
+    while (col < maxWidth && isSeparatorCol[col]) {
       col++;
     }
 
@@ -128,8 +157,7 @@ function parseProblemsPart2(lines) {
     const startCol = col;
     while (col < maxWidth) {
       // Check if this is a separator column
-      const isSeparator = paddedNumberRows.every(row => row[col] === ' ') && paddedOpRow[col] === ' ';
-      if (isSeparator) break;
+      if (isSeparatorCol[col]) break;
       col++;
     }
 

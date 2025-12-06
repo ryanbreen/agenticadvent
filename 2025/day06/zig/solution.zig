@@ -15,7 +15,7 @@ pub fn main() !void {
     const input = std.mem.trimRight(u8, content, &std.ascii.whitespace);
 
     // Split into lines
-    var lines: std.ArrayList([]const u8) = .empty;
+    var lines: std.ArrayList([]const u8) = .{};
 
     var line_iter = std.mem.splitScalar(u8, input, '\n');
     while (line_iter.next()) |line| {
@@ -75,7 +75,7 @@ fn part2(allocator: std.mem.Allocator, lines: []const []const u8) !i64 {
 }
 
 fn parseProblems(allocator: std.mem.Allocator, lines: []const []const u8) !std.ArrayList(Problem) {
-    var problems: std.ArrayList(Problem) = .empty;
+    var problems: std.ArrayList(Problem) = .{};
 
     if (lines.len == 0) return problems;
 
@@ -116,7 +116,7 @@ fn parseProblems(allocator: std.mem.Allocator, lines: []const []const u8) !std.A
     }
 
     // Pad all rows to the same width
-    var padded_number_rows: std.ArrayList([]u8) = .empty;
+    var padded_number_rows: std.ArrayList([]u8) = .{};
     defer {
         for (padded_number_rows.items) |row| {
             allocator.free(row);
@@ -177,7 +177,7 @@ fn parseProblems(allocator: std.mem.Allocator, lines: []const []const u8) !std.A
         const end_col = col;
 
         // Extract numbers and operator for this problem
-        var numbers: std.ArrayList(i64) = .empty;
+        var numbers: std.ArrayList(i64) = .{};
         for (padded_number_rows.items) |row| {
             const num_str = std.mem.trim(u8, row[start_col..end_col], &std.ascii.whitespace);
             if (num_str.len > 0) {
@@ -201,7 +201,7 @@ fn parseProblems(allocator: std.mem.Allocator, lines: []const []const u8) !std.A
 }
 
 fn parseProblemsPart2(allocator: std.mem.Allocator, lines: []const []const u8) !std.ArrayList(Problem) {
-    var problems: std.ArrayList(Problem) = .empty;
+    var problems: std.ArrayList(Problem) = .{};
 
     if (lines.len == 0) return problems;
 
@@ -242,7 +242,7 @@ fn parseProblemsPart2(allocator: std.mem.Allocator, lines: []const []const u8) !
     }
 
     // Pad all rows to the same width
-    var padded_number_rows: std.ArrayList([]u8) = .empty;
+    var padded_number_rows: std.ArrayList([]u8) = .{};
     defer {
         for (padded_number_rows.items) |row| {
             allocator.free(row);
@@ -304,11 +304,11 @@ fn parseProblemsPart2(allocator: std.mem.Allocator, lines: []const []const u8) !
 
         // For Part 2: Read columns right-to-left, each column forms a number
         // reading top-to-bottom as most-to-least significant digit
-        var numbers: std.ArrayList(i64) = .empty;
+        var numbers: std.ArrayList(i64) = .{};
         var c = end_col;
         while (c > start_col) {
             c -= 1;
-            var digits: std.ArrayList(u8) = .empty;
+            var digits: std.ArrayList(u8) = .{};
             defer digits.deinit(allocator);
 
             for (padded_number_rows.items) |row| {

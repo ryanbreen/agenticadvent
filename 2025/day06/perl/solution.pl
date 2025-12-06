@@ -206,7 +206,7 @@ sub parse_problems_part2 {
         # For Part 2: Read columns right-to-left, each column forms a number
         # reading top-to-bottom as most-to-least significant digit
         my @numbers;
-        for (my $c = $end_col - 1; $c >= $start_col; $c--) {  # Right to left
+        for my $c (reverse $start_col .. $end_col - 1) {  # Right to left
             my @digits;
             for my $row (@padded_number_rows) {
                 my $ch = substr($row, $c, 1);

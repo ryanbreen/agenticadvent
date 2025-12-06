@@ -42,15 +42,22 @@ fn parse_problems(lines: &[String]) -> Vec<(Vec<i64>, char)> {
         .collect();
     let padded_op_row = format!("{:width$}", op_row, width = max_width);
 
+    // Convert to Vec<char> for O(1) indexing
+    let number_row_chars: Vec<Vec<char>> = padded_number_rows
+        .iter()
+        .map(|s| s.chars().collect())
+        .collect();
+    let op_row_chars: Vec<char> = padded_op_row.chars().collect();
+
     let mut problems = Vec::new();
     let mut col = 0;
 
     while col < max_width {
         // Skip separator columns (all spaces)
         while col < max_width {
-            let all_spaces = padded_number_rows.iter().all(|row| {
-                row.chars().nth(col).unwrap_or(' ') == ' '
-            }) && padded_op_row.chars().nth(col).unwrap_or(' ') == ' ';
+            let all_spaces = number_row_chars.iter().all(|row| {
+                row.get(col).unwrap_or(&' ') == &' '
+            }) && op_row_chars.get(col).unwrap_or(&' ') == &' ';
 
             if !all_spaces {
                 break;
@@ -66,9 +73,9 @@ fn parse_problems(lines: &[String]) -> Vec<(Vec<i64>, char)> {
         let start_col = col;
         while col < max_width {
             // Check if this is a separator column
-            let is_separator = padded_number_rows.iter().all(|row| {
-                row.chars().nth(col).unwrap_or(' ') == ' '
-            }) && padded_op_row.chars().nth(col).unwrap_or(' ') == ' ';
+            let is_separator = number_row_chars.iter().all(|row| {
+                row.get(col).unwrap_or(&' ') == &' '
+            }) && op_row_chars.get(col).unwrap_or(&' ') == &' ';
 
             if is_separator {
                 break;
@@ -147,15 +154,22 @@ fn parse_problems_part2(lines: &[String]) -> Vec<(Vec<i64>, char)> {
         .collect();
     let padded_op_row = format!("{:width$}", op_row, width = max_width);
 
+    // Convert to Vec<char> for O(1) indexing
+    let number_row_chars: Vec<Vec<char>> = padded_number_rows
+        .iter()
+        .map(|s| s.chars().collect())
+        .collect();
+    let op_row_chars: Vec<char> = padded_op_row.chars().collect();
+
     let mut problems = Vec::new();
     let mut col = 0;
 
     while col < max_width {
         // Skip separator columns (all spaces)
         while col < max_width {
-            let all_spaces = padded_number_rows.iter().all(|row| {
-                row.chars().nth(col).unwrap_or(' ') == ' '
-            }) && padded_op_row.chars().nth(col).unwrap_or(' ') == ' ';
+            let all_spaces = number_row_chars.iter().all(|row| {
+                row.get(col).unwrap_or(&' ') == &' '
+            }) && op_row_chars.get(col).unwrap_or(&' ') == &' ';
 
             if !all_spaces {
                 break;
@@ -171,9 +185,9 @@ fn parse_problems_part2(lines: &[String]) -> Vec<(Vec<i64>, char)> {
         let start_col = col;
         while col < max_width {
             // Check if this is a separator column
-            let is_separator = padded_number_rows.iter().all(|row| {
-                row.chars().nth(col).unwrap_or(' ') == ' '
-            }) && padded_op_row.chars().nth(col).unwrap_or(' ') == ' ';
+            let is_separator = number_row_chars.iter().all(|row| {
+                row.get(col).unwrap_or(&' ') == &' '
+            }) && op_row_chars.get(col).unwrap_or(&' ') == &' ';
 
             if is_separator {
                 break;
@@ -188,10 +202,10 @@ fn parse_problems_part2(lines: &[String]) -> Vec<(Vec<i64>, char)> {
         let mut numbers = Vec::new();
         for c in (start_col..end_col).rev() {
             let mut digits = Vec::new();
-            for row in &padded_number_rows {
-                let ch = row.chars().nth(c).unwrap_or(' ');
+            for row_chars in &number_row_chars {
+                let ch = row_chars.get(c).unwrap_or(&' ');
                 if ch.is_ascii_digit() {
-                    digits.push(ch);
+                    digits.push(*ch);
                 }
             }
 
