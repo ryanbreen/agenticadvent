@@ -11,6 +11,7 @@ Solutions implemented in 16 languages.
 | 3   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 4   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 5   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 6   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -121,3 +122,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Go          | 315.0        | 27.3        |
 | Clojure     | 839.3        | 133.8       |
 | ColdFusion  | 3,500.0      | 1,100.0     |
+
+### Day 6: Trash Compactor
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C++         | 6.1          | 1.9         |
+| Zig         | 6.3          | 1.9         |
+| ARM64 asm   | 6.9          | 1.9         |
+| C           | 7.0          | 18.0        |
+| Go          | 9.5          | 4.4         |
+| Rust        | 24.7         | 1.9         |
+| Python      | 33.9         | 16.3        |
+| Common Lisp | 41.3         | 52.5        |
+| Node.js     | 49.3         | 44.7        |
+| PHP         | 61.3         | 24.9        |
+| Java        | 62.9         | 50.3        |
+| Perl        | 69.7         | 14.3        |
+| Ruby        | 69.6         | 28.8        |
+| Clojure     | 498.7        | 194.4       |
+| ColdFusion  | 2,706.7      | 1,111.1     |
+| Bash        | 29,648.6     | 3.6         |
