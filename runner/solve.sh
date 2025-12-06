@@ -1,18 +1,22 @@
 #!/bin/bash
 #
-# Agentic Advent of Code Solver
+# Agentic Advent of Code Solver - Multi-Model Architecture
 #
-# Orchestrates Claude Code sessions to solve AoC problems across 16 languages.
+# Architecture:
+#   - Bash: Orchestrates phases, manages state files, handles I/O
+#   - Haiku (Coordinator): Dispatches implementers, tracks progress, handles escalation
+#   - Sonnet (Implementer): Implements solutions in each language (default)
+#   - Opus (Reviewer): Reviews all implementations for quality, can fix critical issues
+#
+# State is persisted to allow resuming interrupted runs.
 #
 # Usage:
-#   ./solve.sh <year> <day> [--part 1|2] [--step 1|2] [--skip-extract]
+#   ./solve.sh <year> <day> [--part 1|2] [--step 1|2|3] [--resume] [--skip-extract]
 #
-# Examples:
-#   ./solve.sh 2024 7                    # Solve Day 7 (both parts), run both steps
-#   ./solve.sh 2024 7 --part 1           # Solve only Part 1
-#   ./solve.sh 2024 7 --step 1           # Only generate implementations (skip quality review)
-#   ./solve.sh 2024 7 --step 2           # Only run quality review (assumes step 1 done)
-#   ./solve.sh 2024 7 --skip-extract     # Skip problem extraction (already have problem.md)
+# Steps:
+#   1. Implementation: Haiku coordinates Sonnet agents to implement all languages
+#   2. Review: Opus reviews all implementations for quality
+#   3. Improvement: Sonnet fixes issues identified by Opus (Opus for stuck cases)
 #
 
 set -euo pipefail
@@ -20,26 +24,48 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+MAGENTA='\033[0;35m'
+NC='\033[0m'
 
-# Default values
+# Standard languages
+LANGUAGES=(
+    "arm64:ARM64 Assembly:solution.s"
+    "c:C:solution.c"
+    "cpp:C++:solution.cpp"
+    "rust:Rust:solution.rs"
+    "zig:Zig:solution.zig"
+    "go:Go:solution.go"
+    "java:Java:Solution.java"
+    "node:Node.js:solution.js"
+    "python:Python:solution.py"
+    "ruby:Ruby:solution.rb"
+    "php:PHP:solution.php"
+    "perl:Perl:solution.pl"
+    "bash:Bash:solution.sh"
+    "clojure:Clojure:solution.clj"
+    "lisp:Common Lisp:solution.lisp"
+    "cfml:ColdFusion:solution.cfm"
+)
+
+# Defaults
 YEAR=""
 DAY=""
-PART=""  # Empty means both parts
-STEP=""  # Empty means both steps
+PART=""
+STEP=""
+RESUME=false
 SKIP_EXTRACT=false
 
 # Parse arguments
 parse_args() {
     if [[ $# -lt 2 ]]; then
-        echo -e "${RED}Error: Year and day are required${NC}"
-        echo "Usage: ./solve.sh <year> <day> [--part 1|2] [--step 1|2] [--skip-extract]"
+        echo -e "${RED}Error: Year and day required${NC}"
+        echo "Usage: ./solve.sh <year> <day> [--part 1|2] [--step 1|2|3] [--resume] [--skip-extract]"
         exit 1
     fi
 
@@ -49,299 +75,293 @@ parse_args() {
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --part)
-                PART="$2"
-                if [[ "$PART" != "1" && "$PART" != "2" ]]; then
-                    echo -e "${RED}Error: --part must be 1 or 2${NC}"
-                    exit 1
-                fi
-                shift 2
-                ;;
-            --step)
-                STEP="$2"
-                if [[ "$STEP" != "1" && "$STEP" != "2" ]]; then
-                    echo -e "${RED}Error: --step must be 1 or 2${NC}"
-                    exit 1
-                fi
-                shift 2
-                ;;
-            --skip-extract)
-                SKIP_EXTRACT=true
-                shift
-                ;;
-            *)
-                echo -e "${RED}Error: Unknown option $1${NC}"
-                exit 1
-                ;;
+            --part) PART="$2"; shift 2 ;;
+            --step) STEP="$2"; shift 2 ;;
+            --resume) RESUME=true; shift ;;
+            --skip-extract) SKIP_EXTRACT=true; shift ;;
+            *) echo -e "${RED}Unknown option: $1${NC}"; exit 1 ;;
         esac
     done
 
-    # Pad day with zero if needed
     DAY=$(printf "%02d" "$DAY")
 }
 
-# Extract problem if needed
+# Initialize state directory and files
+init_state() {
+    local day_dir="$PROJECT_ROOT/$YEAR/day$DAY"
+    local state_dir="$day_dir/.state"
+
+    mkdir -p "$state_dir"
+
+    # Initialize state file if not resuming or doesn't exist
+    if [[ "$RESUME" != true ]] || [[ ! -f "$state_dir/solve.json" ]]; then
+        cat > "$state_dir/solve.json" << EOF
+{
+    "year": "$YEAR",
+    "day": "$DAY",
+    "phase": "init",
+    "consensus_answer_p1": null,
+    "consensus_answer_p2": null,
+    "submitted_p1": false,
+    "submitted_p2": false,
+    "languages": {}
+}
+EOF
+        # Initialize per-language state
+        for lang_info in "${LANGUAGES[@]}"; do
+            IFS=':' read -r lang_id lang_name lang_file <<< "$lang_info"
+            cat > "$state_dir/${lang_id}.json" << EOF
+{
+    "id": "$lang_id",
+    "name": "$lang_name",
+    "file": "$lang_file",
+    "status": "pending",
+    "attempts": 0,
+    "model": "sonnet",
+    "output_p1": null,
+    "output_p2": null,
+    "error": null,
+    "review_score": null,
+    "review_notes": null
+}
+EOF
+        done
+    fi
+
+    echo "$state_dir"
+}
+
+# Extract problem
 extract_problem() {
     local day_dir="$PROJECT_ROOT/$YEAR/day$DAY"
 
     if [[ "$SKIP_EXTRACT" == true ]]; then
-        echo -e "${YELLOW}Skipping problem extraction (--skip-extract)${NC}"
+        echo -e "${YELLOW}Skipping extraction (--skip-extract)${NC}"
         return
     fi
 
     if [[ -f "$day_dir/problem.md" && -f "$day_dir/input.txt" ]]; then
-        echo -e "${YELLOW}Problem files already exist. Use --skip-extract or delete to re-extract.${NC}"
-        read -p "Re-extract problem? (y/N) " -n 1 -r
+        echo -e "${YELLOW}Problem files exist. Re-extract? (y/N)${NC}"
+        read -r -n 1 reply
         echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            return
-        fi
+        [[ ! $reply =~ ^[Yy]$ ]] && return
     fi
 
-    echo -e "${BLUE}Extracting problem for $YEAR Day $DAY...${NC}"
+    echo -e "${BLUE}Extracting problem...${NC}"
     node "$SCRIPT_DIR/extract.js" "$YEAR" "${DAY#0}"
 }
 
-# Build the Step 1 prompt
-build_step1_prompt() {
-    local part_instruction=""
-    if [[ -n "$PART" ]]; then
-        part_instruction="Only solve Part $PART of the problem."
-    else
-        part_instruction="Solve both Part 1 and Part 2 of the problem."
-    fi
-
-    cat <<PROMPT
-# Advent of Code $YEAR Day $DAY - Implementation Task
-
-$part_instruction
-
-## Your Mission
-
-You are the orchestrator for solving Advent of Code $YEAR Day $DAY. Your job is to:
-
-1. **Read the problem**: Study \`$YEAR/day$DAY/problem.md\` to understand what needs to be solved.
-
-2. **Implement in 16 languages in parallel**: Dispatch agents (using the Task tool) to implement solutions in ALL 16 required languages simultaneously:
-   - ARM64 Assembly, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion
-
-3. **Achieve consensus**: Wait for at least 3 independent implementations to return the same answer before considering it correct. This provides high confidence through independent verification.
-
-4. **Submit the answer**: Once you have consensus on the answer, use the submit script:
-   \`node runner/submit.js $YEAR ${DAY#0} <part> <answer>\`
-
-5. **Complete all implementations**: Continue until all 16 languages have working solutions.
-
-6. **Benchmark all solutions**: After implementations are complete, benchmark each solution using:
-   \`python3 runner/benchmark.py "<command>" 5\`
-
-7. **Update documentation**: Update \`$YEAR/README.md\` with:
-   - Progress table entry for Day $DAY
-   - Benchmark results table for Day $DAY
-
-## Agent Dispatch Guidelines
-
-When dispatching implementation agents:
-- Use the Task tool with subagent_type="general-purpose"
-- Each agent should work on ONE language
-- DO NOT provide expected answers to agents - they must derive answers from the algorithm
-- Agents should read \`$YEAR/day$DAY/problem.md\` for the problem description
-- Agents can reference other implementations for algorithm understanding (after first few complete)
-- Each agent must run their solution and report the output they get
-
-## Directory Structure
-
-Solutions go in: \`$YEAR/day$DAY/<language>/solution.<ext>\`
-
-Examples:
-- \`$YEAR/day$DAY/python/solution.py\`
-- \`$YEAR/day$DAY/node/solution.js\`
-- \`$YEAR/day$DAY/c/solution.c\`
-
-Input file is at: \`$YEAR/day$DAY/input.txt\`
-
-## Important Rules from CLAUDE.md
-
-- Solutions must output BOTH Part 1 and Part 2 answers (format: "Part 1: X" / "Part 2: Y")
-- Never provide expected outputs to agents - they must compute answers honestly
-- Submit answers to AoC after verification with 3+ implementations
-- Benchmark every solution and record in README.md
-
-Begin by reading the problem, then dispatch all 16 implementation agents in parallel.
-PROMPT
-}
-
-# Build the Step 2 prompt (quality review)
-build_step2_prompt() {
-    cat <<PROMPT
-# Advent of Code $YEAR Day $DAY - Quality Review Task
-
-## Your Mission
-
-You are the quality reviewer for the Day $DAY solutions. All 16 language implementations should already exist. Your job is to:
-
-1. **Assess each implementation** on three criteria (scale 1-10):
-
-   a) **Algorithmic Correctness** (1-10): Is the algorithm sound? Are there edge cases missed? Could it fail on different inputs? Is it efficient?
-
-   b) **Honesty/Authenticity** (1-10): Does this implementation genuinely solve the problem in the specified language? Or does it cheat by:
-      - Shelling out to other languages
-      - Using system calls to run external programs
-      - Hardcoding answers
-      - Reading from other solutions
-
-   c) **Idiomaticity** (1-10): Would a skilled developer in this language recognize this as native, well-written code? Does it use:
-      - Language-appropriate constructs and patterns
-      - Standard library features effectively
-      - Proper naming conventions
-      - Idiomatic error handling
-      - Language-specific best practices
-
-2. **Identify improvements**: For any implementation scoring below 7 on any criterion, document specific improvements needed.
-
-3. **Dispatch improvement agents**: For implementations needing work, dispatch agents to fix the issues. Prioritize:
-   - Honesty issues (critical - must fix)
-   - Algorithmic issues (high priority)
-   - Idiomaticity issues (medium priority - improve if time allows)
-
-4. **Re-benchmark if changed**: If any solution is modified, re-run benchmarks and update README.md.
-
-## Assessment Process
-
-For each of the 16 languages, read the solution and evaluate:
-
-\`\`\`
-Language: [name]
-Path: $YEAR/day$DAY/[lang]/solution.[ext]
-
-Algorithmic Correctness: [1-10]
-- [specific observations]
-
-Honesty/Authenticity: [1-10]
-- [specific observations]
-
-Idiomaticity: [1-10]
-- [specific observations]
-
-Overall: [average]
-Action: [PASS / NEEDS_IMPROVEMENT]
-Improvements needed: [if any]
-\`\`\`
-
-## Languages to Review
-
-1. ARM64 Assembly (\`arm64/solution.s\`)
-2. C (\`c/solution.c\`)
-3. C++ (\`cpp/solution.cpp\`)
-4. Rust (\`rust/solution.rs\`)
-5. Zig (\`zig/solution.zig\`)
-6. Go (\`go/solution.go\`)
-7. Java (\`java/Solution.java\`)
-8. Node.js (\`node/solution.js\`)
-9. Python (\`python/solution.py\`)
-10. Ruby (\`ruby/solution.rb\`)
-11. PHP (\`php/solution.php\`)
-12. Perl (\`perl/solution.pl\`)
-13. Bash (\`bash/solution.sh\`)
-14. Clojure (\`clojure/solution.clj\`)
-15. Common Lisp (\`lisp/solution.lisp\`)
-16. ColdFusion (\`coldfusion/Solution.cfc\`)
-
-## Output Format
-
-After completing all assessments and improvements, provide a summary:
-
-\`\`\`
-=== Quality Review Summary for $YEAR Day $DAY ===
-
-| Language     | Correctness | Honesty | Idiomaticity | Action |
-|--------------|-------------|---------|--------------|--------|
-| ARM64        | X/10        | X/10    | X/10         | PASS/IMPROVED |
-| C            | X/10        | X/10    | X/10         | PASS/IMPROVED |
-...
-
-Improvements Made: [count]
-Agents Dispatched: [count]
-\`\`\`
-
-Begin by reading all 16 implementations, then perform assessments.
-PROMPT
-}
-
-# Run Step 1: Generate implementations and submit
-run_step1() {
-    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}  Step 1: Generate Implementations & Submit Answer${NC}"
-    echo -e "${CYAN}  Year: $YEAR  Day: $DAY  Part: ${PART:-"both"}${NC}"
-    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
-    echo
-
-    local prompt
-    prompt=$(build_step1_prompt)
-
-    # Write prompt to temp file for debugging
-    local prompt_file="$PROJECT_ROOT/$YEAR/day$DAY/.step1_prompt.md"
-    mkdir -p "$PROJECT_ROOT/$YEAR/day$DAY"
-    echo "$prompt" > "$prompt_file"
-    echo -e "${YELLOW}Prompt saved to: $prompt_file${NC}"
-
-    echo -e "${GREEN}Launching Claude Code session for Step 1...${NC}"
-    echo
-
-    # Run Claude with the prompt
-    cd "$PROJECT_ROOT"
-    echo "$prompt" | claude --dangerously-skip-permissions
-
-    echo
-    echo -e "${GREEN}Step 1 complete!${NC}"
-}
-
-# Run Step 2: Quality review
-run_step2() {
-    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}  Step 2: Quality Review & Improvements${NC}"
-    echo -e "${CYAN}  Year: $YEAR  Day: $DAY${NC}"
-    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
-    echo
-
+# Build the Haiku coordinator prompt
+build_coordinator_prompt() {
+    local state_dir="$1"
     local day_dir="$PROJECT_ROOT/$YEAR/day$DAY"
 
-    # Check that implementations exist
-    if [[ ! -d "$day_dir" ]]; then
-        echo -e "${RED}Error: Day directory does not exist: $day_dir${NC}"
-        echo "Run Step 1 first to generate implementations."
-        exit 1
-    fi
+    cat << 'PROMPT'
+# Advent of Code Implementation Coordinator
 
-    local impl_count
-    impl_count=$(find "$day_dir" -type d -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')
+You are a COORDINATOR agent (running on Haiku) responsible for orchestrating the implementation of an Advent of Code solution across 16 programming languages.
 
-    if [[ "$impl_count" -lt 10 ]]; then
-        echo -e "${YELLOW}Warning: Only $impl_count language directories found. Expected 16+.${NC}"
-        read -p "Continue anyway? (y/N) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            exit 1
-        fi
-    fi
+## Your Role
+- Dispatch Sonnet agents to implement solutions in parallel
+- Track progress and collect results
+- Handle failures with retries (escalate to Opus after 2 failures)
+- Achieve consensus (3+ matching answers) before submitting
+- Update state files to enable resume capability
+
+## Critical Rules
+1. Use the Task tool with `model: "sonnet"` for implementation agents (default)
+2. After 2 failed attempts for a language, escalate: `model: "opus"`
+3. DO NOT provide expected answers to implementation agents
+4. Submit answer via `node runner/submit.js` once 3+ implementations agree
+5. Update state files after each significant event
+
+## State Management
+PROMPT
+
+    echo "State directory: $state_dir"
+    echo "Current state:"
+    cat "$state_dir/solve.json"
+    echo ""
+    echo "Language states:"
+    for f in "$state_dir"/*.json; do
+        [[ "$(basename "$f")" == "solve.json" ]] && continue
+        echo "--- $(basename "$f") ---"
+        cat "$f"
+    done
+
+    cat << PROMPT
+
+## Problem Location
+- Problem: $YEAR/day$DAY/problem.md
+- Input: $YEAR/day$DAY/input.txt
+
+## Languages to Implement
+PROMPT
+
+    for lang_info in "${LANGUAGES[@]}"; do
+        IFS=':' read -r lang_id lang_name lang_file <<< "$lang_info"
+        echo "- $lang_name ($lang_id): $YEAR/day$DAY/$lang_id/$lang_file"
+    done
+
+    cat << 'PROMPT'
+
+## Implementation Agent Prompt Template
+When dispatching an implementation agent, use this prompt structure:
+
+```
+Implement the Advent of Code solution in [LANGUAGE].
+
+Problem: Read YEAR/dayDD/problem.md
+Input: YEAR/dayDD/input.txt
+Output to: YEAR/dayDD/LANG_ID/FILENAME
+
+Requirements:
+1. Read and parse the input file
+2. Implement both Part 1 and Part 2
+3. Output format: "Part 1: X" and "Part 2: Y" on separate lines
+4. Run your solution and report the actual output
+5. Handle edge cases properly
+
+DO NOT guess answers. Compute them from the algorithm.
+```
+
+## Workflow
+1. Read problem.md to understand the challenge
+2. Check state files for any completed implementations (if resuming)
+3. Dispatch implementation agents for pending languages (Sonnet by default)
+4. Collect results, update state files
+5. If a language fails twice, redispatch with Opus
+6. Once 3+ agree on answers, submit via runner/submit.js
+7. Continue until all 16 languages complete
+8. Run benchmarks: `python3 runner/benchmark.py "command" 5`
+9. Update YEAR/README.md with progress and benchmarks
+
+## Escalation to Sonnet for Yourself
+If coordination becomes complex (many failures, edge cases), you can escalate your own work to Sonnet by noting it in your response. The bash wrapper will handle re-invoking with a higher-capability model.
+
+Begin by reading the problem and checking current state.
+PROMPT
+}
+
+# Build the Opus reviewer prompt
+build_reviewer_prompt() {
+    local state_dir="$1"
+    local day_dir="$PROJECT_ROOT/$YEAR/day$DAY"
+
+    cat << 'PROMPT'
+# Advent of Code Quality Reviewer
+
+You are a REVIEWER agent (running on Opus) responsible for assessing the quality of all implementations and ensuring they meet high standards.
+
+## Your Role
+- Review ALL 16 language implementations
+- Assess each on three criteria (1-10 scale):
+  1. **Algorithmic Correctness**: Sound algorithm, handles edge cases, efficient
+  2. **Honesty/Authenticity**: Genuinely solves problem in that language (no cheating)
+  3. **Idiomaticity**: Uses language-appropriate patterns, conventions, best practices
+- Dispatch Sonnet agents to fix issues (Opus for stuck cases after 2 Sonnet failures)
+- Re-benchmark any modified solutions
+
+## Critical Rules
+1. Be rigorous - we want genuinely excellent implementations
+2. Flag any solution that shells out to other languages or hardcodes answers
+3. Dispatch Sonnet for fixes by default, escalate to Opus only if Sonnet fails twice
+4. Update state files with review scores and notes
+5. Re-run benchmarks for any modified solution
+
+## Assessment Template
+For each language:
+```
+Language: [name]
+Path: YEAR/dayDD/[lang]/solution.[ext]
+
+Algorithmic Correctness: [1-10]
+- [observations]
+
+Honesty/Authenticity: [1-10]
+- [observations]
+
+Idiomaticity: [1-10]
+- [observations]
+
+Action: PASS / NEEDS_FIX
+Fix needed: [description if applicable]
+```
+
+## State Location
+PROMPT
+
+    echo "State directory: $state_dir"
+    echo ""
+    echo "Language states:"
+    for f in "$state_dir"/*.json; do
+        [[ "$(basename "$f")" == "solve.json" ]] && continue
+        echo "--- $(basename "$f") ---"
+        cat "$f"
+    done
+
+    cat << PROMPT
+
+## Implementations to Review
+All solutions are in: $YEAR/day$DAY/[language]/
+
+## Workflow
+1. Read each implementation file
+2. Assess against all three criteria
+3. For any scoring < 7 on any criterion, dispatch fix agent
+4. Track fixes in state files
+5. After fixes, re-verify and re-benchmark
+6. Update $YEAR/README.md with final benchmarks
+7. Produce final summary report
+
+Begin by reviewing the first implementation.
+PROMPT
+}
+
+# Run Phase 1: Implementation (Haiku coordinator with Sonnet implementers)
+run_implementation_phase() {
+    local state_dir="$1"
+
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}  Phase 1: Implementation${NC}"
+    echo -e "${CYAN}  Coordinator: Haiku | Implementers: Sonnet (→Opus on fail)${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
+    echo
 
     local prompt
-    prompt=$(build_step2_prompt)
+    prompt=$(build_coordinator_prompt "$state_dir")
 
-    # Write prompt to temp file for debugging
-    local prompt_file="$day_dir/.step2_prompt.md"
-    echo "$prompt" > "$prompt_file"
-    echo -e "${YELLOW}Prompt saved to: $prompt_file${NC}"
+    # Save prompt for debugging
+    echo "$prompt" > "$state_dir/coordinator_prompt.md"
 
-    echo -e "${GREEN}Launching Claude Code session for Step 2...${NC}"
-    echo
-
-    # Run Claude with the prompt
+    echo -e "${GREEN}Launching Haiku coordinator...${NC}"
     cd "$PROJECT_ROOT"
-    echo "$prompt" | claude --dangerously-skip-permissions
+    echo "$prompt" | claude --model haiku --dangerously-skip-permissions
 
+    echo -e "${GREEN}Phase 1 complete${NC}"
+}
+
+# Run Phase 2: Review (Opus reviewer)
+run_review_phase() {
+    local state_dir="$1"
+
+    echo -e "${MAGENTA}═══════════════════════════════════════════════════════════${NC}"
+    echo -e "${MAGENTA}  Phase 2: Quality Review${NC}"
+    echo -e "${MAGENTA}  Reviewer: Opus | Fixers: Sonnet (→Opus on fail)${NC}"
+    echo -e "${MAGENTA}═══════════════════════════════════════════════════════════${NC}"
     echo
-    echo -e "${GREEN}Step 2 complete!${NC}"
+
+    local prompt
+    prompt=$(build_reviewer_prompt "$state_dir")
+
+    # Save prompt for debugging
+    echo "$prompt" > "$state_dir/reviewer_prompt.md"
+
+    echo -e "${GREEN}Launching Opus reviewer...${NC}"
+    cd "$PROJECT_ROOT"
+    echo "$prompt" | claude --model opus --dangerously-skip-permissions
+
+    echo -e "${GREEN}Phase 2 complete${NC}"
 }
 
 # Main
@@ -349,35 +369,40 @@ main() {
     parse_args "$@"
 
     echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║          Agentic Advent of Code Solver                    ║${NC}"
+    echo -e "${BLUE}║     Agentic Advent of Code Solver (Multi-Model)           ║${NC}"
     echo -e "${BLUE}║                                                           ║${NC}"
     echo -e "${BLUE}║  Year: $YEAR    Day: $DAY                                     ║${NC}"
-    echo -e "${BLUE}║  Part: ${PART:-"both"}     Step: ${STEP:-"both"}                                   ║${NC}"
+    echo -e "${BLUE}║  Resume: $RESUME                                            ║${NC}"
     echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
     echo
 
-    # Extract problem if running step 1
+    # Initialize state
+    local state_dir
+    state_dir=$(init_state)
+    echo -e "${YELLOW}State directory: $state_dir${NC}"
+
+    # Extract problem if needed
+    extract_problem
+
+    # Run phases
     if [[ -z "$STEP" || "$STEP" == "1" ]]; then
-        extract_problem
+        run_implementation_phase "$state_dir"
     fi
 
-    # Run requested steps
-    if [[ -z "$STEP" ]]; then
-        # Both steps
-        run_step1
-        echo
-        echo -e "${YELLOW}Pausing before Step 2. Press Enter to continue or Ctrl+C to stop.${NC}"
-        read -r
-        run_step2
-    elif [[ "$STEP" == "1" ]]; then
-        run_step1
-    else
-        run_step2
+    if [[ -z "$STEP" || "$STEP" == "2" ]]; then
+        if [[ -n "$STEP" ]]; then
+            # If explicitly requesting step 2, no pause
+            :
+        else
+            echo -e "${YELLOW}Press Enter to continue to review phase...${NC}"
+            read -r
+        fi
+        run_review_phase "$state_dir"
     fi
 
     echo
     echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║                    All steps complete!                    ║${NC}"
+    echo -e "${GREEN}║                    All phases complete!                   ║${NC}"
     echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
 }
 

@@ -38,5 +38,8 @@ venv/
 **/.zig-cache/
 **/zig-out/
 
+# Solver state (for resume capability)
+**/.state/
+
 # OS
 .DS_Store
