@@ -8,6 +8,7 @@ Solutions implemented in 16 languages.
 |-----|-------|-----------|
 | 1   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 2   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 3   | ⭐⭐   | C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -54,3 +55,23 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Clojure     | 477.8        | 127.3       |
 | ColdFusion  | 3,542.7      | 1,138.6     |
 | Bash        | 15,625.7     | 2.3         |
+
+### Day 3: Gear Ratios
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 5.3          | 1.9         |
+| C++         | 5.6          | 1.9         |
+| Zig         | 5.7          | 1.9         |
+| Rust        | 5.9          | 1.9         |
+| Lisp        | 38.6         | 44.5        |
+| Perl        | 42.5         | 6.3         |
+| Java        | 50.6         | 47.6        |
+| Node.js     | 57.1         | 51.8        |
+| PHP         | 68.0         | 24.8        |
+| Go          | 70.7         | 26.7        |
+| Ruby        | 70.4         | 28.1        |
+| Python      | 230.0        | 15.9        |
+| Clojure     | 958.7        | 1,042.7     |
+| Bash        | 1,340.8      | 2.8         |
+| ColdFusion  | 3,487.9      | 1,119.8     |
