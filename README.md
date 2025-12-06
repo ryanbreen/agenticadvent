@@ -8,7 +8,7 @@ Solutions to [Advent of Code](https://adventofcode.com/) challenges across multi
 |------|------|--------|
 | [2025](2025/) | 6 | In progress |
 | [2024](2024/) | 5 | In progress |
-| [2023](2023/) | 1 | In progress |
+| [2023](2023/) | 2 | In progress |
 
 ## Approach
 

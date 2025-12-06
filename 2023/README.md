@@ -7,6 +7,7 @@ Solutions implemented in 16 languages.
 | Day | Stars | Languages |
 |-----|-------|-----------|
 | 1   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 2   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -32,3 +33,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Clojure     | 555.6        | 486.0       |
 | ColdFusion  | 2,910.6      | 1,163.7     |
 | Bash        | 5,112.4      | 2.1         |
+
+### Day 2: Cube Conundrum
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| ARM64 asm   | 5.9          | 1.9         |
+| Rust        | 7.0          | 1.9         |
+| C++         | 8.9          | 1.9         |
+| C           | 9.1          | 1.9         |
+| Zig         | 9.2          | 1.9         |
+| Perl        | 24.7         | 6.1         |
+| Python      | 27.7         | 15.5        |
+| Lisp        | 28.1         | 40.7        |
+| Node.js     | 47.0         | 40.4        |
+| Java        | 63.6         | 50.5        |
+| PHP         | 68.5         | 24.6        |
+| Ruby        | 85.5         | 28.3        |
+| Go          | 136.6        | 26.4        |
+| Clojure     | 477.8        | 127.3       |
+| ColdFusion  | 3,542.7      | 1,138.6     |
+| Bash        | 15,625.7     | 2.3         |
