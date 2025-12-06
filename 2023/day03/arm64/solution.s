@@ -16,6 +16,9 @@
     width: .skip 8
     height: .skip 8
     num_buffer: .skip 32
+    // Number storage for Part 2: each entry is 32 bytes (value, row, start, end)
+    numbers: .skip 65536          // Up to 2048 numbers
+    num_count: .skip 8
 
 .text
 
@@ -376,6 +379,7 @@ p1_done:
     ret
 
 // Solve Part 2 - Find gears with exactly 2 adjacent numbers
+// First build a list of all numbers with positions, then check each gear
 solve_part2:
     stp x29, x30, [sp, #-16]!
     stp x19, x20, [sp, #-16]!
@@ -383,6 +387,9 @@ solve_part2:
     stp x23, x24, [sp, #-16]!
     stp x25, x26, [sp, #-16]!
     stp x27, x28, [sp, #-16]!
+
+    // Step 1: Build list of all numbers
+    bl build_number_list
 
     mov x19, #0             // sum
 
@@ -412,59 +419,15 @@ p2_col_loop:
     cmp w0, #'*'
     b.ne p2_skip_col
 
-    // Found gear - count adjacent numbers
-    mov x22, #0             // count
-    mov x23, #1             // product
+    // Found gear - find adjacent numbers from pre-built list
+    mov x0, x20             // gear_row
+    mov x1, x21             // gear_col
+    bl count_adjacent_numbers
+    // x0 = count, x1 = product (if count == 2)
 
-    // Check all 8 directions + handle multi-digit numbers
-    sub x27, x20, #1        // check_row = row - 1
-    add x28, x20, #1        // row_end = row + 1
-
-p2_check_row:
-    cmp x27, x28
-    b.gt p2_gear_done
-
-    sub x24, x21, #1        // check_col = col - 1
-
-p2_check_col:
-    add x9, x21, #1         // col_end = col + 1
-    cmp x24, x9
-    b.gt p2_check_next_row
-
-    mov x0, x27
-    mov x1, x24
-    bl get_char
-    bl is_digit
-    cbz x0, p2_check_next_col
-
-    // Found a digit - find the full number
-    mov x0, x27
-    mov x1, x24
-    bl find_number_at
-    // x0 = number value, x1 = start_col
-
-    // Check if we already counted this number (same row, overlapping position)
-    // Simple check: if start_col < our check position and we're not at start
-    cmp x1, x24
-    b.lt p2_check_next_col
-
-    // Count this number
-    add x22, x22, #1
-    mul x23, x23, x0
-
-p2_check_next_col:
-    add x24, x24, #1
-    b p2_check_col
-
-p2_check_next_row:
-    add x27, x27, #1
-    b p2_check_row
-
-p2_gear_done:
-    // If exactly 2 numbers, add product to sum
-    cmp x22, #2
+    cmp x0, #2
     b.ne p2_skip_col
-    add x19, x19, x23
+    add x19, x19, x1
 
 p2_skip_col:
     add x21, x21, #1
@@ -477,6 +440,166 @@ p2_next_row:
 p2_done:
     mov x0, x19
     ldp x27, x28, [sp], #16
+    ldp x25, x26, [sp], #16
+    ldp x23, x24, [sp], #16
+    ldp x21, x22, [sp], #16
+    ldp x19, x20, [sp], #16
+    ldp x29, x30, [sp], #16
+    ret
+
+// Build list of all numbers with (value, row, start_col, end_col)
+build_number_list:
+    stp x29, x30, [sp, #-16]!
+    stp x19, x20, [sp, #-16]!
+    stp x21, x22, [sp, #-16]!
+    stp x23, x24, [sp, #-16]!
+    stp x25, x26, [sp, #-16]!
+    stp x27, x28, [sp, #-16]!
+
+    adrp x25, height@PAGE
+    add x25, x25, height@PAGEOFF
+    ldr x25, [x25]
+    adrp x26, width@PAGE
+    add x26, x26, width@PAGEOFF
+    ldr x26, [x26]
+
+    adrp x27, numbers@PAGE
+    add x27, x27, numbers@PAGEOFF
+    mov x28, #0             // num_count
+
+    mov x20, #0             // row
+
+bn_row_loop:
+    cmp x20, x25
+    b.ge bn_done
+
+    mov x21, #0             // col
+
+bn_col_loop:
+    cmp x21, x26
+    b.ge bn_next_row
+
+    mov x0, x20
+    mov x1, x21
+    bl get_char
+    bl is_digit
+    cbz x0, bn_skip_col
+
+    // Found start of number
+    mov x22, x21            // start_col
+    mov x23, #0             // value
+
+bn_num_loop:
+    cmp x21, x26
+    b.ge bn_num_done
+
+    mov x0, x20
+    mov x1, x21
+    bl get_char
+    mov w24, w0
+    bl is_digit
+    cbz x0, bn_num_done
+
+    // Accumulate digit
+    mov x0, #10
+    mul x23, x23, x0
+    sub w24, w24, #'0'
+    add x23, x23, x24
+    add x21, x21, #1
+    b bn_num_loop
+
+bn_num_done:
+    // Store number: value, row, start, end (end = col - 1)
+    sub x24, x21, #1        // end_col
+    str x23, [x27], #8      // value
+    str x20, [x27], #8      // row
+    str x22, [x27], #8      // start_col
+    str x24, [x27], #8      // end_col
+    add x28, x28, #1
+    b bn_col_loop
+
+bn_skip_col:
+    add x21, x21, #1
+    b bn_col_loop
+
+bn_next_row:
+    add x20, x20, #1
+    b bn_row_loop
+
+bn_done:
+    adrp x0, num_count@PAGE
+    add x0, x0, num_count@PAGEOFF
+    str x28, [x0]
+
+    ldp x27, x28, [sp], #16
+    ldp x25, x26, [sp], #16
+    ldp x23, x24, [sp], #16
+    ldp x21, x22, [sp], #16
+    ldp x19, x20, [sp], #16
+    ldp x29, x30, [sp], #16
+    ret
+
+// Count adjacent numbers for a gear at (x0=row, x1=col)
+// Returns: x0 = count, x1 = product (if count == 2)
+count_adjacent_numbers:
+    stp x29, x30, [sp, #-16]!
+    stp x19, x20, [sp, #-16]!
+    stp x21, x22, [sp, #-16]!
+    stp x23, x24, [sp, #-16]!
+    stp x25, x26, [sp, #-16]!
+
+    mov x19, x0             // gear_row
+    mov x20, x1             // gear_col
+    mov x21, #0             // count
+    mov x22, #1             // product
+
+    adrp x23, numbers@PAGE
+    add x23, x23, numbers@PAGEOFF
+    adrp x24, num_count@PAGE
+    add x24, x24, num_count@PAGEOFF
+    ldr x24, [x24]          // number of entries
+    mov x25, #0             // index
+
+can_loop:
+    cmp x25, x24
+    b.ge can_done
+
+    // Load number entry
+    ldr x0, [x23]           // value
+    ldr x1, [x23, #8]       // num_row
+    ldr x2, [x23, #16]      // start_col
+    ldr x3, [x23, #24]      // end_col
+    add x23, x23, #32
+
+    // Check if gear is adjacent to this number
+    // Adjacent means: gear_row in [num_row-1, num_row+1]
+    //            and: gear_col in [start_col-1, end_col+1]
+    sub x4, x1, #1
+    cmp x19, x4
+    b.lt can_next
+    add x4, x1, #1
+    cmp x19, x4
+    b.gt can_next
+
+    sub x4, x2, #1
+    cmp x20, x4
+    b.lt can_next
+    add x4, x3, #1
+    cmp x20, x4
+    b.gt can_next
+
+    // This number is adjacent
+    add x21, x21, #1
+    mul x22, x22, x0
+
+can_next:
+    add x25, x25, #1
+    b can_loop
+
+can_done:
+    mov x0, x21
+    mov x1, x22
+
     ldp x25, x26, [sp], #16
     ldp x23, x24, [sp], #16
     ldp x21, x22, [sp], #16
