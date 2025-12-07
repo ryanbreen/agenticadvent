@@ -182,7 +182,80 @@ Solutions should be run from their respective directories with the input file at
 5. Run and verify answers match across implementations
 6. **SUBMIT ANSWERS** to Advent of Code (see Answer Submission below)
 7. Dispatch agents to implement remaining 14 languages in parallel
-8. Run benchmarks and update README.md
+8. Run benchmarks and update year README.md
+9. **Generate Day README** with algorithmic analysis (see Day README below)
+
+## IMPORTANT: Day README - Algorithmic Analysis
+
+Every day's directory **MUST** contain a `README.md` with a human-readable analysis of the problem and its solutions. This is a critical deliverable that provides educational value.
+
+**Location:** `<year>/dayXX/README.md`
+
+**Required Sections:**
+
+### 1. Problem Summary
+- Clear explanation of the puzzle narrative and what's being asked
+- Separate descriptions for Part 1 and Part 2
+- Input format description
+
+### 2. Algorithmic Approach
+- **Part 1 Algorithm**: What technique/data structures are needed
+- **Part 2 Algorithm**: How Part 2 differs or extends Part 1
+- **Key Insights**: The "aha!" moments that make the solution efficient
+- **Time/Space Complexity**: Big-O analysis where relevant
+
+### 3. Programming Techniques Highlighted
+- What CS concepts does this problem test? (e.g., graph traversal, dynamic programming, simulation, parsing)
+- What data structures are essential? (sets, maps, queues, etc.)
+- Any mathematical properties exploited?
+
+### 4. Language-Specific Notes
+- Which languages excel at this problem type and why?
+- Which languages struggle and what workarounds are needed?
+- Notable implementation differences (e.g., "Bash requires bc for big integers")
+
+### 5. Answers
+- Part 1: [answer]
+- Part 2: [answer]
+
+**Example Structure:**
+```markdown
+# Day 7: Laboratories
+
+## Problem Summary
+[Narrative explanation]
+
+## Part 1: Beam Splitting Count
+[What Part 1 asks for, algorithm overview]
+
+## Part 2: Quantum Timelines
+[How Part 2 differs, additional complexity]
+
+## Algorithmic Approach
+### Key Insight
+[The crucial realization]
+
+### Data Structures Used
+[Sets, maps, etc.]
+
+### Complexity
+- Time: O(...)
+- Space: O(...)
+
+## Language Notes
+- **Fast performers**: C, Rust - low overhead, efficient hash maps
+- **Big integer handling**: Part 2 requires 128-bit or arbitrary precision
+  - PHP: Use GMP functions
+  - Perl: Math::BigInt
+  - Bash: bc for arbitrary precision
+  - Java: BigInteger
+
+## Answers
+- Part 1: 1615
+- Part 2: 43560947406326
+```
+
+This README should be written by an Opus agent as part of the finalization phase, after all implementations are complete.
 
 ## IMPORTANT: Answer Submission
 

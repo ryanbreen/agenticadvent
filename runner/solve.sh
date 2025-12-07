@@ -16,7 +16,7 @@
 # Steps:
 #   1. Implementation: Haiku coordinates Sonnet agents to implement all languages
 #   2. Review: Opus reviews all implementations for quality
-#   3. Improvement: Sonnet fixes issues identified by Opus (Opus for stuck cases)
+#   3. Documentation: Opus writes Day README with algorithmic analysis
 #
 
 set -euo pipefail
@@ -364,6 +364,107 @@ run_review_phase() {
     echo -e "${GREEN}Phase 2 complete${NC}"
 }
 
+# Build the documentation prompt for Phase 3
+build_documentation_prompt() {
+    local state_dir="$1"
+    local day_dir="$PROJECT_ROOT/$YEAR/day$DAY"
+
+    cat << PROMPT
+# Advent of Code Day README Writer
+
+You are a DOCUMENTATION agent (running on Opus) responsible for creating a comprehensive README.md that explains the problem, algorithms, and implementation details for this day's challenge.
+
+## Your Task
+Write a README.md file at: $YEAR/day$DAY/README.md
+
+## Required Sections
+
+### 1. Problem Summary
+- Clear explanation of the puzzle narrative
+- What is the input format?
+- What are we computing for Part 1 and Part 2?
+
+### 2. Part 1 Analysis
+- What does Part 1 ask for?
+- Algorithm overview
+- Key data structures needed
+
+### 3. Part 2 Analysis
+- How does Part 2 change the problem?
+- What additional complexity or insight is required?
+- Algorithm modifications needed
+
+### 4. Algorithmic Approach
+- **Key Insight**: The crucial realization that makes the solution work
+- **Data Structures**: Sets, maps, queues, etc. and why they're needed
+- **Time Complexity**: Big-O analysis
+- **Space Complexity**: Memory requirements
+
+### 5. Programming Techniques Highlighted
+- What CS concepts does this problem test?
+- Graph algorithms, dynamic programming, simulation, parsing, etc.
+- Any mathematical properties exploited?
+
+### 6. Language-Specific Implementation Notes
+Review the implementations and note:
+- Which languages are naturally suited to this problem and why?
+- Which languages required workarounds?
+- Notable differences (big integer handling, data structure availability, etc.)
+- Performance characteristics across language families
+
+### 7. Answers
+- Part 1: [answer from successful implementations]
+- Part 2: [answer from successful implementations]
+
+## Source Files
+- Problem statement: $YEAR/day$DAY/problem.md
+- Sample implementations to review:
+PROMPT
+
+    for lang_info in "${LANGUAGES[@]}"; do
+        IFS=':' read -r lang_id lang_name lang_file <<< "$lang_info"
+        echo "  - $lang_name: $YEAR/day$DAY/$lang_id/$lang_file"
+    done
+
+    cat << PROMPT
+
+## Writing Style
+- Human-readable and educational
+- Technical but accessible to intermediate programmers
+- Include specific code patterns or examples when illustrating a point
+- Be concise but thorough
+
+## Output
+Write the complete README.md content and save it using the Write tool to:
+$YEAR/day$DAY/README.md
+
+Begin by reading the problem.md and a few representative implementations (Python, C, and one other) to understand the solution approaches.
+PROMPT
+}
+
+# Run Phase 3: Documentation (Opus writer)
+run_documentation_phase() {
+    local state_dir="$1"
+
+    echo -e "${YELLOW}═══════════════════════════════════════════════════════════${NC}"
+    echo -e "${YELLOW}  Phase 3: Documentation${NC}"
+    echo -e "${YELLOW}  Writer: Opus${NC}"
+    echo -e "${YELLOW}═══════════════════════════════════════════════════════════${NC}"
+    echo
+
+    local prompt
+    prompt=$(build_documentation_prompt "$state_dir")
+
+    # Save prompt for debugging
+    echo "$prompt" > "$state_dir/documentation_prompt.md"
+
+    echo -e "${GREEN}Launching Opus documentation writer...${NC}"
+    cd "$PROJECT_ROOT"
+    echo "$prompt" | claude --model opus --dangerously-skip-permissions
+
+    echo -e "${GREEN}Phase 3 complete${NC}"
+}
+
 # Main
 main() {
     parse_args "$@"
@@ -390,8 +491,11 @@ main() {
     fi
 
     if [[ -z "$STEP" || "$STEP" == "2" ]]; then
-        # No pause between phases - run continuously
         run_review_phase "$state_dir"
+    fi
+
+    if [[ -z "$STEP" || "$STEP" == "3" ]]; then
+        run_documentation_phase "$state_dir"
     fi
 
     echo
