@@ -12,6 +12,7 @@ Solutions implemented in 16 languages.
 | 4   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion + Kotlin, Scala, AWK |
 | 5   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 6   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 7   | ⭐⭐   | C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -145,3 +146,22 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Zig         | 3,279.09     | 231.64      |
 | Bash        | 3,635.02     | 4.52        |
 | ColdFusion  | 4.68         | 1.88        |
+
+### Day 7: Bridge Repair
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 352          | 1.9         |
+| Zig         | 363          | 1.9         |
+| Rust        | 476          | 1.9         |
+| C++         | 579          | 1.9         |
+| Java        | 1,486        | 1,274       |
+| Node.js     | 3,094        | 65          |
+| Go          | 3,416        | 85          |
+| Common Lisp | 4,060        | 130         |
+| PHP         | 6,063        | 117         |
+| Python      | 9,385        | 16          |
+| Ruby        | 11,487       | 28          |
+| Clojure     | 17,571       | 1,320       |
+| Perl        | 24,006       | 196         |
+| ColdFusion  | 42,807       | 1,304       |
