@@ -130,6 +130,7 @@ All benchmarks run on Apple Silicon (ARM64), measuring both parts combined.
 | Zig | 51.50 | 5.19 | |
 | Java | 69.15 | 47.86 | JVM startup overhead |
 | Rust | 71.43 | 2.12 | |
+| ARM64 | 122.33 | 1.89 | FP bounds + rational validation |
 | Common Lisp | 267.90 | 88.98 | Built-in rationals |
 | Node.js | 593.11 | 118.50 | Custom BigInt fractions |
 | Clojure | 1,690.80 | 1,366.59 | JVM + built-in ratios |
@@ -139,7 +140,6 @@ All benchmarks run on Apple Silicon (ARM64), measuring both parts combined.
 | PHP | 6,493.87 | 25.17 | GMP functions |
 | Perl | 9,525.33 | 6.97 | Math::BigRat |
 | CFML | 10,485.87 | 1,034.81 | JVM-based |
-| ARM64 | 122.33 | 1.89 | FP bounds + rational validation |
 | Bash | 15,418.12 | 16.05 | bc for arithmetic |
 
 ### Performance Analysis
