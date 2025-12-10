@@ -118,3 +118,42 @@ Different languages handle exact fractions differently:
 
 - **Part 1**: 558
 - **Part 2**: 20317
+
+## Benchmarks
+
+All benchmarks run on Apple Silicon (ARM64), measuring both parts combined.
+
+| Language | Runtime (ms) | Memory (MB) | Notes |
+|----------|-------------|-------------|-------|
+| C | 38.19 | 1.89 | Fastest overall |
+| C++ | 44.77 | 2.33 | |
+| Zig | 51.50 | 5.19 | |
+| Java | 69.15 | 47.86 | JVM startup overhead |
+| Rust | 71.43 | 2.12 | |
+| Common Lisp | 267.90 | 88.98 | Built-in rationals |
+| Node.js | 593.11 | 118.50 | Custom BigInt fractions |
+| Clojure | 1,690.80 | 1,366.59 | JVM + built-in ratios |
+| Ruby | 1,698.00 | 28.55 | Built-in Rational |
+| Go | 2,276.81 | 10.83 | math/big.Rat |
+| Python | 4,808.24 | 17.67 | fractions.Fraction |
+| PHP | 6,493.87 | 25.17 | GMP functions |
+| Perl | 9,525.33 | 6.97 | Math::BigRat |
+| CFML | 10,485.87 | 1,034.81 | JVM-based |
+| Bash | 15,418.12 | 16.05 | bc for arithmetic |
+| ARM64 | 25,562.17 | 1.89 | Full ILP solver in assembly |
+
+### Performance Analysis
+
+**Fast tier (< 100ms)**: C, C++, Zig, Java, Rust
+- Systems languages with efficient rational implementations
+- Java benefits from JIT compilation despite JVM startup
+
+**Medium tier (100ms - 2s)**: Common Lisp, Node.js, Clojure, Ruby
+- Languages with built-in or efficient rational number support
+- Clojure's high memory due to JVM and immutable data structures
+
+**Slow tier (> 2s)**: Go, Python, PHP, Perl, CFML, Bash, ARM64
+- Go's big.Rat has allocation overhead
+- Scripting languages pay interpretation costs
+- ARM64 is slow due to brute-force search in assembly (201³ iterations for 3 free vars)
+- Bash uses external `bc` process for each arithmetic operation
