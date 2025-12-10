@@ -473,6 +473,7 @@ fn solveMachine2(allocator: Allocator, machine: Machine2) !u64 {
             while (t0 <= bound) : (t0 += 1) {
                 const t0_frac = Fraction.init(t0, 1);
                 var inter0 = try allocator.alloc(Fraction, n_buttons);
+                defer allocator.free(inter0);
                 for (0..n_buttons) |j| {
                     inter0[j] = particular[j].add(t0_frac.mul(null_vectors[0][j]));
                 }
@@ -496,6 +497,7 @@ fn solveMachine2(allocator: Allocator, machine: Machine2) !u64 {
                 while (t1 <= t1_high_int) : (t1 += 1) {
                     const t1_frac = Fraction.init(t1, 1);
                     var inter1 = try allocator.alloc(Fraction, n_buttons);
+                    defer allocator.free(inter1);
                     for (0..n_buttons) |j| {
                         inter1[j] = inter0[j].add(t1_frac.mul(null_vectors[1][j]));
                     }
@@ -536,6 +538,84 @@ fn solveMachine2(allocator: Allocator, machine: Machine2) !u64 {
                     }
                 }
             }
+        } else if (n_free >= 4 and n_free <= 6) {
+            // General recursive search with dynamic bounds
+            const SearchContext = struct {
+                allocator: Allocator,
+                n_buttons: usize,
+                n_free: usize,
+                null_vectors: [][]Fraction,
+                max_j: i64,
+                min_total: *u64,
+
+                fn searchRecursive(self: *const @This(), idx: usize, partial: []Fraction) !void {
+                    if (idx == self.n_free) {
+                        // Evaluate solution
+                        var valid = true;
+                        var total: u64 = 0;
+                        for (partial) |val| {
+                            if (val.cmp(Fraction.init(0, 1)) == .lt or !val.isInteger()) {
+                                valid = false;
+                                break;
+                            }
+                            total += @intCast(val.toInt());
+                        }
+                        if (valid) {
+                            self.min_total.* = @min(self.min_total.*, total);
+                        }
+                        return;
+                    }
+
+                    // Compute bounds for current free var given partial state
+                    var t_low: f64 = -1e18;
+                    var t_high: f64 = 1e18;
+                    for (0..self.n_buttons) |j| {
+                        const p = partial[j].toFloat();
+                        const nv = self.null_vectors[idx][j].toFloat();
+                        if (nv > 0.0) {
+                            t_low = @max(t_low, -p / nv);
+                        } else if (nv < 0.0) {
+                            t_high = @min(t_high, -p / nv);
+                        }
+                    }
+
+                    if (t_low > t_high or t_low == std.math.inf(f64) or t_high == -std.math.inf(f64)) {
+                        return;
+                    }
+
+                    // Widen bounds to account for integrality constraints
+                    const t_low_int = @max(@as(i64, @intFromFloat(@ceil(t_low))) - self.max_j, -self.max_j * 2);
+                    const t_high_int = @min(@as(i64, @intFromFloat(@floor(t_high))) + self.max_j, self.max_j * 2);
+
+                    var t = t_low_int;
+                    while (t <= t_high_int) : (t += 1) {
+                        const t_frac = Fraction.init(t, 1);
+                        var new_partial = try self.allocator.alloc(Fraction, self.n_buttons);
+                        defer self.allocator.free(new_partial);
+                        for (0..self.n_buttons) |j| {
+                            new_partial[j] = partial[j].add(t_frac.mul(self.null_vectors[idx][j]));
+                        }
+                        try self.searchRecursive(idx + 1, new_partial);
+                    }
+                }
+            };
+
+            var partial = try allocator.alloc(Fraction, n_buttons);
+            defer allocator.free(partial);
+            for (0..n_buttons) |j| {
+                partial[j] = particular[j];
+            }
+
+            var ctx = SearchContext{
+                .allocator = allocator,
+                .n_buttons = n_buttons,
+                .n_free = n_free,
+                .null_vectors = null_vectors,
+                .max_j = max_j,
+                .min_total = &min_total,
+            };
+
+            try ctx.searchRecursive(0, partial);
         }
     }
 

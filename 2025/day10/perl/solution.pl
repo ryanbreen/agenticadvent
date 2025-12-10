@@ -476,6 +476,68 @@ sub solve_machine_part2 {
         return $min_total == 1e9 ? 0 : $min_total;
     }
 
+    if ($n_free >= 4 && $n_free <= 6) {
+        # General recursive search with dynamic bounds for 4-6 free variables
+        my $search_recursive;
+        $search_recursive = sub {
+            my ($idx, $partial_ref) = @_;
+
+            if ($idx == $n_free) {
+                # Evaluate solution
+                my $valid = 1;
+                my $total = 0;
+                for my $val (@$partial_ref) {
+                    if ($val->is_negative() || !$val->is_integer()) {
+                        $valid = 0;
+                        last;
+                    }
+                    $total += $val->to_int();
+                }
+                if ($valid) {
+                    $min_total = $total if $total < $min_total;
+                }
+                return;
+            }
+
+            # Compute bounds for current free var given partial state
+            my $t_low = -1e9;
+            my $t_high = 1e9;
+            for my $j (0 .. $n_buttons - 1) {
+                my $p = $partial_ref->[$j]->to_number();
+                my $nv = $null_vectors[$idx][$j]->to_number();
+                if ($nv > 0) {
+                    my $val = -$p / $nv;
+                    $t_low = $val if $val > $t_low;
+                } elsif ($nv < 0) {
+                    my $val = -$p / $nv;
+                    $t_high = $val if $val < $t_high;
+                }
+            }
+
+            if ($t_low > $t_high || $t_low == 1e9 || $t_high == -1e9) {
+                return;
+            }
+
+            # Widen bounds to account for integrality constraints
+            my $t_low_int = ceil($t_low) - $max_j;
+            $t_low_int = -$max_j * 2 if $t_low_int < -$max_j * 2;
+            my $t_high_int = floor($t_high) + $max_j;
+            $t_high_int = $max_j * 2 if $t_high_int > $max_j * 2;
+
+            for my $t ($t_low_int .. $t_high_int) {
+                my $t_frac = Fraction->new($t);
+                my @new_partial;
+                for my $j (0 .. $n_buttons - 1) {
+                    $new_partial[$j] = $partial_ref->[$j]->add($t_frac->mul($null_vectors[$idx][$j]));
+                }
+                $search_recursive->($idx + 1, \@new_partial);
+            }
+        };
+
+        $search_recursive->(0, [@particular]);
+        return $min_total == 1e9 ? 0 : $min_total;
+    }
+
     return 0;
 }
 

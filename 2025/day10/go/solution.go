@@ -490,7 +490,75 @@ func solveMachine2(m Machine2) int {
 		return minTotal
 	}
 
-	// Fallback for more free variables
+	// For 4-6 free variables, use recursive search with dynamic bounds
+	if nFree >= 4 && nFree <= 6 {
+		// Recursive search function
+		var searchRecursive func(idx int, partial []*big.Rat)
+		searchRecursive = func(idx int, partial []*big.Rat) {
+			if idx == nFree {
+				// Evaluate solution
+				total := 0
+				valid := true
+				for _, val := range partial {
+					if val.Sign() < 0 || val.Denom().Cmp(big.NewInt(1)) != 0 {
+						valid = false
+						break
+					}
+					total += int(val.Num().Int64())
+				}
+				if valid && total < minTotal {
+					minTotal = total
+				}
+				return
+			}
+
+			// Compute bounds for current free var given partial state
+			tLow := math.Inf(-1)
+			tHigh := math.Inf(1)
+			for j := 0; j < nButtons; j++ {
+				p := ratToFloat(partial[j])
+				nv := toFloat(nullVectors[idx][j])
+				if nv > 0 {
+					tLow = math.Max(tLow, -p/nv)
+				} else if nv < 0 {
+					tHigh = math.Min(tHigh, -p/nv)
+				}
+			}
+
+			if tLow > tHigh || math.IsInf(tLow, 1) || math.IsInf(tHigh, -1) {
+				return
+			}
+
+			// Widen bounds to account for integrality constraints
+			tLowInt := int(math.Max(float64(math.Ceil(tLow))-float64(maxJ), float64(-maxJ*2)))
+			tHighInt := int(math.Min(float64(math.Floor(tHigh))+float64(maxJ), float64(maxJ*2)))
+
+			for t := tLowInt; t <= tHighInt; t++ {
+				tFrac := big.NewRat(int64(t), 1)
+				newPartial := make([]*big.Rat, nButtons)
+				for j := 0; j < nButtons; j++ {
+					newPartial[j] = new(big.Rat).Set(partial[j])
+					temp := new(big.Rat).Mul(tFrac, nullVectors[idx][j].Rat)
+					newPartial[j].Add(newPartial[j], temp)
+				}
+				searchRecursive(idx+1, newPartial)
+			}
+		}
+
+		// Start recursive search with particular solution
+		initialPartial := make([]*big.Rat, nButtons)
+		for j := 0; j < nButtons; j++ {
+			initialPartial[j] = new(big.Rat).Set(particular[j].Rat)
+		}
+		searchRecursive(0, initialPartial)
+
+		if minTotal == math.MaxInt32 {
+			return 0
+		}
+		return minTotal
+	}
+
+	// Fallback for more than 6 free variables
 	return 0
 }
 

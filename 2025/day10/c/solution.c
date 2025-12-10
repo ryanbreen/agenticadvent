@@ -84,6 +84,10 @@ double rational_to_double(Rational r) {
 /* Parse indicator lights and buttons for Part 1 */
 int parse_line_part1(const char *line, uint64_t *target, uint64_t *buttons, int *button_indices[MAX_BUTTONS], int *button_counts) {
     char *s = strdup(line);
+    if (!s) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return 0;
+    }
     char *p = s;
 
     /* Find indicator pattern [...] */
@@ -119,6 +123,15 @@ int parse_line_part1(const char *line, uint64_t *target, uint64_t *buttons, int 
             char *token = strtok(btn_start, ",");
             button_counts[n_buttons] = 0;
             button_indices[n_buttons] = malloc(MAX_LIGHTS * sizeof(int));
+            if (!button_indices[n_buttons]) {
+                fprintf(stderr, "Memory allocation failed\n");
+                /* Cleanup previously allocated memory */
+                for (int i = 0; i < n_buttons; i++) {
+                    free(button_indices[i]);
+                }
+                free(s);
+                return 0;
+            }
 
             while (token) {
                 int idx = atoi(token);
@@ -138,9 +151,13 @@ int parse_line_part1(const char *line, uint64_t *target, uint64_t *buttons, int 
     return n_buttons;
 }
 
-/* Parse joltage requirements for Part 2 */
-int parse_line_part2(const char *line, int *joltage, int *button_indices[MAX_BUTTONS], int *button_counts) {
+/* Parse joltage requirements for Part 2 - returns n_counters in high bits, n_buttons in low bits */
+int parse_line_part2(const char *line, int *joltage, int *button_indices[MAX_BUTTONS], int *button_counts, int *n_counters_out) {
     char *s = strdup(line);
+    if (!s) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return 0;
+    }
     char *p = s;
 
     /* Find joltage requirements {...} */
@@ -159,6 +176,7 @@ int parse_line_part2(const char *line, int *joltage, int *button_indices[MAX_BUT
         joltage[n_counters++] = atoi(token);
         token = strtok(NULL, ",");
     }
+    *n_counters_out = n_counters;
 
     /* Extract buttons (...) */
     int n_buttons = 0;
@@ -175,6 +193,15 @@ int parse_line_part2(const char *line, int *joltage, int *button_indices[MAX_BUT
             token = strtok(btn_start, ",");
             button_counts[n_buttons] = 0;
             button_indices[n_buttons] = malloc(MAX_LIGHTS * sizeof(int));
+            if (!button_indices[n_buttons]) {
+                fprintf(stderr, "Memory allocation failed\n");
+                /* Cleanup previously allocated memory */
+                for (int i = 0; i < n_buttons; i++) {
+                    free(button_indices[i]);
+                }
+                free(s);
+                return 0;
+            }
 
             while (token) {
                 int idx = atoi(token);
@@ -205,8 +232,10 @@ int popcount(uint64_t n) {
 
 /* Solve Part 1 machine using brute force */
 int solve_machine_part1(int n_buttons, uint64_t target, uint64_t *buttons) {
-    if (n_buttons > 20) {
-        /* Too large for brute force */
+    /* Brute force is feasible up to ~25 buttons (2^25 = 33M combinations)
+     * Beyond that, would need Gaussian elimination over GF(2) */
+    if (n_buttons > 25) {
+        fprintf(stderr, "Warning: Too many buttons (%d) for brute force\n", n_buttons);
         return 0;
     }
 
@@ -614,24 +643,11 @@ int part2(const char *filename) {
         int joltage[MAX_LIGHTS];
         int *button_indices[MAX_BUTTONS];
         int button_counts[MAX_BUTTONS];
+        int n_counters;
 
-        int n_buttons = parse_line_part2(line, joltage, button_indices, button_counts);
+        int n_buttons = parse_line_part2(line, joltage, button_indices, button_counts, &n_counters);
 
         if (n_buttons > 0) {
-            /* Count joltage requirements */
-            char *s = strdup(line);
-            char *start = strchr(s, '{');
-            char *end = strchr(s, '}');
-            *start = '\0';
-            *end = '\0';
-            int n_counters = 0;
-            char *token = strtok(start + 1, ",");
-            while (token) {
-                n_counters++;
-                token = strtok(NULL, ",");
-            }
-            free(s);
-
             int min_presses = solve_machine_part2(n_counters, joltage, n_buttons, button_indices, button_counts);
             total += min_presses;
         }
