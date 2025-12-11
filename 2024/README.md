@@ -14,6 +14,7 @@ Solutions implemented in 16 languages.
 | 6   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 7   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 8   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 9   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -191,3 +192,26 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Java        | 138.4        | 46.5        |
 | Clojure     | 465.9        | 142.0       |
 | ColdFusion  | 2,930.5      | 1,143.8     |
+
+### Day 9: Disk Fragmenter
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 80           | 2.2         |
+| Rust        | 113          | 2.8         |
+| C++         | 116          | 2.9         |
+| Zig         | 147          | 2.3         |
+| Go          | 153          | 10.3        |
+| Node.js     | 265          | 51.6        |
+| ARM64 asm   | 290          | 2.1         |
+| Java        | 445          | 58.8        |
+| PHP         | 1,129        | 27.9        |
+| Common Lisp | 1,400        | 46.1        |
+| Clojure     | 2,781        | 1,309       |
+| Ruby        | 7,701        | 31.1        |
+| Python      | 8,520        | 17.6        |
+| Perl        | 11,681       | 21.8        |
+| ColdFusion  | 23,913       | 1,488       |
+| Bash        | 531,339*     | 19.6        |
+
+*Bash takes ~8.9 minutes due to slow array operations on ~95,000 blocks

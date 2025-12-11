@@ -1,0 +1,16 @@
+CC = gcc
+CFLAGS = -O2 -Wall -Wextra -std=c11
+TARGET = solution
+
+all: $(TARGET)
+
+$(TARGET): solution.c
+	$(CC) $(CFLAGS) -o $(TARGET) solution.c
+
+clean:
+	rm -f $(TARGET)
+
+run: $(TARGET)
+	./$(TARGET)
+
+.PHONY: all clean run
