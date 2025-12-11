@@ -13,6 +13,7 @@ Solutions implemented in 16 languages.
 | 5   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 6   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 7   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Clojure, Common Lisp, ColdFusion |
+| 8   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -166,3 +167,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Clojure     | 17,571       | 1,320       |
 | Perl        | 24,006       | 196         |
 | ColdFusion  | 42,807       | 1,304       |
+
+### Day 8: Resonant Collinearity
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| Go          | 6.6          | 4.1         |
+| C++         | 6.6          | 1.9         |
+| C           | 7.3          | 1.9         |
+| ARM64 asm   | 7.3          | 1.9         |
+| Rust        | 8.5          | 1.9         |
+| Zig         | 11.2         | 1.9         |
+| Perl        | 13.3         | 4.6         |
+| Python      | 26.8         | 15.0        |
+| Common Lisp | 27.7         | 41.0        |
+| Node.js     | 46.9         | 39.8        |
+| Bash        | 51.9         | 6.8         |
+| PHP         | 62.2         | 24.6        |
+| Ruby        | 64.5         | 28.3        |
+| Java        | 138.4        | 46.5        |
+| Clojure     | 465.9        | 142.0       |
+| ColdFusion  | 2,930.5      | 1,143.8     |
