@@ -296,11 +296,12 @@ parse_num_end:
 // Input: x0 = buffer pointer
 //        x1 = buffer size
 parse_equations:
-    stp x29, x30, [sp, #-64]!
+    stp x29, x30, [sp, #-80]!
     mov x29, sp
     stp x19, x20, [sp, #16]
     stp x21, x22, [sp, #32]
     stp x23, x24, [sp, #48]
+    stp x25, x26, [sp, #64]
 
     mov x19, x0             // Buffer pointer
     add x20, x19, x1        // End pointer
@@ -325,7 +326,7 @@ parse_eq_loop:
     // Count and parse numbers
     add x23, x21, #8        // Number count location
     add x24, x21, #16       // First number location
-    mov x2, #0              // Number count
+    mov x25, #0             // Number count (use callee-saved register!)
 
 parse_nums_loop:
     ldrb w0, [x19]
@@ -339,12 +340,12 @@ parse_nums_loop:
     bl parse_number
     mov x19, x0
 
-    add x2, x2, #1
+    add x25, x25, #1
     add x24, x24, #8
     b parse_nums_loop
 
 parse_nums_done:
-    str x2, [x23]           // Store count
+    str x25, [x23]          // Store count
 
     add x22, x22, #1        // Increment equation count
     add x21, x21, #144      // Next equation struct
@@ -364,10 +365,11 @@ parse_eq_done:
     add x0, x0, equation_count@PAGEOFF
     str x22, [x0]
 
+    ldp x25, x26, [sp, #64]
     ldp x23, x24, [sp, #48]
     ldp x21, x22, [sp, #32]
     ldp x19, x20, [sp, #16]
-    ldp x29, x30, [sp], #64
+    ldp x29, x30, [sp], #80
     ret
 
 // Solve part 1

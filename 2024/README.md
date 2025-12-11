@@ -12,7 +12,7 @@ Solutions implemented in 16 languages.
 | 4   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion + Kotlin, Scala, AWK |
 | 5   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 6   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
-| 7   | ⭐⭐   | C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Clojure, Common Lisp, ColdFusion |
+| 7   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -153,6 +153,7 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 |-------------|--------------|-------------|
 | C           | 352          | 1.9         |
 | Zig         | 363          | 1.9         |
+| ARM64 asm   | 473          | 1.9         |
 | Rust        | 476          | 1.9         |
 | C++         | 579          | 1.9         |
 | Java        | 1,486        | 1,274       |
