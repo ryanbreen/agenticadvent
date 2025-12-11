@@ -95,11 +95,11 @@ The Part 2 answer (319,473,830,844,560) fits in 64-bit integers, but multiplicat
 | Language | Runtime (ms) | Memory (MB) |
 |----------|-------------|-------------|
 | Zig      | 6.36        | 1.78        |
+| ARM64    | 7.00        | 1.92        |
 | C        | 7.31        | 1.58        |
 | Go       | 7.71        | 4.42        |
 | C++      | 8.42        | 1.72        |
 | Rust     | 13.32       | 2.08        |
-| ARM64    | 27.49       | 15.19       |
 | Python   | 27.33       | 15.16       |
 | Common Lisp | 30.30    | 42.30       |
 | Perl     | 51.32       | 13.44       |

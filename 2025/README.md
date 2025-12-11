@@ -238,11 +238,11 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Language    | Runtime (ms) | Memory (MB) |
 |-------------|--------------|-------------|
 | Zig         | 6.36         | 1.78        |
+| ARM64 asm   | 7.00         | 1.92        |
 | C           | 7.31         | 1.58        |
 | Go          | 7.71         | 4.42        |
 | C++         | 8.42         | 1.72        |
 | Rust        | 13.32        | 2.08        |
-| ARM64 asm   | 27.49        | 15.19       |
 | Python      | 27.33        | 15.16       |
 | Common Lisp | 30.30        | 42.30       |
 | Perl        | 51.32        | 13.44       |
