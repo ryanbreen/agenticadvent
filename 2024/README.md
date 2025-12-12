@@ -208,8 +208,8 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | PHP         | 1,129        | 27.9        |
 | Common Lisp | 1,400        | 46.1        |
 | Clojure     | 2,781        | 1,309       |
+| Bash        | 5,886        | 9.6         |
 | Ruby        | 7,701        | 31.1        |
 | Python      | 8,520        | 17.6        |
 | Perl        | 11,681       | 21.8        |
-| Bash        | 5,886        | 9.6         |
 | ColdFusion  | 23,913       | 1,488       |
