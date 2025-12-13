@@ -175,6 +175,27 @@ The immutable data structures mean we rebuild collections rather than mutating i
 3. **Sorting**: Most languages have built-in sort; Assembly (ARM64) requires a custom implementation
 4. **Early exit**: `break` works in most languages, but Clojure uses `some` for short-circuit evaluation
 
+
+## Benchmarks
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| ARM64 asm   | 6.6          | 1.9         |
+| Zig         | 7.4          | 1.9         |
+| C++         | 16.2         | 1.9         |
+| C           | 24.6         | 1.9         |
+| Common Lisp | 27.6         | 40.9        |
+| Python      | 37.0         | 15.9        |
+| Node.js     | 51.8         | 43.8        |
+| Ruby        | 75.3         | 28.2        |
+| Perl        | 72.8         | 7.1         |
+| Rust        | 68.7         | 1.9         |
+| Java        | 95.5         | 48.1        |
+| PHP         | 147.5        | 24.7        |
+| Go          | 9.2          | 4.1         |
+| Clojure     | 839.3        | 133.8       |
+| ColdFusion  | 3,500.0      | 1,100.0     |
+
 ## Answers
 
 - **Part 1**: 513

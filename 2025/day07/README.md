@@ -166,6 +166,28 @@ typedef struct {
 
 ---
 
+
+## Benchmarks
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 6.6          | 1.9         |
+| ARM64 asm   | 6.7          | 1.9         |
+| Rust        | 8.0          | 1.9         |
+| C++         | 10.2         | 1.9         |
+| Zig         | 10.4         | 1.9         |
+| Common Lisp | 30.8         | 42.4        |
+| Python      | 30.7         | 15.7        |
+| Node.js     | 48.7         | 40.6        |
+| Java        | 55.1         | 48.6        |
+| Ruby        | 66.3         | 28.7        |
+| PHP         | 69.5         | 24.7        |
+| Perl        | 72.2         | 12.3        |
+| Go          | 83.1         | 26.9        |
+| Clojure     | 443.8        | 137.7       |
+| ColdFusion  | 2,919.1      | 1,099.2     |
+| Bash        | 7,410.8      | 2.4         |
+
 ## Answers
 
 - **Part 1**: 1615

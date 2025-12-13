@@ -215,7 +215,25 @@ Every day's directory **MUST** contain a `README.md` with a human-readable analy
 - Which languages struggle and what workarounds are needed?
 - Notable implementation differences (e.g., "Bash requires bc for big integers")
 
-### 5. Answers
+### 5. Benchmark Table (REQUIRED)
+**CRITICAL: Every day README MUST include the benchmark comparison table.**
+
+Copy the benchmark table from the year's README.md (`<year>/README.md`) into the day's README. This table shows runtime and memory for all 16 language implementations.
+
+Format:
+```markdown
+## Benchmarks
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 7.3          | 1.9         |
+| Rust        | 8.4          | 1.9         |
+...
+```
+
+This is non-negotiable. The day README is incomplete without benchmarks.
+
+### 6. Answers
 - Part 1: [answer]
 - Part 2: [answer]
 
@@ -250,6 +268,14 @@ Every day's directory **MUST** contain a `README.md` with a human-readable analy
   - Perl: Math::BigInt
   - Bash: bc for arbitrary precision
   - Java: BigInteger
+
+## Benchmarks
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 7.3          | 1.9         |
+| Rust        | 8.4          | 1.9         |
+| ...         | ...          | ...         |
 
 ## Answers
 - Part 1: 1615

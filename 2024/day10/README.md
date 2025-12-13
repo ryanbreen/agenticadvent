@@ -102,6 +102,28 @@ In practice, the strictly-increasing height constraint heavily prunes the search
 - Direction vectors as aligned 16-byte pairs
 - Stack-based queue for BFS
 
+
+## Benchmarks
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 7.3          | 1.9         |
+| ARM64 asm   | 7.5          | 1.9         |
+| C++         | 7.9          | 1.9         |
+| Rust        | 8.4          | 1.9         |
+| Go          | 8.5          | 4.4         |
+| Zig         | 12.5         | 1.9         |
+| Perl        | 22.0         | 6.4         |
+| Common Lisp | 30.9         | 42.1        |
+| Python      | 35.6         | 15.8        |
+| PHP         | 54.5         | 24.6        |
+| Node.js     | 55.8         | 46.1        |
+| Java        | 60.0         | 51.8        |
+| Ruby        | 74.5         | 28.5        |
+| Clojure     | 568.5        | 168.4       |
+| ColdFusion  | ~3,000*      | ~1,100      |
+| Bash        | 101,487      | 6.9         |
+
 ## Answers
 
 - **Part 1**: 517

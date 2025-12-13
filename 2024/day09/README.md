@@ -116,6 +116,28 @@ ARM64 excels here because:
 - All span data fits in L1 cache (no cache misses)
 - No function call overhead (inlined critical paths)
 
+
+## Benchmarks
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| ARM64 asm   | 19           | 1.8         |
+| C           | 80           | 2.2         |
+| Rust        | 113          | 2.8         |
+| C++         | 116          | 2.9         |
+| Zig         | 147          | 2.3         |
+| Go          | 153          | 10.3        |
+| Node.js     | 265          | 51.6        |
+| Java        | 445          | 58.8        |
+| PHP         | 1,129        | 27.9        |
+| Common Lisp | 1,400        | 46.1        |
+| Clojure     | 2,781        | 1,309       |
+| Bash        | 5,886        | 9.6         |
+| Ruby        | 7,701        | 31.1        |
+| Python      | 8,520        | 17.6        |
+| Perl        | 11,681       | 21.8        |
+| ColdFusion  | 23,913       | 1,488       |
+
 ## Answers
 
 - **Part 1**: 6291146824486
