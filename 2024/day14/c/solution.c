@@ -90,6 +90,11 @@ void count_quadrants(const Position *positions, int num_robots,
 // Part 1: Safety factor after 100 seconds
 long part1(const Robot *robots, int num_robots) {
     Position *positions = malloc(num_robots * sizeof(Position));
+    if (!positions) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return -1;
+    }
+
     simulate(robots, num_robots, 100, positions);
 
     int q1, q2, q3, q4;
@@ -104,17 +109,29 @@ long part1(const Robot *robots, int num_robots) {
 // Part 2: Find when robots form a Christmas tree pattern
 int part2(const Robot *robots, int num_robots) {
     Position *positions = malloc(num_robots * sizeof(Position));
+    if (!positions) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return -1;
+    }
+
+    // Allocate grid on heap instead of stack
+    bool *grid = malloc(HEIGHT * WIDTH * sizeof(bool));
+    if (!grid) {
+        fprintf(stderr, "Memory allocation failed for grid\n");
+        free(positions);
+        return -1;
+    }
 
     // Look for a frame with a long horizontal line of robots
     for (int seconds = 1; seconds <= WIDTH * HEIGHT; seconds++) {
         simulate(robots, num_robots, seconds, positions);
 
-        // Create grid to check for consecutive robots
-        bool grid[HEIGHT][WIDTH];
-        memset(grid, 0, sizeof(grid));
+        // Clear grid
+        memset(grid, 0, HEIGHT * WIDTH * sizeof(bool));
 
+        // Mark robot positions (using 1D indexing)
         for (int i = 0; i < num_robots; i++) {
-            grid[positions[i].y][positions[i].x] = true;
+            grid[positions[i].y * WIDTH + positions[i].x] = true;
         }
 
         // Look for a horizontal line of at least 20 consecutive robots
@@ -123,7 +140,7 @@ int part2(const Robot *robots, int num_robots) {
             int consecutive = 0;
 
             for (int x = 0; x < WIDTH; x++) {
-                if (grid[y][x]) {
+                if (grid[y * WIDTH + x]) {
                     consecutive++;
                     if (consecutive > max_consecutive) {
                         max_consecutive = consecutive;
@@ -134,18 +151,24 @@ int part2(const Robot *robots, int num_robots) {
             }
 
             if (max_consecutive >= 20) {
+                free(grid);
                 free(positions);
                 return seconds;
             }
         }
     }
 
+    free(grid);
     free(positions);
     return -1;
 }
 
 int main(void) {
     Robot *robots = malloc(MAX_ROBOTS * sizeof(Robot));
+    if (!robots) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return 1;
+    }
 
     int num_robots = parse_robots("../input.txt", robots);
     if (num_robots < 0) {

@@ -2,6 +2,7 @@ const std = @import("std");
 
 const WIDTH = 101;
 const HEIGHT = 103;
+const MIN_TREE_LINE_LENGTH = 20;
 
 const Robot = struct {
     px: i32,
@@ -11,7 +12,7 @@ const Robot = struct {
 };
 
 fn parseRobots(allocator: std.mem.Allocator, input: []const u8) !std.ArrayList(Robot) {
-    var robots = std.ArrayList(Robot){};
+    var robots = try std.ArrayList(Robot).initCapacity(allocator, 0);
     var lines = std.mem.splitSequence(u8, input, "\n");
 
     while (lines.next()) |line| {
@@ -53,7 +54,7 @@ const Position = struct {
 };
 
 fn simulate(allocator: std.mem.Allocator, robots: []const Robot, seconds: i32) !std.ArrayList(Position) {
-    var positions = std.ArrayList(Position){};
+    var positions = try std.ArrayList(Position).initCapacity(allocator, robots.len);
 
     for (robots) |robot| {
         // Calculate new position with wrapping
@@ -116,7 +117,7 @@ fn part2(allocator: std.mem.Allocator, robots: []const Robot) !i32 {
             try pos_set.put(pos, {});
         }
 
-        // Look for a horizontal line of at least 20 consecutive robots
+        // Look for a horizontal line of at least MIN_TREE_LINE_LENGTH consecutive robots
         var y: i32 = 0;
         while (y < HEIGHT) : (y += 1) {
             var max_consecutive: i32 = 0;
@@ -134,7 +135,7 @@ fn part2(allocator: std.mem.Allocator, robots: []const Robot) !i32 {
                 }
             }
 
-            if (max_consecutive >= 20) {
+            if (max_consecutive >= MIN_TREE_LINE_LENGTH) {
                 return seconds;
             }
         }

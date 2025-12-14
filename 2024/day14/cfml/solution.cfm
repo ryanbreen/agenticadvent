@@ -8,6 +8,7 @@ inputText = trim(fileRead(inputFile));
 
 WIDTH = 101;
 HEIGHT = 103;
+TREE_PATTERN_THRESHOLD = 20;
 
 /**
  * Custom modulo function that handles negative numbers correctly
@@ -32,12 +33,12 @@ function parseRobots(text) {
         if (len(line) == 0) continue;
 
         // Extract numbers using regex
-        var match = reFind("p=(-?\d+),(-?\d+) v=(-?\d+),(-?\d+)", line, 1, true);
-        if (match.pos[1] > 0) {
-            var px = val(mid(line, match.pos[2], match.len[2]));
-            var py = val(mid(line, match.pos[3], match.len[3]));
-            var vx = val(mid(line, match.pos[4], match.len[4]));
-            var vy = val(mid(line, match.pos[5], match.len[5]));
+        var nums = reMatch("-?\d+", line);
+        if (arrayLen(nums) >= 4) {
+            var px = val(nums[1]);
+            var py = val(nums[2]);
+            var vx = val(nums[3]);
+            var vy = val(nums[4]);
 
             arrayAppend(robots, {
                 px: px,
@@ -119,7 +120,7 @@ function part2(robots) {
         // Create a set of positions for fast lookup
         var posSet = {};
         for (var pos in positions) {
-            var key = toString(pos.x) & "," & toString(pos.y);
+            var key = "#pos.x#,#pos.y#";
             posSet[key] = true;
         }
 
@@ -129,7 +130,7 @@ function part2(robots) {
             var consecutive = 0;
 
             for (var x = 0; x < WIDTH; x++) {
-                var key = toString(x) & "," & toString(y);
+                var key = "#x#,#y#";
                 if (structKeyExists(posSet, key)) {
                     consecutive++;
                     if (consecutive > maxConsecutive) {
@@ -140,7 +141,7 @@ function part2(robots) {
                 }
             }
 
-            if (maxConsecutive >= 20) {
+            if (maxConsecutive >= TREE_PATTERN_THRESHOLD) {
                 return seconds;
             }
         }

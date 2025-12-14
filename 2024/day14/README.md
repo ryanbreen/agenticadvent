@@ -57,39 +57,40 @@ Find the first second where robots form a recognizable Christmas tree pattern.
 ## Language-Specific Notes
 
 ### Fast Performers
-- **C** (149ms): Simple arrays, fast modulo operations
+- **C** (73ms): Heap-allocated grid, fast modulo operations
+- **ARM64 asm** (167ms): Direct position computation, minimal overhead
+- **Rust** (632ms): Idiomatic parsing with `filter_map`/`?`, `rem_euclid` for modulo
 - **Go** (818ms): Good hash map performance
-- **Rust** (894ms): `rem_euclid` handles negative modulo elegantly
 
 ### Slow Performers
-- **Bash** (154s): Each iteration creates new arrays/strings; no efficient hash sets
-- **Ruby** (35s): Set operations and range iteration overhead
-- **ColdFusion** (18.7s): JVM startup + CFML interpretation overhead
+- **Bash** (154s): Each iteration creates new arrays/strings; external sort per iteration
+- **Ruby** (36s): Set operations and range iteration overhead
+- **ColdFusion** (18s): JVM startup + CFML interpretation overhead
 
 ### Notable Implementations
-- **Zig**: Uses `@mod` for proper Euclidean modulo
-- **Clojure**: Functional approach with `reduce` over time steps
+- **Zig**: Uses `@mod` for proper Euclidean modulo, `ArrayList.initCapacity` for preallocation
+- **Clojure**: Functional approach with named map keys in `count-quadrants`
 - **Common Lisp**: `mod` function naturally handles negative numbers correctly
 
 ## Benchmarks
 
 | Language    | Runtime (ms) | Memory (MB) |
 |-------------|--------------|-------------|
-| C           | 149          | 47.8        |
+| C           | 73           | 1.9         |
 | ARM64 asm   | 167          | 1.9         |
+| Rust        | 632          | 1.5         |
 | Go          | 818          | 26.8        |
-| Rust        | 894          | 117.3       |
 | Java        | 1,239        | 1,250.8     |
-| Zig         | 1,357        | 1.5         |
+| Zig         | 1,229        | 1.9         |
 | Common Lisp | 1,725        | 91.1        |
 | C++         | 2,535        | 166.6       |
-| PHP         | 3,906        | 25.0        |
 | Python      | 3,907        | 15.9        |
+| PHP         | 4,148        | 25.0        |
 | Node.js     | 4,441        | 62.9        |
-| Clojure     | 4,944        | 1,307.3     |
+| Clojure     | 5,241        | 1,308.4     |
 | Perl        | 8,251        | 5.0         |
-| ColdFusion  | 18,715       | 1,007.8     |
-| Ruby        | 35,203       | 28.7        |
+| ColdFusion  | 17,956       | 1,069.3     |
+| Ruby        | 36,334       | 28.6        |
 | Bash        | 153,877      | 2.5         |
 
 ## Answers

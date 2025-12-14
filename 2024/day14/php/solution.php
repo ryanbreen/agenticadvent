@@ -1,7 +1,5 @@
 <?php
-
-$inputFile = __DIR__ . '/../input.txt';
-$inputText = trim(file_get_contents($inputFile));
+declare(strict_types=1);
 
 const WIDTH = 101;
 const HEIGHT = 103;
@@ -81,9 +79,7 @@ function countQuadrants(array $positions): array {
 /**
  * Part 1: Safety factor after 100 seconds.
  */
-function part1(): int {
-    global $inputText;
-
+function part1(string $inputText): int {
     $robots = parseRobots($inputText);
     $positions = simulate($robots, 100);
     [$q1, $q2, $q3, $q4] = countQuadrants($positions);
@@ -94,9 +90,7 @@ function part1(): int {
 /**
  * Part 2: Find when robots form a Christmas tree pattern.
  */
-function part2(): int {
-    global $inputText;
-
+function part2(string $inputText): int {
     $robots = parseRobots($inputText);
 
     // The Christmas tree appears when robots cluster together
@@ -133,5 +127,6 @@ function part2(): int {
     return -1;
 }
 
-echo "Part 1: " . part1() . "\n";
-echo "Part 2: " . part2() . "\n";
+$inputText = trim(file_get_contents(__DIR__ . '/../input.txt'));
+echo "Part 1: " . part1($inputText) . "\n";
+echo "Part 2: " . part2($inputText) . "\n";

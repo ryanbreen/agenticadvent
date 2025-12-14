@@ -25,49 +25,49 @@
 (defn count-quadrants
   "Count robots in each quadrant, excluding middle row/column."
   [positions]
-  (let [mid-x (quot WIDTH 2)   ; 50
-        mid-y (quot HEIGHT 2)  ; 51
-        quadrants (reduce
-                   (fn [[q1 q2 q3 q4] [x y]]
-                     (cond
-                       (or (= x mid-x) (= y mid-y)) [q1 q2 q3 q4]  ; Skip middle
-                       (and (< x mid-x) (< y mid-y)) [(inc q1) q2 q3 q4]  ; Top-left
-                       (and (> x mid-x) (< y mid-y)) [q1 (inc q2) q3 q4]  ; Top-right
-                       (and (< x mid-x) (> y mid-y)) [q1 q2 (inc q3) q4]  ; Bottom-left
-                       (and (> x mid-x) (> y mid-y)) [q1 q2 q3 (inc q4)]  ; Bottom-right
-                       :else [q1 q2 q3 q4]))
-                   [0 0 0 0]
-                   positions)]
-    quadrants))
+  (let [mid-x (quot WIDTH 2)
+        mid-y (quot HEIGHT 2)]
+    (->> positions
+         (remove (fn [[x y]] (or (= x mid-x) (= y mid-y))))
+         (reduce (fn [acc [x y]]
+                   (let [quadrant (cond
+                                    (and (< x mid-x) (< y mid-y)) :q1
+                                    (and (> x mid-x) (< y mid-y)) :q2
+                                    (and (< x mid-x) (> y mid-y)) :q3
+                                    :else :q4)]
+                     (update acc quadrant inc)))
+                 {:q1 0 :q2 0 :q3 0 :q4 0})
+         vals
+         (apply *))))
 
 (defn part1
   "Part 1: Safety factor after 100 seconds."
   [robots]
-  (let [positions (simulate robots 100)
-        [q1 q2 q3 q4] (count-quadrants positions)]
-    (* q1 q2 q3 q4)))
+  (let [positions (simulate robots 100)]
+    (count-quadrants positions)))
+
+(defn max-consecutive
+  "Find maximum consecutive count of robots at given y coordinate."
+  [pos-set y]
+  (->> (range WIDTH)
+       (reduce (fn [[max-cons consecutive] x]
+                 (if (contains? pos-set [x y])
+                   [(max max-cons (inc consecutive)) (inc consecutive)]
+                   [(max max-cons consecutive) 0]))
+               [0 0])
+       first))
 
 (defn has-long-horizontal-line?
   "Check if there's a horizontal line of at least 20 consecutive robots."
   [pos-set]
-  (some (fn [y]
-          (let [max-consecutive
-                (reduce
-                 (fn [[max-cons consecutive] x]
-                   (if (contains? pos-set [x y])
-                     [(max max-cons (inc consecutive)) (inc consecutive)]
-                     [(max max-cons consecutive) 0]))
-                 [0 0]
-                 (range WIDTH))]
-            (>= (first max-consecutive) 20)))
+  (some #(>= (max-consecutive pos-set %) 20)
         (range HEIGHT)))
 
 (defn part2
   "Part 2: Find when robots form a Christmas tree pattern."
   [robots]
   (loop [seconds 1]
-    (if (> seconds (* WIDTH HEIGHT))
-      -1
+    (when (<= seconds (* WIDTH HEIGHT))
       (let [positions (simulate robots seconds)
             pos-set (set positions)]
         (if (has-long-horizontal-line? pos-set)

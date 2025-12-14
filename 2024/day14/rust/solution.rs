@@ -13,32 +13,20 @@ struct Robot {
 }
 
 fn parse_robots(text: &str) -> Vec<Robot> {
-    let mut robots = Vec::new();
-
-    for line in text.lines() {
-        // Parse format: p=x,y v=vx,vy
-        if let Some(p_start) = line.find("p=") {
-            if let Some(v_start) = line.find(" v=") {
-                let p_part = &line[p_start + 2..v_start];
-                let v_part = &line[v_start + 3..];
-
-                if let Some(comma_p) = p_part.find(',') {
-                    if let Some(comma_v) = v_part.find(',') {
-                        let px = p_part[..comma_p].parse::<i32>().ok();
-                        let py = p_part[comma_p + 1..].parse::<i32>().ok();
-                        let vx = v_part[..comma_v].parse::<i32>().ok();
-                        let vy = v_part[comma_v + 1..].parse::<i32>().ok();
-
-                        if let (Some(px), Some(py), Some(vx), Some(vy)) = (px, py, vx, vy) {
-                            robots.push(Robot { px, py, vx, vy });
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    robots
+    text.lines()
+        .filter_map(|line| {
+            // Parse format: p=x,y v=vx,vy
+            let (p_part, v_part) = line.strip_prefix("p=")?.split_once(" v=")?;
+            let (px, py) = p_part.split_once(',')?;
+            let (vx, vy) = v_part.split_once(',')?;
+            Some(Robot {
+                px: px.parse().ok()?,
+                py: py.parse().ok()?,
+                vx: vx.parse().ok()?,
+                vy: vy.parse().ok()?,
+            })
+        })
+        .collect()
 }
 
 fn simulate(robots: &[Robot], seconds: i32) -> Vec<(i32, i32)> {
@@ -57,29 +45,21 @@ fn count_quadrants(positions: &[(i32, i32)]) -> (i32, i32, i32, i32) {
     let mid_x = WIDTH / 2;   // 50
     let mid_y = HEIGHT / 2;  // 51
 
-    let mut q1 = 0;
-    let mut q2 = 0;
-    let mut q3 = 0;
-    let mut q4 = 0;
+    positions
+        .iter()
+        .fold((0, 0, 0, 0), |(q1, q2, q3, q4), &(x, y)| {
+            // Skip robots on middle lines
+            if x == mid_x || y == mid_y {
+                return (q1, q2, q3, q4);
+            }
 
-    for &(x, y) in positions {
-        // Skip robots on middle lines
-        if x == mid_x || y == mid_y {
-            continue;
-        }
-
-        if x < mid_x && y < mid_y {
-            q1 += 1;  // Top-left
-        } else if x > mid_x && y < mid_y {
-            q2 += 1;  // Top-right
-        } else if x < mid_x && y > mid_y {
-            q3 += 1;  // Bottom-left
-        } else {
-            q4 += 1;  // Bottom-right
-        }
-    }
-
-    (q1, q2, q3, q4)
+            match (x < mid_x, y < mid_y) {
+                (true, true) => (q1 + 1, q2, q3, q4),   // Top-left
+                (false, true) => (q1, q2 + 1, q3, q4),  // Top-right
+                (true, false) => (q1, q2, q3 + 1, q4),  // Bottom-left
+                (false, false) => (q1, q2, q3, q4 + 1), // Bottom-right
+            }
+        })
 }
 
 fn part1(robots: &[Robot]) -> i32 {
