@@ -11,6 +11,13 @@ const Point = struct {
 
 const PointSet = std.AutoHashMap(Point, void);
 
+const DIRECTIONS = [_]Point{
+    Point{ .r = 0, .c = 1 },
+    Point{ .r = 0, .c = -1 },
+    Point{ .r = 1, .c = 0 },
+    Point{ .r = -1, .c = 0 },
+};
+
 const Region = struct {
     cells: PointSet,
 
@@ -23,26 +30,26 @@ fn findRegions(allocator: std.mem.Allocator, grid: [][]const u8, rows: usize, co
     var visited = PointSet.init(allocator);
     defer visited.deinit();
 
-    var regions_list: std.ArrayList(Region) = .{};
+    var regions_list = std.ArrayList(Region){};
     defer regions_list.deinit(allocator);
 
-    var r: i32 = 0;
-    while (r < rows) : (r += 1) {
-        var c: i32 = 0;
-        while (c < cols) : (c += 1) {
+    for (0..rows) |r_usize| {
+        for (0..cols) |c_usize| {
+            const r: i32 = @intCast(r_usize);
+            const c: i32 = @intCast(c_usize);
             const pos = Point{ .r = r, .c = c };
             if (visited.contains(pos)) continue;
 
             // BFS to find all cells in this region
-            const plant = grid[@intCast(r)][@intCast(c)];
+            const plant = grid[r_usize][c_usize];
             var region_cells = PointSet.init(allocator);
-            var queue: std.ArrayList(Point) = .{};
+            var queue = std.ArrayList(Point){};
             defer queue.deinit(allocator);
 
             try queue.append(allocator, pos);
 
             while (queue.items.len > 0) {
-                const curr = queue.orderedRemove(0);
+                const curr = queue.pop() orelse break;
                 if (visited.contains(curr)) continue;
                 if (curr.r < 0 or curr.r >= rows or curr.c < 0 or curr.c >= cols) continue;
                 if (grid[@intCast(curr.r)][@intCast(curr.c)] != plant) continue;
@@ -50,14 +57,7 @@ fn findRegions(allocator: std.mem.Allocator, grid: [][]const u8, rows: usize, co
                 try visited.put(curr, {});
                 try region_cells.put(curr, {});
 
-                const directions = [_]Point{
-                    Point{ .r = 0, .c = 1 },
-                    Point{ .r = 0, .c = -1 },
-                    Point{ .r = 1, .c = 0 },
-                    Point{ .r = -1, .c = 0 },
-                };
-
-                for (directions) |dir| {
+                for (DIRECTIONS) |dir| {
                     const next = Point{ .r = curr.r + dir.r, .c = curr.c + dir.c };
                     if (!visited.contains(next)) {
                         try queue.append(allocator, next);
@@ -77,14 +77,7 @@ fn calculatePerimeter(region: *const PointSet) u32 {
 
     var iter = region.keyIterator();
     while (iter.next()) |pos| {
-        const directions = [_]Point{
-            Point{ .r = 0, .c = 1 },
-            Point{ .r = 0, .c = -1 },
-            Point{ .r = 1, .c = 0 },
-            Point{ .r = -1, .c = 0 },
-        };
-
-        for (directions) |dir| {
+        for (DIRECTIONS) |dir| {
             const next = Point{ .r = pos.r + dir.r, .c = pos.c + dir.c };
             if (!region.contains(next)) {
                 perimeter += 1;
@@ -186,7 +179,7 @@ pub fn main() !void {
     const rows = grid.len;
     const cols = if (rows > 0) grid[0].len else 0;
 
-    // Part 1
+    // Find regions once and use for both parts
     const regions = try findRegions(allocator, grid, rows, cols);
     defer {
         for (regions) |*region| {
@@ -196,25 +189,12 @@ pub fn main() !void {
     }
 
     var total1: u64 = 0;
+    var total2: u64 = 0;
     for (regions) |*region| {
         const area: u64 = region.cells.count();
         const perimeter = calculatePerimeter(&region.cells);
-        total1 += area * perimeter;
-    }
-
-    // Part 2
-    const regions2 = try findRegions(allocator, grid, rows, cols);
-    defer {
-        for (regions2) |*region| {
-            region.deinit();
-        }
-        allocator.free(regions2);
-    }
-
-    var total2: u64 = 0;
-    for (regions2) |*region| {
-        const area: u64 = region.cells.count();
         const sides = countSides(&region.cells);
+        total1 += area * perimeter;
         total2 += area * sides;
     }
 

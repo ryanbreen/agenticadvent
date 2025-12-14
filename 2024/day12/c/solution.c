@@ -18,6 +18,7 @@ typedef struct {
 
 char grid[MAX_SIZE][MAX_SIZE];
 bool visited[MAX_SIZE][MAX_SIZE];
+bool region_lookup[MAX_SIZE][MAX_SIZE];  // O(1) region membership lookup
 int rows = 0;
 int cols = 0;
 
@@ -52,6 +53,9 @@ Region find_region(int start_r, int start_c) {
     Region region;
     region.size = 0;
 
+    // Clear region lookup grid
+    memset(region_lookup, false, sizeof(region_lookup));
+
     char plant = grid[start_r][start_c];
     Point queue[MAX_QUEUE];
     int head = 0, tail = 0;
@@ -68,6 +72,7 @@ Region find_region(int start_r, int start_c) {
         if (grid[cr][cc] != plant) continue;
 
         visited[cr][cc] = true;
+        region_lookup[cr][cc] = true;  // Mark in lookup grid
         region.points[region.size++] = (Point){cr, cc};
 
         for (int d = 0; d < 4; d++) {
@@ -82,16 +87,15 @@ Region find_region(int start_r, int start_c) {
     return region;
 }
 
-bool in_region(Region *region, int r, int c) {
-    for (int i = 0; i < region->size; i++) {
-        if (region->points[i].r == r && region->points[i].c == c) {
-            return true;
-        }
+// O(1) region membership check using lookup grid
+static inline bool in_region(int r, int c) {
+    if (r < 0 || r >= MAX_SIZE || c < 0 || c >= MAX_SIZE) {
+        return false;
     }
-    return false;
+    return region_lookup[r][c];
 }
 
-int calculate_perimeter(Region *region) {
+int calculate_perimeter(const Region *region) {
     int perimeter = 0;
     for (int i = 0; i < region->size; i++) {
         int r = region->points[i].r;
@@ -100,7 +104,7 @@ int calculate_perimeter(Region *region) {
         for (int d = 0; d < 4; d++) {
             int nr = r + dr[d];
             int nc = c + dc[d];
-            if (!in_region(region, nr, nc)) {
+            if (!in_region(nr, nc)) {
                 perimeter++;
             }
         }
@@ -108,7 +112,7 @@ int calculate_perimeter(Region *region) {
     return perimeter;
 }
 
-int count_sides(Region *region) {
+int count_sides(const Region *region) {
     int corners = 0;
 
     for (int i = 0; i < region->size; i++) {
@@ -116,14 +120,14 @@ int count_sides(Region *region) {
         int c = region->points[i].c;
 
         // Check all 8 neighbors
-        bool up = in_region(region, r - 1, c);
-        bool down = in_region(region, r + 1, c);
-        bool left = in_region(region, r, c - 1);
-        bool right = in_region(region, r, c + 1);
-        bool up_left = in_region(region, r - 1, c - 1);
-        bool up_right = in_region(region, r - 1, c + 1);
-        bool down_left = in_region(region, r + 1, c - 1);
-        bool down_right = in_region(region, r + 1, c + 1);
+        bool up = in_region(r - 1, c);
+        bool down = in_region(r + 1, c);
+        bool left = in_region(r, c - 1);
+        bool right = in_region(r, c + 1);
+        bool up_left = in_region(r - 1, c - 1);
+        bool up_right = in_region(r - 1, c + 1);
+        bool down_left = in_region(r + 1, c - 1);
+        bool down_right = in_region(r + 1, c + 1);
 
         // Top-left corner
         if (!up && !left) {  // convex

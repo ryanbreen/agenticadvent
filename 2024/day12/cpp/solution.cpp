@@ -5,15 +5,14 @@
 #include <set>
 #include <queue>
 #include <utility>
-
-using namespace std;
+#include <array>
 
 struct Grid {
-    vector<string> data;
+    std::vector<std::string> data;
     int rows;
     int cols;
 
-    Grid(const vector<string>& lines) : data(lines) {
+    Grid(const std::vector<std::string>& lines) : data(lines) {
         rows = data.size();
         cols = data.empty() ? 0 : data[0].size();
     }
@@ -24,15 +23,15 @@ struct Grid {
     }
 };
 
-using Cell = pair<int, int>;
-using Region = set<Cell>;
+using Cell = std::pair<int, int>;
+using Region = std::set<Cell>;
 
-vector<Region> find_regions(const Grid& grid) {
-    set<Cell> visited;
-    vector<Region> regions;
+// Direction vectors: right, left, down, up
+constexpr std::array<std::pair<int, int>, 4> DIRECTIONS = {{{0, 1}, {0, -1}, {1, 0}, {-1, 0}}};
 
-    const int dr[] = {0, 0, 1, -1};
-    const int dc[] = {1, -1, 0, 0};
+std::vector<Region> find_regions(const Grid& grid) {
+    std::set<Cell> visited;
+    std::vector<Region> regions;
 
     for (int r = 0; r < grid.rows; r++) {
         for (int c = 0; c < grid.cols; c++) {
@@ -41,7 +40,7 @@ vector<Region> find_regions(const Grid& grid) {
             // BFS to find all cells in this region
             char plant = grid.at(r, c);
             Region region;
-            queue<Cell> q;
+            std::queue<Cell> q;
             q.push({r, c});
 
             while (!q.empty()) {
@@ -49,15 +48,14 @@ vector<Region> find_regions(const Grid& grid) {
                 q.pop();
 
                 if (visited.count({cr, cc})) continue;
-                if (cr < 0 || cr >= grid.rows || cc < 0 || cc >= grid.cols) continue;
                 if (grid.at(cr, cc) != plant) continue;
 
                 visited.insert({cr, cc});
                 region.insert({cr, cc});
 
-                for (int i = 0; i < 4; i++) {
-                    int nr = cr + dr[i];
-                    int nc = cc + dc[i];
+                for (const auto& [dr, dc] : DIRECTIONS) {
+                    int nr = cr + dr;
+                    int nc = cc + dc;
                     if (!visited.count({nr, nc})) {
                         q.push({nr, nc});
                     }
@@ -73,13 +71,11 @@ vector<Region> find_regions(const Grid& grid) {
 
 int calculate_perimeter(const Region& region) {
     int perimeter = 0;
-    const int dr[] = {0, 0, 1, -1};
-    const int dc[] = {1, -1, 0, 0};
 
     for (const auto& [r, c] : region) {
-        for (int i = 0; i < 4; i++) {
-            int nr = r + dr[i];
-            int nc = c + dc[i];
+        for (const auto& [dr, dc] : DIRECTIONS) {
+            int nr = r + dr;
+            int nc = c + dc;
             if (!region.count({nr, nc})) {
                 perimeter++;
             }
@@ -151,15 +147,15 @@ long long part2(const Grid& grid) {
 
 int main() {
     // Read input
-    ifstream infile("../input.txt");
+    std::ifstream infile("../input.txt");
     if (!infile) {
-        cerr << "Error opening input file" << endl;
+        std::cerr << "Error opening input file" << std::endl;
         return 1;
     }
 
-    vector<string> lines;
-    string line;
-    while (getline(infile, line)) {
+    std::vector<std::string> lines;
+    std::string line;
+    while (std::getline(infile, line)) {
         if (!line.empty()) {
             lines.push_back(line);
         }
@@ -167,8 +163,8 @@ int main() {
 
     Grid grid(lines);
 
-    cout << "Part 1: " << part1(grid) << endl;
-    cout << "Part 2: " << part2(grid) << endl;
+    std::cout << "Part 1: " << part1(grid) << std::endl;
+    std::cout << "Part 2: " << part2(grid) << std::endl;
 
     return 0;
 }

@@ -11,23 +11,30 @@ const grid = lines.map(line => line.split(''));
 const rows = grid.length;
 const cols = grid[0].length;
 
+// Directions constant to avoid duplication
+const DIRECTIONS = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+
+// Encode coordinates as a single number for better performance
+const encode = (r, c) => r * cols + c;
+const decode = (key) => [Math.floor(key / cols), key % cols];
+
 function findRegions() {
   const visited = new Set();
   const regions = [];
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const key = `${r},${c}`;
+      const key = encode(r, c);
       if (visited.has(key)) continue;
 
-      // BFS to find all cells in this region
+      // DFS to find all cells in this region (using array.pop() for O(1) instead of shift())
       const plant = grid[r][c];
       const region = new Set();
-      const queue = [[r, c]];
+      const stack = [[r, c]];
 
-      while (queue.length > 0) {
-        const [cr, cc] = queue.shift();
-        const currKey = `${cr},${cc}`;
+      while (stack.length > 0) {
+        const [cr, cc] = stack.pop();
+        const currKey = encode(cr, cc);
 
         if (visited.has(currKey)) continue;
         if (cr < 0 || cr >= rows || cc < 0 || cc >= cols) continue;
@@ -36,13 +43,12 @@ function findRegions() {
         visited.add(currKey);
         region.add(currKey);
 
-        const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-        for (const [dr, dc] of directions) {
+        for (const [dr, dc] of DIRECTIONS) {
           const nr = cr + dr;
           const nc = cc + dc;
-          const nextKey = `${nr},${nc}`;
+          const nextKey = encode(nr, nc);
           if (!visited.has(nextKey)) {
-            queue.push([nr, nc]);
+            stack.push([nr, nc]);
           }
         }
       }
@@ -56,14 +62,13 @@ function findRegions() {
 
 function calculatePerimeter(region) {
   let perimeter = 0;
-  const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
 
   for (const key of region) {
-    const [r, c] = key.split(',').map(Number);
-    for (const [dr, dc] of directions) {
+    const [r, c] = decode(key);
+    for (const [dr, dc] of DIRECTIONS) {
       const nr = r + dr;
       const nc = c + dc;
-      const neighborKey = `${nr},${nc}`;
+      const neighborKey = encode(nr, nc);
       if (!region.has(neighborKey)) {
         perimeter++;
       }
@@ -73,33 +78,21 @@ function calculatePerimeter(region) {
   return perimeter;
 }
 
-// Part 1
-function part1() {
-  const regions = findRegions();
-  let total = 0;
-  for (const region of regions) {
-    const area = region.size;
-    const perimeter = calculatePerimeter(region);
-    total += area * perimeter;
-  }
-  return total;
-}
-
 function countSides(region) {
   let corners = 0;
 
   for (const key of region) {
-    const [r, c] = key.split(',').map(Number);
+    const [r, c] = decode(key);
 
     // Check all 4 corners of this cell
-    const up = region.has(`${r - 1},${c}`);
-    const down = region.has(`${r + 1},${c}`);
-    const left = region.has(`${r},${c - 1}`);
-    const right = region.has(`${r},${c + 1}`);
-    const upLeft = region.has(`${r - 1},${c - 1}`);
-    const upRight = region.has(`${r - 1},${c + 1}`);
-    const downLeft = region.has(`${r + 1},${c - 1}`);
-    const downRight = region.has(`${r + 1},${c + 1}`);
+    const up = region.has(encode(r - 1, c));
+    const down = region.has(encode(r + 1, c));
+    const left = region.has(encode(r, c - 1));
+    const right = region.has(encode(r, c + 1));
+    const upLeft = region.has(encode(r - 1, c - 1));
+    const upRight = region.has(encode(r - 1, c + 1));
+    const downLeft = region.has(encode(r + 1, c - 1));
+    const downRight = region.has(encode(r + 1, c + 1));
 
     // Top-left corner
     if (!up && !left) corners++;  // convex
@@ -121,9 +114,22 @@ function countSides(region) {
   return corners;
 }
 
+// Compute regions once and reuse for both parts
+const regions = findRegions();
+
+// Part 1
+function part1() {
+  let total = 0;
+  for (const region of regions) {
+    const area = region.size;
+    const perimeter = calculatePerimeter(region);
+    total += area * perimeter;
+  }
+  return total;
+}
+
 // Part 2
 function part2() {
-  const regions = findRegions();
   let total = 0;
   for (const region of regions) {
     const area = region.size;

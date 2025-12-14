@@ -6,46 +6,88 @@ import (
 	"strings"
 )
 
+// Point represents a coordinate in the grid
 type Point struct {
 	r, c int
 }
 
-var grid [][]rune
-var rows, cols int
-
-func main() {
-	// Read input
-	data, err := os.ReadFile("../input.txt")
-	if err != nil {
-		panic(err)
-	}
-
-	// Parse grid
-	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
-	grid = make([][]rune, len(lines))
-	for i, line := range lines {
-		grid[i] = []rune(line)
-	}
-	rows = len(grid)
-	cols = len(grid[0])
-
-	fmt.Printf("Part 1: %d\n", part1())
-	fmt.Printf("Part 2: %d\n", part2())
+// Add returns a new Point offset by the given delta
+func (p Point) Add(delta Point) Point {
+	return Point{p.r + delta.r, p.c + delta.c}
 }
 
-func findRegions() []map[Point]bool {
-	visited := make(map[Point]bool)
-	regions := []map[Point]bool{}
+// Grid represents the garden map with plant types
+type Grid struct {
+	cells [][]rune
+	rows  int
+	cols  int
+}
 
-	for r := 0; r < rows; r++ {
-		for c := 0; c < cols; c++ {
+// NewGrid creates a Grid from input lines
+func NewGrid(lines []string) *Grid {
+	cells := make([][]rune, len(lines))
+	for i, line := range lines {
+		cells[i] = []rune(line)
+	}
+	return &Grid{
+		cells: cells,
+		rows:  len(cells),
+		cols:  len(cells[0]),
+	}
+}
+
+// InBounds checks if a point is within the grid boundaries
+func (g *Grid) InBounds(p Point) bool {
+	return p.r >= 0 && p.r < g.rows && p.c >= 0 && p.c < g.cols
+}
+
+// At returns the plant type at the given point
+func (g *Grid) At(p Point) rune {
+	return g.cells[p.r][p.c]
+}
+
+// Cardinal directions (up, down, left, right)
+var directions = []Point{
+	{-1, 0}, // up
+	{1, 0},  // down
+	{0, -1}, // left
+	{0, 1},  // right
+}
+
+// cornerPatterns defines the conditions for detecting corners
+// Each pattern checks: [side1, side2, diagonal]
+// true = in region, false = not in region
+type cornerPattern struct {
+	side1    Point
+	side2    Point
+	diagonal Point
+}
+
+var cornerPatterns = []cornerPattern{
+	// Top-left
+	{Point{-1, 0}, Point{0, -1}, Point{-1, -1}},
+	// Top-right
+	{Point{-1, 0}, Point{0, 1}, Point{-1, 1}},
+	// Bottom-left
+	{Point{1, 0}, Point{0, -1}, Point{1, -1}},
+	// Bottom-right
+	{Point{1, 0}, Point{0, 1}, Point{1, 1}},
+}
+
+// findRegions identifies all contiguous regions of the same plant type
+func (g *Grid) findRegions() []map[Point]bool {
+	visited := make(map[Point]bool)
+	var regions []map[Point]bool
+
+	for r := 0; r < g.rows; r++ {
+		for c := 0; c < g.cols; c++ {
 			p := Point{r, c}
 			if visited[p] {
 				continue
 			}
 
 			// BFS to find all cells in this region
-			plant := grid[r][c]
+			plant := g.At(p)
 			region := make(map[Point]bool)
 			queue := []Point{p}
 
@@ -56,10 +98,10 @@ func findRegions() []map[Point]bool {
 				if visited[curr] {
 					continue
 				}
-				if curr.r < 0 || curr.r >= rows || curr.c < 0 || curr.c >= cols {
+				if !g.InBounds(curr) {
 					continue
 				}
-				if grid[curr.r][curr.c] != plant {
+				if g.At(curr) != plant {
 					continue
 				}
 
@@ -67,9 +109,8 @@ func findRegions() []map[Point]bool {
 				region[curr] = true
 
 				// Check all 4 neighbors
-				directions := []Point{{0, 1}, {0, -1}, {1, 0}, {-1, 0}}
 				for _, d := range directions {
-					next := Point{curr.r + d.r, curr.c + d.c}
+					next := curr.Add(d)
 					if !visited[next] {
 						queue = append(queue, next)
 					}
@@ -83,13 +124,13 @@ func findRegions() []map[Point]bool {
 	return regions
 }
 
+// calculatePerimeter computes the perimeter of a region
 func calculatePerimeter(region map[Point]bool) int {
 	perimeter := 0
-	directions := []Point{{0, 1}, {0, -1}, {1, 0}, {-1, 0}}
 
 	for p := range region {
 		for _, d := range directions {
-			neighbor := Point{p.r + d.r, p.c + d.c}
+			neighbor := p.Add(d)
 			if !region[neighbor] {
 				perimeter++
 			}
@@ -99,8 +140,35 @@ func calculatePerimeter(region map[Point]bool) int {
 	return perimeter
 }
 
-func part1() int {
-	regions := findRegions()
+// countSides counts the number of sides (corners) in a region
+// The number of sides equals the number of corners
+func countSides(region map[Point]bool) int {
+	corners := 0
+
+	for p := range region {
+		// Check each corner pattern
+		for _, pattern := range cornerPatterns {
+			side1In := region[p.Add(pattern.side1)]
+			side2In := region[p.Add(pattern.side2)]
+			diagIn := region[p.Add(pattern.diagonal)]
+
+			// Convex corner: both sides are out
+			if !side1In && !side2In {
+				corners++
+			}
+			// Concave corner: both sides are in, but diagonal is out
+			if side1In && side2In && !diagIn {
+				corners++
+			}
+		}
+	}
+
+	return corners
+}
+
+// part1 calculates the total fencing cost using perimeter
+func part1(g *Grid) int {
+	regions := g.findRegions()
 	total := 0
 
 	for _, region := range regions {
@@ -112,54 +180,9 @@ func part1() int {
 	return total
 }
 
-func countSides(region map[Point]bool) int {
-	corners := 0
-
-	for p := range region {
-		// Check all 8 neighbors for corner detection
-		up := region[Point{p.r - 1, p.c}]
-		down := region[Point{p.r + 1, p.c}]
-		left := region[Point{p.r, p.c - 1}]
-		right := region[Point{p.r, p.c + 1}]
-		upLeft := region[Point{p.r - 1, p.c - 1}]
-		upRight := region[Point{p.r - 1, p.c + 1}]
-		downLeft := region[Point{p.r + 1, p.c - 1}]
-		downRight := region[Point{p.r + 1, p.c + 1}]
-
-		// Top-left corner
-		if !up && !left { // convex
-			corners++
-		} else if up && left && !upLeft { // concave
-			corners++
-		}
-
-		// Top-right corner
-		if !up && !right { // convex
-			corners++
-		} else if up && right && !upRight { // concave
-			corners++
-		}
-
-		// Bottom-left corner
-		if !down && !left { // convex
-			corners++
-		} else if down && left && !downLeft { // concave
-			corners++
-		}
-
-		// Bottom-right corner
-		if !down && !right { // convex
-			corners++
-		} else if down && right && !downRight { // concave
-			corners++
-		}
-	}
-
-	return corners
-}
-
-func part2() int {
-	regions := findRegions()
+// part2 calculates the total fencing cost using sides (bulk discount)
+func part2(g *Grid) int {
+	regions := g.findRegions()
 	total := 0
 
 	for _, region := range regions {
@@ -169,4 +192,19 @@ func part2() int {
 	}
 
 	return total
+}
+
+func main() {
+	// Read input
+	data, err := os.ReadFile("../input.txt")
+	if err != nil {
+		panic(err)
+	}
+
+	// Parse grid
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	grid := NewGrid(lines)
+
+	fmt.Printf("Part 1: %d\n", part1(grid))
+	fmt.Printf("Part 2: %d\n", part2(grid))
 }

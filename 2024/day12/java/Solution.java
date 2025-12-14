@@ -4,6 +4,8 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class Solution {
+    private static final int[][] DIRECTIONS = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+
     private static char[][] grid;
     private static int rows;
     private static int cols;
@@ -45,24 +47,22 @@ public class Solution {
                 while (!queue.isEmpty()) {
                     Coord current = queue.poll();
 
-                    if (visited.contains(current)) {
-                        continue;
-                    }
-                    if (current.r < 0 || current.r >= rows || current.c < 0 || current.c >= cols) {
-                        continue;
-                    }
-                    if (grid[current.r][current.c] != plant) {
-                        continue;
-                    }
-
                     visited.add(current);
                     region.add(current);
 
-                    // Add neighbors
-                    queue.add(new Coord(current.r, current.c + 1));
-                    queue.add(new Coord(current.r, current.c - 1));
-                    queue.add(new Coord(current.r + 1, current.c));
-                    queue.add(new Coord(current.r - 1, current.c));
+                    // Add neighbors (check before adding to queue)
+                    for (int[] dir : DIRECTIONS) {
+                        int nr = current.r + dir[0];
+                        int nc = current.c + dir[1];
+                        Coord neighbor = new Coord(nr, nc);
+
+                        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols &&
+                            !visited.contains(neighbor) &&
+                            grid[nr][nc] == plant) {
+                            queue.add(neighbor);
+                            visited.add(neighbor);  // Mark as visited when adding
+                        }
+                    }
                 }
 
                 regions.add(region);
@@ -76,8 +76,7 @@ public class Solution {
         int perimeter = 0;
         for (Coord coord : region) {
             // Check all 4 neighbors
-            int[][] directions = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
-            for (int[] dir : directions) {
+            for (int[] dir : DIRECTIONS) {
                 Coord neighbor = new Coord(coord.r + dir[0], coord.c + dir[1]);
                 if (!region.contains(neighbor)) {
                     perimeter++;
@@ -89,13 +88,9 @@ public class Solution {
 
     private static int part1() {
         List<Set<Coord>> regions = findRegions();
-        int total = 0;
-        for (Set<Coord> region : regions) {
-            int area = region.size();
-            int perimeter = calculatePerimeter(region);
-            total += area * perimeter;
-        }
-        return total;
+        return regions.stream()
+            .mapToInt(region -> region.size() * calculatePerimeter(region))
+            .sum();
     }
 
     private static int countSides(Set<Coord> region) {
@@ -149,36 +144,11 @@ public class Solution {
 
     private static int part2() {
         List<Set<Coord>> regions = findRegions();
-        int total = 0;
-        for (Set<Coord> region : regions) {
-            int area = region.size();
-            int sides = countSides(region);
-            total += area * sides;
-        }
-        return total;
+        return regions.stream()
+            .mapToInt(region -> region.size() * countSides(region))
+            .sum();
     }
 
-    // Helper class for coordinates with proper equals/hashCode
-    private static class Coord {
-        final int r;
-        final int c;
-
-        Coord(int r, int c) {
-            this.r = r;
-            this.c = c;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Coord coord = (Coord) o;
-            return r == coord.r && c == coord.c;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(r, c);
-        }
-    }
+    // Coordinate record - automatically provides equals/hashCode
+    private record Coord(int r, int c) {}
 }

@@ -2,6 +2,7 @@
 use strict;
 use warnings;
 use v5.10;
+use List::Util qw(sum);
 
 # Read input
 my $input_file = "../input.txt";
@@ -12,13 +13,21 @@ close $fh;
 my $rows = scalar @grid;
 my $cols = scalar @{$grid[0]};
 
+# Direction vectors (up, down, left, right)
+my @DIRECTIONS = ([0, 1], [0, -1], [1, 0], [-1, 0]);
+
+sub coord {
+    my ($r, $c) = @_;
+    return "$r,$c";
+}
+
 sub find_regions {
     my %visited;
     my @regions;
 
     for my $r (0 .. $rows - 1) {
         for my $c (0 .. $cols - 1) {
-            my $key = "$r,$c";
+            my $key = coord($r, $c);
             next if exists $visited{$key};
 
             # BFS to find all cells in this region
@@ -29,7 +38,7 @@ sub find_regions {
             while (@queue) {
                 my $cell = shift @queue;
                 my ($cr, $cc) = @$cell;
-                my $cell_key = "$cr,$cc";
+                my $cell_key = coord($cr, $cc);
 
                 next if exists $visited{$cell_key};
                 next if $cr < 0 || $cr >= $rows || $cc < 0 || $cc >= $cols;
@@ -39,11 +48,11 @@ sub find_regions {
                 $region{$cell_key} = 1;
 
                 # Add neighbors
-                for my $dir ([0, 1], [0, -1], [1, 0], [-1, 0]) {
+                for my $dir (@DIRECTIONS) {
                     my ($dr, $dc) = @$dir;
                     my $nr = $cr + $dr;
                     my $nc = $cc + $dc;
-                    my $next_key = "$nr,$nc";
+                    my $next_key = coord($nr, $nc);
                     push @queue, [$nr, $nc] unless exists $visited{$next_key};
                 }
             }
@@ -61,11 +70,11 @@ sub calculate_perimeter {
 
     for my $cell (keys %$region) {
         my ($r, $c) = split /,/, $cell;
-        for my $dir ([0, 1], [0, -1], [1, 0], [-1, 0]) {
+        for my $dir (@DIRECTIONS) {
             my ($dr, $dc) = @$dir;
             my $nr = $r + $dr;
             my $nc = $c + $dc;
-            my $neighbor = "$nr,$nc";
+            my $neighbor = coord($nr, $nc);
             $perimeter++ unless exists $region->{$neighbor};
         }
     }
@@ -85,14 +94,14 @@ sub count_sides {
         # Convex: both orthogonal out
         # Concave: both orthogonal in, diagonal out
 
-        my $up = exists $region->{"" . ($r - 1) . ",$c"};
-        my $down = exists $region->{"" . ($r + 1) . ",$c"};
-        my $left = exists $region->{"$r," . ($c - 1)};
-        my $right = exists $region->{"$r," . ($c + 1)};
-        my $up_left = exists $region->{"" . ($r - 1) . "," . ($c - 1)};
-        my $up_right = exists $region->{"" . ($r - 1) . "," . ($c + 1)};
-        my $down_left = exists $region->{"" . ($r + 1) . "," . ($c - 1)};
-        my $down_right = exists $region->{"" . ($r + 1) . "," . ($c + 1)};
+        my $up = exists $region->{coord($r - 1, $c)};
+        my $down = exists $region->{coord($r + 1, $c)};
+        my $left = exists $region->{coord($r, $c - 1)};
+        my $right = exists $region->{coord($r, $c + 1)};
+        my $up_left = exists $region->{coord($r - 1, $c - 1)};
+        my $up_right = exists $region->{coord($r - 1, $c + 1)};
+        my $down_left = exists $region->{coord($r + 1, $c - 1)};
+        my $down_right = exists $region->{coord($r + 1, $c + 1)};
 
         # Top-left corner
         if (!$up && !$left) {  # convex
@@ -126,26 +135,23 @@ sub count_sides {
     return $corners;
 }
 
+# Compute regions once and share between parts
+my @regions = find_regions();
+
 sub part1 {
-    my @regions = find_regions();
-    my $total = 0;
-    for my $region (@regions) {
-        my $area = scalar keys %$region;
-        my $perimeter = calculate_perimeter($region);
-        $total += $area * $perimeter;
-    }
-    return $total;
+    return sum map {
+        my $area = keys %$_;
+        my $perimeter = calculate_perimeter($_);
+        $area * $perimeter;
+    } @regions;
 }
 
 sub part2 {
-    my @regions = find_regions();
-    my $total = 0;
-    for my $region (@regions) {
-        my $area = scalar keys %$region;
-        my $sides = count_sides($region);
-        $total += $area * $sides;
-    }
-    return $total;
+    return sum map {
+        my $area = keys %$_;
+        my $sides = count_sides($_);
+        $area * $sides;
+    } @regions;
 }
 
 say "Part 1: " . part1();

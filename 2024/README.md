@@ -267,20 +267,20 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 
 | Language    | Runtime (ms) | Memory (MB) |
 |-------------|--------------|-------------|
-| Rust        | 16.3         | 3.1         |
-| Zig         | 16.2         | 4.5         |
-| C           | 17.5         | 1.9         |
-| Go          | 19.4         | 9.9         |
+| C           | 7.2          | 1.5         |
+| Rust        | 12.1         | 2.8         |
+| Zig         | 12.6         | 3.4         |
+| Go          | 22.1         | 10.2        |
 | ARM64 asm   | 25.9         | 1.9         |
-| C++         | 36.5         | 3.5         |
+| C++         | 34.5         | 3.4         |
+| Common Lisp | 64.5         | 59.5        |
+| Node.js     | 72.8         | 53.3        |
 | Python      | 76.0         | 20.8        |
-| Java        | 85.1         | 74.4        |
-| Common Lisp | 108.2        | 59.8        |
-| Node.js     | 114.0        | 67.2        |
-| PHP         | 121.7        | 30.3        |
-| Perl        | 150.0        | 10.1        |
-| Ruby        | 386.4        | 35.3        |
-| Clojure     | 626.1        | 216.5       |
+| Java        | 96.1         | 74.6        |
+| PHP         | 112.2        | 30.2        |
+| Perl        | 140.4        | 10.8        |
+| Ruby        | 388.2        | 36.0        |
+| Clojure     | 670.6        | 204.3       |
 | ColdFusion  | 3,313.3      | 1,089.9     |
 | Bash        | 7,221.7      | 6.8         |
 

@@ -7,16 +7,16 @@
           while line
           collect (coerce line 'list))))
 
+(defun in-bounds-p (r c rows cols)
+  "Check if position is within grid bounds."
+  (and (>= r 0) (< r rows) (>= c 0) (< c cols)))
+
 (defun get-cell (grid r c)
-  "Get the cell at row r, col c in the grid (or NIL if out of bounds)."
-  (let ((rows (length grid))
-        (cols (length (first grid))))
-    (if (and (>= r 0) (< r rows) (>= c 0) (< c cols))
-        (nth c (nth r grid))
-        nil)))
+  "Get the cell at row r, col c in the grid (assumes valid bounds)."
+  (nth c (nth r grid)))
 
 (defun find-regions (grid)
-  "Find all connected regions in the grid using BFS."
+  "Find all connected regions in the grid using flood fill."
   (let ((rows (length grid))
         (cols (length (first grid)))
         (visited (make-hash-table :test 'equal))
@@ -26,30 +26,29 @@
       (loop for c from 0 below cols do
         (let ((pos (cons r c)))
           (unless (gethash pos visited)
-            ;; BFS to find all cells in this region
+            ;; Flood fill to find all cells in this region
             (let ((plant (get-cell grid r c))
                   (region (make-hash-table :test 'equal))
-                  (queue (list pos)))
+                  (stack (list pos)))
 
-              (loop while queue do
-                (let* ((current (pop queue))
+              (loop while stack do
+                (let* ((current (pop stack))
                        (cr (car current))
                        (cc (cdr current)))
 
-                  (unless (or (gethash current visited)
-                             (null (get-cell grid cr cc))
-                             (not (char= (get-cell grid cr cc) plant)))
-
+                  (unless (gethash current visited)
                     (setf (gethash current visited) t)
                     (setf (gethash current region) t)
 
-                    ;; Add neighbors to queue
+                    ;; Add neighbors to stack
                     (dolist (delta '((0 . 1) (0 . -1) (1 . 0) (-1 . 0)))
-                      (let* ((nr (+ cr (car delta)))
-                             (nc (+ cc (cdr delta)))
-                             (npos (cons nr nc)))
-                        (unless (gethash npos visited)
-                          (push npos queue)))))))
+                      (let ((nr (+ cr (car delta)))
+                            (nc (+ cc (cdr delta))))
+                        (when (in-bounds-p nr nc rows cols)
+                          (let ((npos (cons nr nc)))
+                            (when (and (not (gethash npos visited))
+                                      (char= (get-cell grid nr nc) plant))
+                              (push npos stack)))))))))
 
               (when (> (hash-table-count region) 0)
                 (push region regions)))))))
@@ -64,9 +63,8 @@
                (let ((r (car pos))
                      (c (cdr pos)))
                  (dolist (delta '((0 . 1) (0 . -1) (1 . 0) (-1 . 0)))
-                   (let* ((nr (+ r (car delta)))
-                          (nc (+ c (cdr delta)))
-                          (npos (cons nr nc)))
+                   (let ((npos (cons (+ r (car delta))
+                                    (+ c (cdr delta)))))
                      (unless (gethash npos region)
                        (incf perimeter))))))
              region)

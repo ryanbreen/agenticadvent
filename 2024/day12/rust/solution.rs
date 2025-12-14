@@ -11,14 +11,15 @@ fn main() {
         .map(|line| line.chars().collect())
         .collect();
 
-    let rows = grid.len();
-    let cols = grid[0].len();
+    let regions = find_regions(&grid);
 
-    println!("Part 1: {}", part1(&grid, rows, cols));
-    println!("Part 2: {}", part2(&grid, rows, cols));
+    println!("Part 1: {}", part1(&regions));
+    println!("Part 2: {}", part2(&regions));
 }
 
-fn find_regions(grid: &Vec<Vec<char>>, rows: usize, cols: usize) -> Vec<HashSet<(i32, i32)>> {
+fn find_regions(grid: &[Vec<char>]) -> Vec<HashSet<(i32, i32)>> {
+    let rows = grid.len();
+    let cols = grid[0].len();
     let mut visited = HashSet::new();
     let mut regions = Vec::new();
 
@@ -66,19 +67,14 @@ fn find_regions(grid: &Vec<Vec<char>>, rows: usize, cols: usize) -> Vec<HashSet<
 }
 
 fn calculate_perimeter(region: &HashSet<(i32, i32)>) -> usize {
-    let mut perimeter = 0;
-
-    for (r, c) in region {
-        for (dr, dc) in [(0, 1), (0, -1), (1, 0), (-1, 0)] {
-            let nr = r + dr;
-            let nc = c + dc;
-            if !region.contains(&(nr, nc)) {
-                perimeter += 1;
-            }
-        }
-    }
-
-    perimeter
+    region.iter()
+        .map(|(r, c)| {
+            [(0, 1), (0, -1), (1, 0), (-1, 0)]
+                .iter()
+                .filter(|(dr, dc)| !region.contains(&(r + dr, c + dc)))
+                .count()
+        })
+        .sum()
 }
 
 fn count_sides(region: &HashSet<(i32, i32)>) -> usize {
@@ -131,28 +127,14 @@ fn count_sides(region: &HashSet<(i32, i32)>) -> usize {
     corners
 }
 
-fn part1(grid: &Vec<Vec<char>>, rows: usize, cols: usize) -> usize {
-    let regions = find_regions(grid, rows, cols);
-    let mut total = 0;
-
-    for region in regions {
-        let area = region.len();
-        let perimeter = calculate_perimeter(&region);
-        total += area * perimeter;
-    }
-
-    total
+fn part1(regions: &[HashSet<(i32, i32)>]) -> usize {
+    regions.iter()
+        .map(|region| region.len() * calculate_perimeter(region))
+        .sum()
 }
 
-fn part2(grid: &Vec<Vec<char>>, rows: usize, cols: usize) -> usize {
-    let regions = find_regions(grid, rows, cols);
-    let mut total = 0;
-
-    for region in regions {
-        let area = region.len();
-        let sides = count_sides(&region);
-        total += area * sides;
-    }
-
-    total
+fn part2(regions: &[HashSet<(i32, i32)>]) -> usize {
+    regions.iter()
+        .map(|region| region.len() * count_sides(region))
+        .sum()
 }

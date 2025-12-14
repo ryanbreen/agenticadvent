@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 $input = file_get_contents(__DIR__ . '/../input.txt');
 $input = trim($input);
 
@@ -11,10 +13,13 @@ $cols = count($grid[0]);
 
 /**
  * Find all connected regions in the grid using BFS.
+ *
+ * @param array<int, array<int, string>> $grid
+ * @param int $rows
+ * @param int $cols
+ * @return array<int, array<string, bool>>
  */
-function find_regions() {
-    global $grid, $rows, $cols;
-
+function find_regions(array $grid, int $rows, int $cols): array {
     $visited = [];
     $regions = [];
 
@@ -28,10 +33,11 @@ function find_regions() {
             // BFS to find all cells in this region
             $plant = $grid[$r][$c];
             $region = [];
-            $queue = [[$r, $c]];
+            $queue = new SplQueue();
+            $queue->enqueue([$r, $c]);
 
-            while (count($queue) > 0) {
-                list($cr, $cc) = array_shift($queue);
+            while (!$queue->isEmpty()) {
+                [$cr, $cc] = $queue->dequeue();
                 $ckey = "$cr,$cc";
 
                 if (isset($visited[$ckey])) {
@@ -48,13 +54,12 @@ function find_regions() {
                 $region[$ckey] = true;
 
                 $directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-                foreach ($directions as $dir) {
-                    list($dr, $dc) = $dir;
+                foreach ($directions as [$dr, $dc]) {
                     $nr = $cr + $dr;
                     $nc = $cc + $dc;
                     $nkey = "$nr,$nc";
                     if (!isset($visited[$nkey])) {
-                        $queue[] = [$nr, $nc];
+                        $queue->enqueue([$nr, $nc]);
                     }
                 }
             }
@@ -68,18 +73,20 @@ function find_regions() {
 
 /**
  * Calculate perimeter of a region (edges not touching same region).
+ *
+ * @param array<string, bool> $region
+ * @return int
  */
-function calculate_perimeter($region) {
+function calculate_perimeter(array $region): int {
     $perimeter = 0;
     $directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
 
     foreach ($region as $pos => $val) {
-        list($r, $c) = explode(',', $pos);
+        [$r, $c] = explode(',', $pos);
         $r = (int)$r;
         $c = (int)$c;
 
-        foreach ($directions as $dir) {
-            list($dr, $dc) = $dir;
+        foreach ($directions as [$dr, $dc]) {
             $nr = $r + $dr;
             $nc = $c + $dc;
             $nkey = "$nr,$nc";
@@ -94,12 +101,15 @@ function calculate_perimeter($region) {
 
 /**
  * Count number of sides (corners) in a region.
+ *
+ * @param array<string, bool> $region
+ * @return int
  */
-function count_sides($region) {
+function count_sides(array $region): int {
     $corners = 0;
 
     foreach ($region as $pos => $val) {
-        list($r, $c) = explode(',', $pos);
+        [$r, $c] = explode(',', $pos);
         $r = (int)$r;
         $c = (int)$c;
 
@@ -151,9 +161,14 @@ function count_sides($region) {
 
 /**
  * Calculate total fencing cost: sum of area * perimeter for each region.
+ *
+ * @param array<int, array<int, string>> $grid
+ * @param int $rows
+ * @param int $cols
+ * @return int
  */
-function part1() {
-    $regions = find_regions();
+function part1(array $grid, int $rows, int $cols): int {
+    $regions = find_regions($grid, $rows, $cols);
     $total = 0;
 
     foreach ($regions as $region) {
@@ -167,9 +182,14 @@ function part1() {
 
 /**
  * Calculate total fencing cost using sides instead of perimeter.
+ *
+ * @param array<int, array<int, string>> $grid
+ * @param int $rows
+ * @param int $cols
+ * @return int
  */
-function part2() {
-    $regions = find_regions();
+function part2(array $grid, int $rows, int $cols): int {
+    $regions = find_regions($grid, $rows, $cols);
     $total = 0;
 
     foreach ($regions as $region) {
@@ -181,5 +201,5 @@ function part2() {
     return $total;
 }
 
-echo "Part 1: " . part1() . "\n";
-echo "Part 2: " . part2() . "\n";
+echo "Part 1: " . part1($grid, $rows, $cols) . "\n";
+echo "Part 2: " . part2($grid, $rows, $cols) . "\n";
