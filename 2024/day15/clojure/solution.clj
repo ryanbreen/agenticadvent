@@ -8,72 +8,97 @@
     [grid moves]))
 
 (defn find-robot [grid]
-  (first
-   (for [r (range (count grid))
-         c (range (count (grid r)))
-         :when (= (get-in grid [r c]) \@)]
-     [r c])))
+  (let [height (count grid)
+        width (count (grid 0))]
+    (first
+     (for [r (range height)
+           c (range width)
+           :when (= (get-in grid [r c]) \@)]
+       [r c]))))
+
+;; Direction to delta lookup
+(def direction-deltas
+  {\< [0 -1], \> [0 1], \^ [-1 0], \v [1 0]})
+
+;; Direct grid updates - optimized for small update counts
+(defn grid-set-multi [grid updates]
+  "Apply multiple grid updates efficiently"
+  (case (count updates)
+    2 (let [[[r1 c1 v1] [r2 c2 v2]] updates]
+        (-> grid
+            (assoc-in [r1 c1] v1)
+            (assoc-in [r2 c2] v2)))
+    3 (let [[[r1 c1 v1] [r2 c2 v2] [r3 c3 v3]] updates]
+        (-> grid
+            (assoc-in [r1 c1] v1)
+            (assoc-in [r2 c2] v2)
+            (assoc-in [r3 c3] v3)))
+    ;; For larger updates, group by row
+    (let [by-row (group-by first updates)]
+      (reduce-kv (fn [g r row-updates]
+                   (update g r
+                           (fn [row]
+                             (reduce (fn [r [_ c val]]
+                                       (assoc r c val))
+                                     row
+                                     row-updates))))
+                 grid
+                 by-row))))
 
 (defn move-robot [grid robot-pos direction]
-  (let [deltas {\< [0 -1], \> [0 1], \^ [-1 0], \v [1 0]}
-        [dr dc] (deltas direction)
+  (let [[dr dc] (direction-deltas direction)
         [r c] robot-pos
         [nr nc] [(+ r dr) (+ c dc)]
-        target (get-in grid [nr nc])]
+        next-row (grid nr)
+        target (next-row nc)]
 
     (cond
       ;; Hit a wall
       (= target \#)
-      robot-pos
+      [grid robot-pos]
 
       ;; Empty space
       (= target \.)
-      (do
-        [(assoc-in (assoc-in grid [r c] \.) [nr nc] \@)
-         [nr nc]])
+      [(grid-set-multi grid [[r c \.] [nr nc \@]])
+       [nr nc]]
 
       ;; Box
       (= target \O)
       (let [;; Find end of box chain
-            find-end (fn []
-                       (loop [check-r nr
-                              check-c nc]
-                         (if (= (get-in grid [check-r check-c]) \O)
+            find-end (fn find-end [check-r check-c]
+                       (let [row (grid check-r)
+                             cell (row check-c)]
+                         (if (= cell \O)
                            (recur (+ check-r dr) (+ check-c dc))
                            [check-r check-c])))
-            [end-r end-c] (find-end)]
+            [end-r end-c] (find-end nr nc)
+            end-row (grid end-r)]
 
-        (if (= (get-in grid [end-r end-c]) \#)
-          robot-pos
-          (do
-            [(-> grid
-                 (assoc-in [end-r end-c] \O)
-                 (assoc-in [r c] \.)
-                 (assoc-in [nr nc] \@))
-             [nr nc]])))
+        (if (= (end-row end-c) \#)
+          [grid robot-pos]
+          [(grid-set-multi grid [[end-r end-c \O] [r c \.] [nr nc \@]])
+           [nr nc]]))
 
       :else
-      robot-pos)))
+      [grid robot-pos])))
 
 (defn calculate-gps [grid box-char]
-  (reduce +
-          (for [r (range (count grid))
-                c (range (count (grid r)))
-                :when (= (get-in grid [r c]) box-char)]
-            (+ (* 100 r) c))))
+  (let [height (count grid)
+        width (count (grid 0))]
+    (reduce +
+            (for [r (range height)
+                  c (range width)
+                  :when (= (get-in grid [r c]) box-char)]
+              (+ (* 100 r) c)))))
 
 (defn part1 [input-text]
-  (let [[grid moves] (parse-input input-text)]
-    (loop [g grid
-           pos (find-robot grid)
-           remaining-moves (seq moves)]
-      (if (empty? remaining-moves)
-        (calculate-gps g \O)
-        (let [move (first remaining-moves)
-              result (move-robot g pos move)]
-          (if (vector? (first result))
-            (recur (first result) (second result) (rest remaining-moves))
-            (recur g result (rest remaining-moves))))))))
+  (let [[grid moves] (parse-input input-text)
+        initial-pos (find-robot grid)
+        [final-grid _] (reduce (fn [[g pos] move]
+                                 (move-robot g pos move))
+                               [grid initial-pos]
+                               moves)]
+    (calculate-gps final-grid \O)))
 
 (defn scale-grid [grid]
   (mapv (fn [row]
@@ -90,8 +115,9 @@
   (let [nr (+ r dr)
         left-c box-left-c
         right-c (inc box-left-c)
-        left-target (get-in grid [nr left-c])
-        right-target (get-in grid [nr right-c])]
+        next-row (grid nr)
+        left-target (next-row left-c)
+        right-target (next-row right-c)]
 
     (cond
       ;; Hit wall
@@ -125,8 +151,9 @@
         nr (+ r dr)
         left-c box-left-c
         right-c (inc box-left-c)
-        left-target (get-in grid [nr left-c])
-        right-target (get-in grid [nr right-c])
+        next-row (grid nr)
+        left-target (next-row left-c)
+        right-target (next-row right-c)
 
         boxes-to-check (cond-> #{}
                          (= left-target \[)
@@ -149,8 +176,7 @@
             boxes-to-check)))
 
 (defn move-robot-wide [grid robot-pos direction]
-  (let [deltas {\< [0 -1], \> [0 1], \^ [-1 0], \v [1 0]}
-        [dr dc] (deltas direction)
+  (let [[dr dc] (direction-deltas direction)
         [r c] robot-pos
         [nr nc] [(+ r dr) (+ c dc)]
         target (get-in grid [nr nc])]
@@ -162,7 +188,7 @@
 
       ;; Empty space
       (= target \.)
-      [(assoc-in (assoc-in grid [r c] \.) [nr nc] \@)
+      [(grid-set-multi grid [[r c \.] [nr nc \@]])
        [nr nc]]
 
       ;; Box - horizontal movement
@@ -178,21 +204,19 @@
 
         (if (= (get-in grid [r check-c]) \#)
           [grid robot-pos]
-          (let [;; Shift all boxes
-                new-grid (if (> dc 0) ;; Moving right
-                           (reduce (fn [g col]
-                                     (assoc-in g [r col] (get-in g [r (dec col)])))
-                                   grid
-                                   (range check-c (dec nc) -1))
-                           ;; Moving left
-                           (reduce (fn [g col]
-                                     (assoc-in g [r col] (get-in g [r (inc col)])))
-                                   grid
-                                   (range check-c nc)))
-                final-grid (-> new-grid
-                               (assoc-in [r c] \.)
-                               (assoc-in [nr nc] \@))]
-            [final-grid [nr nc]])))
+          (let [;; Build all updates at once
+                row-data (grid r)
+                updates (if (> dc 0) ;; Moving right
+                          (concat
+                           (for [col (range check-c (dec nc) -1)]
+                             [r col (row-data (dec col))])
+                           [[r c \.] [nr nc \@]])
+                          ;; Moving left
+                          (concat
+                           (for [col (range check-c nc)]
+                             [r col (row-data (inc col))])
+                           [[r c \.] [nr nc \@]]))]
+            [(grid-set-multi grid updates) [nr nc]])))
 
       ;; Box - vertical movement
       (and (or (= target \[) (= target \])) (not= dr 0))
@@ -208,35 +232,28 @@
                                (sort-by first > boxes-to-move)
                                (sort-by first boxes-to-move))
 
-                ;; Move all boxes
-                new-grid (reduce (fn [g [box-r box-c]]
-                                   (-> g
-                                       (assoc-in [box-r box-c] \.)
-                                       (assoc-in [box-r (inc box-c)] \.)
-                                       (assoc-in [(+ box-r dr) box-c] \[)
-                                       (assoc-in [(+ box-r dr) (inc box-c)] \])))
-                                 grid
-                                 sorted-boxes)
-
-                final-grid (-> new-grid
-                               (assoc-in [r c] \.)
-                               (assoc-in [nr nc] \@))]
-            [final-grid [nr nc]])))
+                ;; Build all updates at once
+                box-updates (mapcat (fn [[box-r box-c]]
+                                      [[box-r box-c \.]
+                                       [box-r (inc box-c) \.]
+                                       [(+ box-r dr) box-c \[]
+                                       [(+ box-r dr) (inc box-c) \]]])
+                                    sorted-boxes)
+                all-updates (concat box-updates [[r c \.] [nr nc \@]])]
+            [(grid-set-multi grid all-updates) [nr nc]])))
 
       :else
       [grid robot-pos])))
 
 (defn part2 [input-text]
   (let [[grid moves] (parse-input input-text)
-        scaled-grid (scale-grid grid)]
-    (loop [g scaled-grid
-           pos (find-robot scaled-grid)
-           remaining-moves (seq moves)]
-      (if (empty? remaining-moves)
-        (calculate-gps g \[)
-        (let [move (first remaining-moves)
-              [new-grid new-pos] (move-robot-wide g pos move)]
-          (recur new-grid new-pos (rest remaining-moves)))))))
+        scaled-grid (scale-grid grid)
+        initial-pos (find-robot scaled-grid)
+        [final-grid _] (reduce (fn [[g pos] move]
+                                 (move-robot-wide g pos move))
+                               [scaled-grid initial-pos]
+                               moves)]
+    (calculate-gps final-grid \[)))
 
 (defn -main []
   (let [input-text (slurp "../input.txt")]

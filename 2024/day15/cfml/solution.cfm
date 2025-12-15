@@ -7,6 +7,20 @@ ROBOT = "@";
 BOX_LEFT = "[";
 BOX_RIGHT = "]";
 
+// Cache direction deltas at file scope to avoid recreation
+DELTAS = {
+    "<": {dr: 0, dc: -1},
+    ">": {dr: 0, dc: 1},
+    "^": {dr: -1, dc: 0},
+    "v": {dr: 1, dc: 0}
+};
+
+// Helper function to create numeric key instead of string concatenation
+// Uses bit shifting to pack row/col into single number (max 10000x10000 grid)
+function makeKey(r, c) {
+    return r * 10000 + c;
+}
+
 function parseInput(text) {
     // Split on blank line (double newline)
     var blankLinePos = find(chr(10) & chr(10), text);
@@ -28,8 +42,10 @@ function parseInput(text) {
 }
 
 function findRobot(grid) {
-    for (var r = 1; r <= arrayLen(grid); r++) {
-        for (var c = 1; c <= arrayLen(grid[r]); c++) {
+    var gridHeight = arrayLen(grid);
+    for (var r = 1; r <= gridHeight; r++) {
+        var rowWidth = arrayLen(grid[r]);
+        for (var c = 1; c <= rowWidth; c++) {
             if (grid[r][c] == ROBOT) {
                 return {r: r, c: c};
             }
@@ -39,21 +55,18 @@ function findRobot(grid) {
 }
 
 function moveRobot(grid, robotPos, direction) {
-    var deltas = {
-        "<": {dr: 0, dc: -1},
-        ">": {dr: 0, dc: 1},
-        "^": {dr: -1, dc: 0},
-        "v": {dr: 1, dc: 0}
-    };
-
-    var delta = deltas[direction];
+    var delta = DELTAS[direction];
     var r = robotPos.r;
     var c = robotPos.c;
     var nr = r + delta.dr;
     var nc = c + delta.dc;
 
+    // Cache grid dimensions
+    var gridHeight = arrayLen(grid);
+    var gridWidth = arrayLen(grid[1]);
+
     // Check bounds
-    if (nr < 1 || nr > arrayLen(grid) || nc < 1 || nc > arrayLen(grid[1])) {
+    if (nr < 1 || nr > gridHeight || nc < 1 || nc > gridWidth) {
         return robotPos;
     }
 
@@ -74,17 +87,17 @@ function moveRobot(grid, robotPos, direction) {
         var checkR = nr;
         var checkC = nc;
 
-        // Find end of box chain
-        while (checkR >= 1 && checkR <= arrayLen(grid) &&
-               checkC >= 1 && checkC <= arrayLen(grid[1]) &&
+        // Find end of box chain (use cached dimensions)
+        while (checkR >= 1 && checkR <= gridHeight &&
+               checkC >= 1 && checkC <= gridWidth &&
                grid[checkR][checkC] == BOX) {
             checkR += delta.dr;
             checkC += delta.dc;
         }
 
         // Check if we can push
-        if (checkR < 1 || checkR > arrayLen(grid) ||
-            checkC < 1 || checkC > arrayLen(grid[1]) ||
+        if (checkR < 1 || checkR > gridHeight ||
+            checkC < 1 || checkC > gridWidth ||
             grid[checkR][checkC] == WALL) {
             return robotPos;
         }
@@ -101,8 +114,10 @@ function moveRobot(grid, robotPos, direction) {
 
 function calculateGPS(grid, boxChar) {
     var total = 0;
-    for (var r = 1; r <= arrayLen(grid); r++) {
-        for (var c = 1; c <= arrayLen(grid[r]); c++) {
+    var gridHeight = arrayLen(grid);
+    for (var r = 1; r <= gridHeight; r++) {
+        var rowWidth = arrayLen(grid[r]);
+        for (var c = 1; c <= rowWidth; c++) {
             if (grid[r][c] == boxChar) {
                 total += 100 * (r - 1) + (c - 1);
             }
@@ -149,13 +164,13 @@ function scaleGrid(grid) {
     return newGrid;
 }
 
-function canMoveBoxVertical(grid, boxLeftC, r, dr) {
+function canMoveBoxVertical(grid, boxLeftC, r, dr, gridHeight) {
     var nr = r + dr;
     var leftC = boxLeftC;
     var rightC = boxLeftC + 1;
 
     // Check bounds
-    if (nr < 1 || nr > arrayLen(grid)) {
+    if (nr < 1 || nr > gridHeight) {
         return false;
     }
 
@@ -167,25 +182,44 @@ function canMoveBoxVertical(grid, boxLeftC, r, dr) {
         return false;
     }
 
-    // Find boxes in the way
-    var boxesToCheck = {};
+    // Find boxes in the way - inline logic to avoid creating HashMaps in hot path
+    // Use simple array since we have at most 2 boxes to check
+    var boxesToCheck = [];
+    var seenKeys = {};
 
     if (leftTarget == BOX_LEFT) {
-        boxesToCheck[nr & "_" & leftC] = {r: nr, c: leftC};
+        var key1 = makeKey(nr, leftC);
+        if (!structKeyExists(seenKeys, key1)) {
+            arrayAppend(boxesToCheck, {r: nr, c: leftC});
+            seenKeys[key1] = true;
+        }
     } else if (leftTarget == BOX_RIGHT) {
-        boxesToCheck[nr & "_" & (leftC - 1)] = {r: nr, c: leftC - 1};
+        var leftCMinus1 = leftC - 1;
+        var key2 = makeKey(nr, leftCMinus1);
+        if (!structKeyExists(seenKeys, key2)) {
+            arrayAppend(boxesToCheck, {r: nr, c: leftCMinus1});
+            seenKeys[key2] = true;
+        }
     }
 
     if (rightTarget == BOX_LEFT) {
-        boxesToCheck[nr & "_" & rightC] = {r: nr, c: rightC};
+        var key3 = makeKey(nr, rightC);
+        if (!structKeyExists(seenKeys, key3)) {
+            arrayAppend(boxesToCheck, {r: nr, c: rightC});
+            seenKeys[key3] = true;
+        }
     } else if (rightTarget == BOX_RIGHT) {
-        boxesToCheck[nr & "_" & (rightC - 1)] = {r: nr, c: rightC - 1};
+        var rightCMinus1 = rightC - 1;
+        var key4 = makeKey(nr, rightCMinus1);
+        if (!structKeyExists(seenKeys, key4)) {
+            arrayAppend(boxesToCheck, {r: nr, c: rightCMinus1});
+            seenKeys[key4] = true;
+        }
     }
 
     // Recursively check
-    for (var key in boxesToCheck) {
-        var box = boxesToCheck[key];
-        if (!canMoveBoxVertical(grid, box.c, box.r, dr)) {
+    for (var box in boxesToCheck) {
+        if (!canMoveBoxVertical(grid, box.c, box.r, dr, gridHeight)) {
             return false;
         }
     }
@@ -194,8 +228,8 @@ function canMoveBoxVertical(grid, boxLeftC, r, dr) {
 }
 
 function collectBoxesVertical(grid, boxLeftC, r, dr, collected) {
-    var key = r & "_" & boxLeftC;
-    collected[key] = {r: r, c: boxLeftC};
+    var key = makeKey(r, boxLeftC);
+    collected.put(key, {r: r, c: boxLeftC});
 
     var nr = r + dr;
     var leftC = boxLeftC;
@@ -204,44 +238,60 @@ function collectBoxesVertical(grid, boxLeftC, r, dr, collected) {
     var leftTarget = grid[nr][leftC];
     var rightTarget = grid[nr][rightC];
 
-    var boxesToCheck = {};
+    // Use simple array since we have at most 2 boxes to check
+    var boxesToCheck = [];
+    var seenKeys = {};
 
     if (leftTarget == BOX_LEFT) {
-        boxesToCheck[nr & "_" & leftC] = {r: nr, c: leftC};
+        var key1 = makeKey(nr, leftC);
+        if (!structKeyExists(seenKeys, key1)) {
+            arrayAppend(boxesToCheck, {key: key1, r: nr, c: leftC});
+            seenKeys[key1] = true;
+        }
     } else if (leftTarget == BOX_RIGHT) {
-        boxesToCheck[nr & "_" & (leftC - 1)] = {r: nr, c: leftC - 1};
+        var leftCMinus1 = leftC - 1;
+        var key2 = makeKey(nr, leftCMinus1);
+        if (!structKeyExists(seenKeys, key2)) {
+            arrayAppend(boxesToCheck, {key: key2, r: nr, c: leftCMinus1});
+            seenKeys[key2] = true;
+        }
     }
 
     if (rightTarget == BOX_LEFT) {
-        boxesToCheck[nr & "_" & rightC] = {r: nr, c: rightC};
+        var key3 = makeKey(nr, rightC);
+        if (!structKeyExists(seenKeys, key3)) {
+            arrayAppend(boxesToCheck, {key: key3, r: nr, c: rightC});
+            seenKeys[key3] = true;
+        }
     } else if (rightTarget == BOX_RIGHT) {
-        boxesToCheck[nr & "_" & (rightC - 1)] = {r: nr, c: rightC - 1};
+        var rightCMinus1 = rightC - 1;
+        var key4 = makeKey(nr, rightCMinus1);
+        if (!structKeyExists(seenKeys, key4)) {
+            arrayAppend(boxesToCheck, {key: key4, r: nr, c: rightCMinus1});
+            seenKeys[key4] = true;
+        }
     }
 
-    for (var checkKey in boxesToCheck) {
-        if (!structKeyExists(collected, checkKey)) {
-            var box = boxesToCheck[checkKey];
+    for (var box in boxesToCheck) {
+        if (!collected.containsKey(box.key)) {
             collectBoxesVertical(grid, box.c, box.r, dr, collected);
         }
     }
 }
 
 function moveRobotWide(grid, robotPos, direction) {
-    var deltas = {
-        "<": {dr: 0, dc: -1},
-        ">": {dr: 0, dc: 1},
-        "^": {dr: -1, dc: 0},
-        "v": {dr: 1, dc: 0}
-    };
-
-    var delta = deltas[direction];
+    var delta = DELTAS[direction];
     var r = robotPos.r;
     var c = robotPos.c;
     var nr = r + delta.dr;
     var nc = c + delta.dc;
 
+    // Cache grid dimensions
+    var gridHeight = arrayLen(grid);
+    var gridWidth = arrayLen(grid[1]);
+
     // Check bounds
-    if (nr < 1 || nr > arrayLen(grid) || nc < 1 || nc > arrayLen(grid[1])) {
+    if (nr < 1 || nr > gridHeight || nc < 1 || nc > gridWidth) {
         return robotPos;
     }
 
@@ -265,14 +315,14 @@ function moveRobotWide(grid, robotPos, direction) {
         if (delta.dc != 0) {
             var checkC = nc;
 
-            // Find end of box chain
-            while (checkC >= 1 && checkC <= arrayLen(grid[1]) &&
+            // Find end of box chain (use cached width)
+            while (checkC >= 1 && checkC <= gridWidth &&
                    (grid[r][checkC] == BOX_LEFT || grid[r][checkC] == BOX_RIGHT)) {
                 checkC += delta.dc;
             }
 
             // Check if we can push
-            if (checkC < 1 || checkC > arrayLen(grid[1]) || grid[r][checkC] == WALL) {
+            if (checkC < 1 || checkC > gridWidth || grid[r][checkC] == WALL) {
                 return robotPos;
             }
 
@@ -297,19 +347,21 @@ function moveRobotWide(grid, robotPos, direction) {
             // Vertical movement
             var boxLeftC = (target == BOX_LEFT) ? nc : nc - 1;
 
-            // Check if we can move
-            if (!canMoveBoxVertical(grid, boxLeftC, nr, delta.dr)) {
+            // Check if we can move (pass cached height)
+            if (!canMoveBoxVertical(grid, boxLeftC, nr, delta.dr, gridHeight)) {
                 return robotPos;
             }
 
-            // Collect all boxes
-            var boxesToMove = {};
+            // Collect all boxes - use Java HashMap
+            var boxesToMove = createObject("java", "java.util.HashMap").init();
             collectBoxesVertical(grid, boxLeftC, nr, delta.dr, boxesToMove);
 
             // Sort boxes by row
             var sortedBoxes = [];
-            for (var key in boxesToMove) {
-                arrayAppend(sortedBoxes, boxesToMove[key]);
+            var keySet = boxesToMove.keySet().toArray();
+            for (var i = 1; i <= arrayLen(keySet); i++) {
+                var key = keySet[i];
+                arrayAppend(sortedBoxes, boxesToMove.get(key));
             }
 
             // Sort based on direction

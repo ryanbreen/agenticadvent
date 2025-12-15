@@ -1,9 +1,11 @@
 from pathlib import Path
 
-input_text = (Path(__file__).parent.parent / "input.txt").read_text().strip()
+# Direction vectors for movement commands
+DIRECTIONS = {'<': (0, -1), '>': (0, 1), '^': (-1, 0), 'v': (1, 0)}
 
 
-def parse_input(text):
+def parse_input(text: str) -> tuple[list[list[str]], str]:
+    """Parse input into grid and move sequence."""
     parts = text.split('\n\n')
     grid_lines = parts[0].split('\n')
     grid = [list(line) for line in grid_lines]
@@ -11,16 +13,17 @@ def parse_input(text):
     return grid, moves
 
 
-def find_robot(grid):
+def find_robot(grid: list[list[str]]) -> tuple[int, int] | None:
+    """Find the robot's position in the grid."""
     for r, row in enumerate(grid):
         for c, cell in enumerate(row):
             if cell == '@':
                 return r, c
-    return None
 
 
-def move_robot(grid, robot_pos, direction):
-    dr, dc = {'<': (0, -1), '>': (0, 1), '^': (-1, 0), 'v': (1, 0)}[direction]
+def move_robot(grid: list[list[str]], robot_pos: tuple[int, int], direction: str) -> tuple[int, int]:
+    """Move the robot in the specified direction, pushing boxes if possible."""
+    dr, dc = DIRECTIONS[direction]
     r, c = robot_pos
     nr, nc = r + dr, c + dc
 
@@ -49,16 +52,14 @@ def move_robot(grid, robot_pos, direction):
     return robot_pos
 
 
-def calculate_gps(grid, box_char='O'):
-    total = 0
-    for r, row in enumerate(grid):
-        for c, cell in enumerate(row):
-            if cell == box_char:
-                total += 100 * r + c
-    return total
+def calculate_gps(grid: list[list[str]], box_char: str = 'O') -> int:
+    """Calculate sum of GPS coordinates for all boxes."""
+    return sum(100 * r + c for r, row in enumerate(grid)
+               for c, cell in enumerate(row) if cell == box_char)
 
 
-def part1():
+def part1(input_text: str) -> int:
+    """Solve Part 1: Sum GPS coordinates after robot moves."""
     grid, moves = parse_input(input_text)
     robot_pos = find_robot(grid)
 
@@ -68,7 +69,7 @@ def part1():
     return calculate_gps(grid)
 
 
-def scale_grid(grid):
+def scale_grid(grid: list[list[str]]) -> list[list[str]]:
     """Scale the grid 2x wide for Part 2."""
     new_grid = []
     for row in grid:
@@ -86,7 +87,7 @@ def scale_grid(grid):
     return new_grid
 
 
-def can_move_box_vertical(grid, box_left_c, r, dr):
+def can_move_box_vertical(grid: list[list[str]], box_left_c: int, r: int, dr: int) -> bool:
     """Check if a wide box at (r, box_left_c) can move in direction dr."""
     nr = r + dr
     left_c, right_c = box_left_c, box_left_c + 1
@@ -120,7 +121,7 @@ def can_move_box_vertical(grid, box_left_c, r, dr):
     return True
 
 
-def collect_boxes_vertical(grid, box_left_c, r, dr, collected):
+def collect_boxes_vertical(grid: list[list[str]], box_left_c: int, r: int, dr: int, collected: set[tuple[int, int]]) -> None:
     """Collect all boxes that need to move when pushing box at (r, box_left_c)."""
     collected.add((r, box_left_c))
     nr = r + dr
@@ -146,8 +147,9 @@ def collect_boxes_vertical(grid, box_left_c, r, dr, collected):
             collect_boxes_vertical(grid, box_c, box_r, dr, collected)
 
 
-def move_robot_wide(grid, robot_pos, direction):
-    dr, dc = {'<': (0, -1), '>': (0, 1), '^': (-1, 0), 'v': (1, 0)}[direction]
+def move_robot_wide(grid: list[list[str]], robot_pos: tuple[int, int], direction: str) -> tuple[int, int]:
+    """Move the robot in a wide grid, handling wide boxes that span two columns."""
+    dr, dc = DIRECTIONS[direction]
     r, c = robot_pos
     nr, nc = r + dr, c + dc
 
@@ -217,7 +219,8 @@ def move_robot_wide(grid, robot_pos, direction):
     return robot_pos
 
 
-def part2():
+def part2(input_text: str) -> int:
+    """Solve Part 2: Sum GPS coordinates after robot moves in scaled-up grid."""
     grid, moves = parse_input(input_text)
     grid = scale_grid(grid)
     robot_pos = find_robot(grid)
@@ -229,5 +232,6 @@ def part2():
 
 
 if __name__ == "__main__":
-    print(f"Part 1: {part1()}")
-    print(f"Part 2: {part2()}")
+    input_text = (Path(__file__).parent.parent / "input.txt").read_text().strip()
+    print(f"Part 1: {part1(input_text)}")
+    print(f"Part 2: {part2(input_text)}")

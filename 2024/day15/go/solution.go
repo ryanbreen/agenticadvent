@@ -3,11 +3,19 @@ package main
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 )
 
 type Point struct {
 	r, c int
+}
+
+var deltas = map[rune]Point{
+	'<': {0, -1},
+	'>': {0, 1},
+	'^': {-1, 0},
+	'v': {1, 0},
 }
 
 func parseInput(text string) ([][]rune, string) {
@@ -23,25 +31,18 @@ func parseInput(text string) ([][]rune, string) {
 	return grid, moves
 }
 
-func findRobot(grid [][]rune) Point {
+func findRobot(grid [][]rune) (Point, bool) {
 	for r, row := range grid {
 		for c, cell := range row {
 			if cell == '@' {
-				return Point{r, c}
+				return Point{r, c}, true
 			}
 		}
 	}
-	return Point{-1, -1}
+	return Point{}, false
 }
 
 func moveRobot(grid [][]rune, robotPos Point, direction rune) Point {
-	deltas := map[rune]Point{
-		'<': {0, -1},
-		'>': {0, 1},
-		'^': {-1, 0},
-		'v': {1, 0},
-	}
-
 	dr := deltas[direction].r
 	dc := deltas[direction].c
 	r, c := robotPos.r, robotPos.c
@@ -91,7 +92,7 @@ func calculateGPS(grid [][]rune, boxChar rune) int {
 
 func part1(text string) int {
 	grid, moves := parseInput(text)
-	robotPos := findRobot(grid)
+	robotPos, _ := findRobot(grid)
 
 	for _, move := range moves {
 		robotPos = moveRobot(grid, robotPos, move)
@@ -187,13 +188,6 @@ func collectBoxesVertical(grid [][]rune, boxLeftC, r, dr int, collected map[Poin
 }
 
 func moveRobotWide(grid [][]rune, robotPos Point, direction rune) Point {
-	deltas := map[rune]Point{
-		'<': {0, -1},
-		'>': {0, 1},
-		'^': {-1, 0},
-		'v': {1, 0},
-	}
-
 	dr := deltas[direction].r
 	dc := deltas[direction].c
 	r, c := robotPos.r, robotPos.c
@@ -259,22 +253,12 @@ func moveRobotWide(grid [][]rune, robotPos Point, direction rune) Point {
 			}
 
 			// Sort based on direction
-			sortBoxes := func(boxes []Point, dr int) {
-				for i := 0; i < len(boxes); i++ {
-					for j := i + 1; j < len(boxes); j++ {
-						if dr > 0 {
-							if boxes[i].r < boxes[j].r {
-								boxes[i], boxes[j] = boxes[j], boxes[i]
-							}
-						} else {
-							if boxes[i].r > boxes[j].r {
-								boxes[i], boxes[j] = boxes[j], boxes[i]
-							}
-						}
-					}
+			sort.Slice(boxList, func(i, j int) bool {
+				if dr > 0 {
+					return boxList[i].r > boxList[j].r // Moving down: process bottom first
 				}
-			}
-			sortBoxes(boxList, dr)
+				return boxList[i].r < boxList[j].r // Moving up: process top first
+			})
 
 			// Move all boxes
 			for _, box := range boxList {
@@ -298,7 +282,7 @@ func moveRobotWide(grid [][]rune, robotPos Point, direction rune) Point {
 func part2(text string) int {
 	grid, moves := parseInput(text)
 	grid = scaleGrid(grid)
-	robotPos := findRobot(grid)
+	robotPos, _ := findRobot(grid)
 
 	for _, move := range moves {
 		robotPos = moveRobotWide(grid, robotPos, move)

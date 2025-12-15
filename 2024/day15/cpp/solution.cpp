@@ -4,8 +4,9 @@
 #include <string>
 #include <set>
 #include <algorithm>
+#include <utility>
 
-using namespace std;
+constexpr int GPS_ROW_MULTIPLIER = 100;
 
 struct Position {
     int r, c;
@@ -15,20 +16,35 @@ struct Position {
     }
 };
 
-pair<vector<vector<char>>, string> parse_input(const string& filename) {
-    ifstream file(filename);
-    string line;
-    vector<vector<char>> grid;
-    string moves;
+std::pair<int, int> get_direction_delta(char direction) {
+    switch (direction) {
+        case '<': return {0, -1};
+        case '>': return {0, 1};
+        case '^': return {-1, 0};
+        case 'v': return {1, 0};
+        default: return {0, 0};
+    }
+}
+
+std::pair<std::vector<std::vector<char>>, std::string> parse_input(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file) {
+        std::cerr << "Error: Cannot open input file\n";
+        return {{}, {}};
+    }
+
+    std::string line;
+    std::vector<std::vector<char>> grid;
+    std::string moves;
     bool reading_moves = false;
 
-    while (getline(file, line)) {
+    while (std::getline(file, line)) {
         if (line.empty()) {
             reading_moves = true;
             continue;
         }
         if (!reading_moves) {
-            grid.push_back(vector<char>(line.begin(), line.end()));
+            grid.push_back(std::vector<char>(line.begin(), line.end()));
         } else {
             moves += line;
         }
@@ -37,7 +53,7 @@ pair<vector<vector<char>>, string> parse_input(const string& filename) {
     return {grid, moves};
 }
 
-Position find_robot(const vector<vector<char>>& grid) {
+Position find_robot(const std::vector<std::vector<char>>& grid) {
     for (int r = 0; r < grid.size(); r++) {
         for (int c = 0; c < grid[r].size(); c++) {
             if (grid[r][c] == '@') {
@@ -48,13 +64,8 @@ Position find_robot(const vector<vector<char>>& grid) {
     return {-1, -1};
 }
 
-Position move_robot(vector<vector<char>>& grid, Position robot_pos, char direction) {
-    int dr = 0, dc = 0;
-
-    if (direction == '<') { dr = 0; dc = -1; }
-    else if (direction == '>') { dr = 0; dc = 1; }
-    else if (direction == '^') { dr = -1; dc = 0; }
-    else if (direction == 'v') { dr = 1; dc = 0; }
+Position move_robot(std::vector<std::vector<char>>& grid, Position robot_pos, char direction) {
+    auto [dr, dc] = get_direction_delta(direction);
 
     int r = robot_pos.r, c = robot_pos.c;
     int nr = r + dr, nc = c + dc;
@@ -89,19 +100,19 @@ Position move_robot(vector<vector<char>>& grid, Position robot_pos, char directi
     return robot_pos;
 }
 
-long long calculate_gps(const vector<vector<char>>& grid, char box_char = 'O') {
+long long calculate_gps(const std::vector<std::vector<char>>& grid, char box_char = 'O') {
     long long total = 0;
     for (int r = 0; r < grid.size(); r++) {
         for (int c = 0; c < grid[r].size(); c++) {
             if (grid[r][c] == box_char) {
-                total += 100 * r + c;
+                total += GPS_ROW_MULTIPLIER * r + c;
             }
         }
     }
     return total;
 }
 
-long long part1(const string& filename) {
+long long part1(const std::string& filename) {
     auto [grid, moves] = parse_input(filename);
     Position robot_pos = find_robot(grid);
 
@@ -112,10 +123,10 @@ long long part1(const string& filename) {
     return calculate_gps(grid);
 }
 
-vector<vector<char>> scale_grid(const vector<vector<char>>& grid) {
-    vector<vector<char>> new_grid;
+std::vector<std::vector<char>> scale_grid(const std::vector<std::vector<char>>& grid) {
+    std::vector<std::vector<char>> new_grid;
     for (const auto& row : grid) {
-        vector<char> new_row;
+        std::vector<char> new_row;
         for (char cell : row) {
             if (cell == '#') {
                 new_row.push_back('#');
@@ -136,7 +147,7 @@ vector<vector<char>> scale_grid(const vector<vector<char>>& grid) {
     return new_grid;
 }
 
-bool can_move_box_vertical(const vector<vector<char>>& grid, int box_left_c, int r, int dr) {
+bool can_move_box_vertical(const std::vector<std::vector<char>>& grid, int box_left_c, int r, int dr) {
     int nr = r + dr;
     int left_c = box_left_c;
     int right_c = box_left_c + 1;
@@ -148,7 +159,7 @@ bool can_move_box_vertical(const vector<vector<char>>& grid, int box_left_c, int
         return false;
     }
 
-    set<Position> boxes_to_check;
+    std::set<Position> boxes_to_check;
 
     if (left_target == '[') {
         boxes_to_check.insert({nr, left_c});
@@ -171,7 +182,7 @@ bool can_move_box_vertical(const vector<vector<char>>& grid, int box_left_c, int
     return true;
 }
 
-void collect_boxes_vertical(const vector<vector<char>>& grid, int box_left_c, int r, int dr, set<Position>& collected) {
+void collect_boxes_vertical(const std::vector<std::vector<char>>& grid, int box_left_c, int r, int dr, std::set<Position>& collected) {
     collected.insert({r, box_left_c});
     int nr = r + dr;
     int left_c = box_left_c;
@@ -180,7 +191,7 @@ void collect_boxes_vertical(const vector<vector<char>>& grid, int box_left_c, in
     char left_target = grid[nr][left_c];
     char right_target = grid[nr][right_c];
 
-    set<Position> boxes_to_check;
+    std::set<Position> boxes_to_check;
 
     if (left_target == '[') {
         boxes_to_check.insert({nr, left_c});
@@ -201,13 +212,8 @@ void collect_boxes_vertical(const vector<vector<char>>& grid, int box_left_c, in
     }
 }
 
-Position move_robot_wide(vector<vector<char>>& grid, Position robot_pos, char direction) {
-    int dr = 0, dc = 0;
-
-    if (direction == '<') { dr = 0; dc = -1; }
-    else if (direction == '>') { dr = 0; dc = 1; }
-    else if (direction == '^') { dr = -1; dc = 0; }
-    else if (direction == 'v') { dr = 1; dc = 0; }
+Position move_robot_wide(std::vector<std::vector<char>>& grid, Position robot_pos, char direction) {
+    auto [dr, dc] = get_direction_delta(direction);
 
     int r = robot_pos.r, c = robot_pos.c;
     int nr = r + dr, nc = c + dc;
@@ -256,17 +262,17 @@ Position move_robot_wide(vector<vector<char>>& grid, Position robot_pos, char di
                 return robot_pos;
             }
 
-            set<Position> boxes_to_move;
+            std::set<Position> boxes_to_move;
             collect_boxes_vertical(grid, box_left_c, nr, dr, boxes_to_move);
 
             // Convert set to vector and sort
-            vector<Position> sorted_boxes(boxes_to_move.begin(), boxes_to_move.end());
+            std::vector<Position> sorted_boxes(boxes_to_move.begin(), boxes_to_move.end());
             if (dr > 0) {
-                sort(sorted_boxes.begin(), sorted_boxes.end(), [](const Position& a, const Position& b) {
+                std::sort(sorted_boxes.begin(), sorted_boxes.end(), [](const Position& a, const Position& b) {
                     return a.r > b.r;
                 });
             } else {
-                sort(sorted_boxes.begin(), sorted_boxes.end(), [](const Position& a, const Position& b) {
+                std::sort(sorted_boxes.begin(), sorted_boxes.end(), [](const Position& a, const Position& b) {
                     return a.r < b.r;
                 });
             }
@@ -289,7 +295,7 @@ Position move_robot_wide(vector<vector<char>>& grid, Position robot_pos, char di
     return robot_pos;
 }
 
-long long part2(const string& filename) {
+long long part2(const std::string& filename) {
     auto [grid, moves] = parse_input(filename);
     grid = scale_grid(grid);
     Position robot_pos = find_robot(grid);
@@ -302,10 +308,10 @@ long long part2(const string& filename) {
 }
 
 int main() {
-    string filename = "../input.txt";
+    std::string filename = "../input.txt";
 
-    cout << "Part 1: " << part1(filename) << endl;
-    cout << "Part 2: " << part2(filename) << endl;
+    std::cout << "Part 1: " << part1(filename) << std::endl;
+    std::cout << "Part 2: " << part2(filename) << std::endl;
 
     return 0;
 }

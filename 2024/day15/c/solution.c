@@ -5,6 +5,7 @@
 
 #define MAX_GRID_SIZE 100
 #define MAX_MOVES 20000
+#define BOX_HASH_SIZE 512
 
 typedef struct {
     int r, c;
@@ -17,8 +18,15 @@ typedef struct {
 } Grid;
 
 typedef struct {
+    int r, c;
+    int generation;
+} BoxHashEntry;
+
+typedef struct {
+    BoxHashEntry hash[BOX_HASH_SIZE];
     Pos boxes[10000];
     int count;
+    int generation;
 } BoxSet;
 
 void read_input(const char* filename, Grid* grid, char* moves, int* move_count) {
@@ -55,7 +63,7 @@ void read_input(const char* filename, Grid* grid, char* moves, int* move_count) 
     fclose(f);
 }
 
-Pos find_robot(Grid* grid) {
+Pos find_robot(const Grid* grid) {
     for (int r = 0; r < grid->rows; r++) {
         for (int c = 0; c < grid->cols; c++) {
             if (grid->grid[r][c] == '@') {
@@ -111,7 +119,7 @@ Pos move_robot(Grid* grid, Pos robot_pos, char direction) {
     return robot_pos;
 }
 
-long calculate_gps(Grid* grid, char box_char) {
+long calculate_gps(const Grid* grid, char box_char) {
     long total = 0;
     for (int r = 0; r < grid->rows; r++) {
         for (int c = 0; c < grid->cols; c++) {
@@ -123,7 +131,7 @@ long calculate_gps(Grid* grid, char box_char) {
     return total;
 }
 
-void copy_grid(Grid* src, Grid* dst) {
+void copy_grid(const Grid* src, Grid* dst) {
     dst->rows = src->rows;
     dst->cols = src->cols;
     for (int r = 0; r < src->rows; r++) {
@@ -131,7 +139,7 @@ void copy_grid(Grid* src, Grid* dst) {
     }
 }
 
-long part1(Grid* original_grid, char* moves, int move_count) {
+long part1(const Grid* original_grid, const char* moves, int move_count) {
     Grid grid;
     copy_grid(original_grid, &grid);
 
@@ -144,7 +152,7 @@ long part1(Grid* original_grid, char* moves, int move_count) {
     return calculate_gps(&grid, 'O');
 }
 
-void scale_grid(Grid* src, Grid* dst) {
+void scale_grid(const Grid* src, Grid* dst) {
     dst->rows = src->rows;
     dst->cols = src->cols * 2;
 
@@ -170,18 +178,40 @@ void scale_grid(Grid* src, Grid* dst) {
     }
 }
 
+static inline int hash_pos(int r, int c) {
+    return ((r * 31) + c) & (BOX_HASH_SIZE - 1);
+}
+
+static inline void init_boxset(BoxSet* set) {
+    static int global_generation = 1;
+    set->count = 0;
+    set->generation = global_generation++;
+}
+
 bool box_in_set(BoxSet* set, Pos box) {
-    for (int i = 0; i < set->count; i++) {
-        if (set->boxes[i].r == box.r && set->boxes[i].c == box.c) {
-            return true;
-        }
+    int h = hash_pos(box.r, box.c);
+    for (int i = 0; i < BOX_HASH_SIZE; i++) {
+        int idx = (h + i) & (BOX_HASH_SIZE - 1);
+        if (set->hash[idx].generation != set->generation) return false;
+        if (set->hash[idx].r == box.r && set->hash[idx].c == box.c) return true;
     }
     return false;
 }
 
 void add_box_to_set(BoxSet* set, Pos box) {
-    if (!box_in_set(set, box)) {
-        set->boxes[set->count++] = box;
+    int h = hash_pos(box.r, box.c);
+    for (int i = 0; i < BOX_HASH_SIZE; i++) {
+        int idx = (h + i) & (BOX_HASH_SIZE - 1);
+        if (set->hash[idx].generation != set->generation) {
+            set->hash[idx].r = box.r;
+            set->hash[idx].c = box.c;
+            set->hash[idx].generation = set->generation;
+            set->boxes[set->count++] = box;
+            return;
+        }
+        if (set->hash[idx].r == box.r && set->hash[idx].c == box.c) {
+            return;  // Already in set
+        }
     }
 }
 
@@ -197,7 +227,8 @@ bool can_move_box_vertical(Grid* grid, int box_left_c, int r, int dr) {
         return false;
     }
 
-    BoxSet boxes_to_check = {0};
+    BoxSet boxes_to_check;
+    init_boxset(&boxes_to_check);
 
     if (left_target == '[') {
         add_box_to_set(&boxes_to_check, (Pos){nr, left_c});
@@ -232,7 +263,8 @@ void collect_boxes_vertical(Grid* grid, int box_left_c, int r, int dr, BoxSet* c
     char left_target = grid->grid[nr][left_c];
     char right_target = grid->grid[nr][right_c];
 
-    BoxSet boxes_to_check = {0};
+    BoxSet boxes_to_check;
+    init_boxset(&boxes_to_check);
 
     if (left_target == '[') {
         add_box_to_set(&boxes_to_check, (Pos){nr, left_c});
@@ -316,7 +348,8 @@ Pos move_robot_wide(Grid* grid, Pos robot_pos, char direction) {
                 return robot_pos;
             }
 
-            BoxSet boxes_to_move = {0};
+            BoxSet boxes_to_move;
+            init_boxset(&boxes_to_move);
             collect_boxes_vertical(grid, box_left_c, nr, dr, &boxes_to_move);
 
             // Sort boxes by row
@@ -346,7 +379,7 @@ Pos move_robot_wide(Grid* grid, Pos robot_pos, char direction) {
     return robot_pos;
 }
 
-long part2(Grid* original_grid, char* moves, int move_count) {
+long part2(const Grid* original_grid, const char* moves, int move_count) {
     Grid scaled_grid;
     scale_grid(original_grid, &scaled_grid);
 

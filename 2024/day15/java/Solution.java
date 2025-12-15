@@ -5,37 +5,11 @@ import java.util.*;
 
 public class Solution {
 
-    static class Pos {
-        int r, c;
+    record Pos(int r, int c) {}
 
-        Pos(int r, int c) {
-            this.r = r;
-            this.c = c;
-        }
+    record ParseResult(char[][] grid, String moves) {}
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Pos pos = (Pos) o;
-            return r == pos.r && c == pos.c;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(r, c);
-        }
-    }
-
-    static class ParseResult {
-        char[][] grid;
-        String moves;
-
-        ParseResult(char[][] grid, String moves) {
-            this.grid = grid;
-            this.moves = moves;
-        }
-    }
+    private static final int GPS_ROW_MULTIPLIER = 100;
 
     static ParseResult parseInput(String text) {
         String[] parts = text.split("\n\n");
@@ -48,25 +22,28 @@ public class Solution {
         return new ParseResult(grid, moves);
     }
 
-    static Pos findRobot(char[][] grid) {
+    static Optional<Pos> findRobot(char[][] grid) {
         for (int r = 0; r < grid.length; r++) {
             for (int c = 0; c < grid[r].length; c++) {
                 if (grid[r][c] == '@') {
-                    return new Pos(r, c);
+                    return Optional.of(new Pos(r, c));
                 }
             }
         }
-        return null;
+        return Optional.empty();
     }
 
     static Pos moveRobot(char[][] grid, Pos robotPos, char direction) {
-        int dr = 0, dc = 0;
-        switch (direction) {
-            case '<': dc = -1; break;
-            case '>': dc = 1; break;
-            case '^': dr = -1; break;
-            case 'v': dr = 1; break;
-        }
+        int dr = switch(direction) {
+            case '^' -> -1;
+            case 'v' -> 1;
+            default -> 0;
+        };
+        int dc = switch(direction) {
+            case '<' -> -1;
+            case '>' -> 1;
+            default -> 0;
+        };
 
         int r = robotPos.r;
         int c = robotPos.c;
@@ -109,7 +86,7 @@ public class Solution {
         for (int r = 0; r < grid.length; r++) {
             for (int c = 0; c < grid[r].length; c++) {
                 if (grid[r][c] == boxChar) {
-                    total += 100 * r + c;
+                    total += GPS_ROW_MULTIPLIER * r + c;
                 }
             }
         }
@@ -118,9 +95,9 @@ public class Solution {
 
     static int part1(String input) {
         ParseResult parsed = parseInput(input);
-        char[][] grid = parsed.grid;
-        String moves = parsed.moves;
-        Pos robotPos = findRobot(grid);
+        char[][] grid = parsed.grid();
+        String moves = parsed.moves();
+        Pos robotPos = findRobot(grid).orElseThrow();
 
         for (char move : moves.toCharArray()) {
             robotPos = moveRobot(grid, robotPos, move);
@@ -224,14 +201,16 @@ public class Solution {
     }
 
     static Pos moveRobotWide(char[][] grid, Pos robotPos, char direction) {
-        final int dr, dc;
-        switch (direction) {
-            case '<': dr = 0; dc = -1; break;
-            case '>': dr = 0; dc = 1; break;
-            case '^': dr = -1; dc = 0; break;
-            case 'v': dr = 1; dc = 0; break;
-            default: dr = 0; dc = 0; break;
-        }
+        int dr = switch(direction) {
+            case '^' -> -1;
+            case 'v' -> 1;
+            default -> 0;
+        };
+        int dc = switch(direction) {
+            case '<' -> -1;
+            case '>' -> 1;
+            default -> 0;
+        };
 
         int r = robotPos.r;
         int c = robotPos.c;
@@ -310,9 +289,9 @@ public class Solution {
 
     static int part2(String input) {
         ParseResult parsed = parseInput(input);
-        char[][] grid = scaleGrid(parsed.grid);
-        String moves = parsed.moves;
-        Pos robotPos = findRobot(grid);
+        char[][] grid = scaleGrid(parsed.grid());
+        String moves = parsed.moves();
+        Pos robotPos = findRobot(grid).orElseThrow();
 
         for (char move : moves.toCharArray()) {
             robotPos = moveRobotWide(grid, robotPos, move);

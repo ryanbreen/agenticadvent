@@ -1,4 +1,13 @@
 #!/usr/bin/env ruby
+require 'set'
+
+# Frozen constant to avoid repeated hash allocation
+DELTAS = {
+  '<' => [0, -1],
+  '>' => [0, 1],
+  '^' => [-1, 0],
+  'v' => [1, 0]
+}.freeze
 
 def parse_input(text)
   parts = text.strip.split("\n\n")
@@ -18,8 +27,7 @@ def find_robot(grid)
 end
 
 def move_robot(grid, robot_pos, direction)
-  deltas = { '<' => [0, -1], '>' => [0, 1], '^' => [-1, 0], 'v' => [1, 0] }
-  dr, dc = deltas[direction]
+  dr, dc = DELTAS[direction]
   r, c = robot_pos
   nr, nc = r + dr, c + dc
 
@@ -63,7 +71,7 @@ def part1(input_text)
   grid, moves = parse_input(input_text)
   robot_pos = find_robot(grid)
 
-  moves.each_char do |move|
+  moves.chars.each do |move|
     robot_pos = move_robot(grid, robot_pos, move)
   end
 
@@ -101,21 +109,21 @@ def can_move_box_vertical(grid, box_left_c, r, dr)
 
   return false if left_target == '#' || right_target == '#'
 
-  boxes_to_check = Set.new
+  boxes_to_check = {}
 
   if left_target == '['
-    boxes_to_check.add([nr, left_c])
+    boxes_to_check[[nr, left_c]] = true
   elsif left_target == ']'
-    boxes_to_check.add([nr, left_c - 1])
+    boxes_to_check[[nr, left_c - 1]] = true
   end
 
   if right_target == '['
-    boxes_to_check.add([nr, right_c])
+    boxes_to_check[[nr, right_c]] = true
   elsif right_target == ']'
-    boxes_to_check.add([nr, right_c - 1])
+    boxes_to_check[[nr, right_c - 1]] = true
   end
 
-  boxes_to_check.each do |box_r, box_c|
+  boxes_to_check.each_key do |box_r, box_c|
     return false unless can_move_box_vertical(grid, box_c, box_r, dr)
   end
 
@@ -131,28 +139,27 @@ def collect_boxes_vertical(grid, box_left_c, r, dr, collected)
   left_target = grid[nr][left_c]
   right_target = grid[nr][right_c]
 
-  boxes_to_check = Set.new
+  boxes_to_check = {}
 
   if left_target == '['
-    boxes_to_check.add([nr, left_c])
+    boxes_to_check[[nr, left_c]] = true
   elsif left_target == ']'
-    boxes_to_check.add([nr, left_c - 1])
+    boxes_to_check[[nr, left_c - 1]] = true
   end
 
   if right_target == '['
-    boxes_to_check.add([nr, right_c])
+    boxes_to_check[[nr, right_c]] = true
   elsif right_target == ']'
-    boxes_to_check.add([nr, right_c - 1])
+    boxes_to_check[[nr, right_c - 1]] = true
   end
 
-  boxes_to_check.each do |box_r, box_c|
+  boxes_to_check.each_key do |box_r, box_c|
     collect_boxes_vertical(grid, box_c, box_r, dr, collected) unless collected.include?([box_r, box_c])
   end
 end
 
 def move_robot_wide(grid, robot_pos, direction)
-  deltas = { '<' => [0, -1], '>' => [0, 1], '^' => [-1, 0], 'v' => [1, 0] }
-  dr, dc = deltas[direction]
+  dr, dc = DELTAS[direction]
   r, c = robot_pos
   nr, nc = r + dr, c + dc
 
@@ -228,7 +235,7 @@ def part2(input_text)
   grid = scale_grid(grid)
   robot_pos = find_robot(grid)
 
-  moves.each_char do |move|
+  moves.chars.each do |move|
     robot_pos = move_robot_wide(grid, robot_pos, move)
   end
 
@@ -236,8 +243,6 @@ def part2(input_text)
 end
 
 if __FILE__ == $0
-  require 'set'
-
   input_text = File.read(File.join(__dir__, '..', 'input.txt'))
 
   puts "Part 1: #{part1(input_text)}"
