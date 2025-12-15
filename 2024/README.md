@@ -20,6 +20,7 @@ Solutions implemented in 16 languages.
 | 12  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 13  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 14  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 15  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -327,3 +328,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | ColdFusion  | 17,956       | 1,069.3     |
 | Ruby        | 36,334       | 28.6        |
 | Bash        | 153,877      | 2.5         |
+
+### Day 15: Warehouse Woes
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| ARM64 asm   | 6.2          | 1.4         |
+| C++         | 7.1          | 1.9         |
+| Rust        | 8.2          | 1.9         |
+| Go          | 9.6          | 4.0         |
+| C           | 9.9          | 2.0         |
+| Zig         | 10.2         | 1.9         |
+| Python      | 41.5         | 16.3        |
+| Java        | 60.6         | 51.3        |
+| Node.js     | 61.6         | 50.2        |
+| Perl        | 63.2         | 8.4         |
+| PHP         | 72.0         | 25.0        |
+| Common Lisp | 73.4         | 58.9        |
+| Ruby        | 107.9        | 29.1        |
+| Clojure     | 523.4        | 190.9       |
+| ColdFusion  | 4,555.9      | 1,092.1     |
+| Bash        | >300,000     | TBD         |
