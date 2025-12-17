@@ -1,4 +1,5 @@
 // Day 17: Chronospatial Computer - 3-bit VM emulator
+#include <algorithm>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -8,7 +9,9 @@
 #include <vector>
 
 struct State {
-    int64_t a, b, c;
+    int64_t a = 0;
+    int64_t b = 0;
+    int64_t c = 0;
     std::vector<int> program;
 };
 
@@ -105,12 +108,12 @@ std::vector<int> run_program(int64_t a, int64_t b, int64_t c,
 
 std::string part1(const State& state) {
     auto output = run_program(state.a, state.b, state.c, state.program);
-    std::string result;
+    std::ostringstream oss;
     for (size_t i = 0; i < output.size(); ++i) {
-        if (i > 0) result += ',';
-        result += std::to_string(output[i]);
+        if (i > 0) oss << ',';
+        oss << output[i];
     }
-    return result;
+    return oss.str();
 }
 
 std::optional<int64_t> find_a(int target_idx, int64_t current_a, int64_t b,
@@ -132,19 +135,12 @@ std::optional<int64_t> find_a(int target_idx, int64_t current_a, int64_t b,
 
         // Check if output matches the suffix of the program
         size_t suffix_len = program.size() - target_idx;
-        if (output.size() == suffix_len) {
-            bool matches = true;
-            for (size_t i = 0; i < suffix_len; ++i) {
-                if (output[i] != program[target_idx + i]) {
-                    matches = false;
-                    break;
-                }
-            }
-            if (matches) {
-                auto result = find_a(target_idx - 1, candidate_a, b, c, program);
-                if (result.has_value()) {
-                    return result;
-                }
+        if (output.size() == suffix_len &&
+            std::equal(output.begin(), output.end(),
+                       program.begin() + target_idx)) {
+            auto result = find_a(target_idx - 1, candidate_a, b, c, program);
+            if (result.has_value()) {
+                return result;
             }
         }
     }

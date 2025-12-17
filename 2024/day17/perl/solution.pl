@@ -37,7 +37,7 @@ sub run_program {
         die "Invalid combo operand: $operand";
     };
 
-    while ($ip < scalar(@$program)) {
+    while ($ip < @$program) {
         my $opcode = $program->[$ip];
         my $operand = $program->[$ip + 1];
 
@@ -86,10 +86,12 @@ sub part1 {
 sub part2 {
     my ($a, $b, $c, $program) = @_;
     my @prog = @$program;
-    my $prog_len = scalar(@prog);
+    my $prog_len = @prog;
 
     # Recursive search - work backwards from the last digit
     # Build A 3 bits at a time
+    # Note: We declare $search first, then assign the sub, to enable recursion
+    # within the closure (the sub references $search which must exist)
     my $search;
     $search = sub {
         my ($target_idx, $current_a) = @_;
@@ -109,26 +111,16 @@ sub part2 {
             # Check if output matches the suffix of the program
             my @expected = @prog[$target_idx .. $#prog];
 
-            if (arrays_equal($output, \@expected)) {
+            if ("@$output" eq "@expected") {
                 my $result = $search->($target_idx - 1, $candidate_a);
                 return $result if defined $result;
             }
         }
 
-        return undef;
+        return;
     };
 
     return $search->($prog_len - 1, 0);
-}
-
-# Helper to compare two arrays
-sub arrays_equal {
-    my ($a, $b) = @_;
-    return 0 if scalar(@$a) != scalar(@$b);
-    for my $i (0 .. $#$a) {
-        return 0 if $a->[$i] != $b->[$i];
-    }
-    return 1;
 }
 
 # Main

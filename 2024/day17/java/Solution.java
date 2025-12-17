@@ -2,9 +2,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Day 17: Chronospatial Computer - 3-bit VM emulator
@@ -29,18 +31,15 @@ public class Solution {
         String[] lines = input.strip().split("\n");
 
         Pattern regPattern = Pattern.compile("Register [ABC]: (\\d+)");
-
-        Matcher matcherA = regPattern.matcher(lines[0]);
-        matcherA.find();
-        initialA = Long.parseLong(matcherA.group(1));
-
-        Matcher matcherB = regPattern.matcher(lines[1]);
-        matcherB.find();
-        initialB = Long.parseLong(matcherB.group(1));
-
-        Matcher matcherC = regPattern.matcher(lines[2]);
-        matcherC.find();
-        initialC = Long.parseLong(matcherC.group(1));
+        long[] registers = new long[3];
+        for (int i = 0; i < 3; i++) {
+            Matcher matcher = regPattern.matcher(lines[i]);
+            matcher.find();
+            registers[i] = Long.parseLong(matcher.group(1));
+        }
+        initialA = registers[0];
+        initialB = registers[1];
+        initialC = registers[2];
 
         Pattern progPattern = Pattern.compile("Program: ([\\d,]+)");
         Matcher progMatcher = progPattern.matcher(lines[4]);
@@ -110,12 +109,9 @@ public class Solution {
      */
     private String part1() {
         List<Integer> output = runProgram(initialA, initialB, initialC);
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < output.size(); i++) {
-            if (i > 0) sb.append(",");
-            sb.append(output.get(i));
-        }
-        return sb.toString();
+        return output.stream()
+            .map(String::valueOf)
+            .collect(Collectors.joining(","));
     }
 
     /**
@@ -150,20 +146,12 @@ public class Solution {
             List<Integer> output = runProgram(candidateA, initialB, initialC);
 
             // Check if output matches the suffix of the program
-            int suffixLen = program.length - targetIdx;
-            if (output.size() == suffixLen) {
-                boolean matches = true;
-                for (int i = 0; i < suffixLen; i++) {
-                    if (output.get(i) != program[targetIdx + i]) {
-                        matches = false;
-                        break;
-                    }
-                }
-                if (matches) {
-                    Long result = search(targetIdx - 1, candidateA);
-                    if (result != null) {
-                        return result;
-                    }
+            List<Integer> expected = Arrays.stream(program, targetIdx, program.length)
+                .boxed().toList();
+            if (output.equals(expected)) {
+                Long result = search(targetIdx - 1, candidateA);
+                if (result != null) {
+                    return result;
                 }
             }
         }

@@ -1,34 +1,29 @@
 #!/usr/bin/env sbcl --script
 ;;;; Day 17: Chronospatial Computer - 3-bit VM emulator
 
+(defun extract-number (line)
+  "Extract the number after the colon in a line."
+  (parse-integer line :start (1+ (position #\: line))))
+
 (defun parse-input (filename)
   "Parse registers and program from input file."
   (with-open-file (stream filename :direction :input)
     (let* ((line-a (read-line stream))
            (line-b (read-line stream))
            (line-c (read-line stream))
-           (_blank (read-line stream nil))
-           (line-prog (read-line stream)))
-      (declare (ignore _blank))
-      (let ((a (parse-integer (subseq line-a (+ 12 (search "Register A: " line-a)))))
-            (b (parse-integer (subseq line-b (+ 12 (search "Register B: " line-b)))))
-            (c (parse-integer (subseq line-c (+ 12 (search "Register C: " line-c)))))
+           (line-prog (progn (read-line stream nil) (read-line stream))))
+      (let ((a (extract-number line-a))
+            (b (extract-number line-b))
+            (c (extract-number line-c))
             (prog-str (subseq line-prog (+ 9 (search "Program: " line-prog)))))
         (values a b c (parse-program prog-str))))))
 
 (defun parse-program (str)
   "Parse comma-separated program string into a list of integers."
-  (let ((result nil)
-        (current nil))
-    (loop for ch across str
-          do (if (char= ch #\,)
-                 (when current
-                   (push (parse-integer (coerce (nreverse current) 'string)) result)
-                   (setf current nil))
-                 (push ch current)))
-    (when current
-      (push (parse-integer (coerce (nreverse current) 'string)) result))
-    (nreverse result)))
+  (loop for start = 0 then (1+ end)
+        for end = (position #\, str :start start)
+        collect (parse-integer str :start start :end end)
+        while end))
 
 (defun combo-value (operand a b c)
   "Get the value of a combo operand."
@@ -44,6 +39,8 @@
   (let ((prog-vec (coerce program 'vector))
         (ip 0)
         (output nil))
+    (declare (type fixnum ip)
+             (type simple-vector prog-vec))
     (loop while (< ip (length prog-vec))
           do (let* ((opcode (aref prog-vec ip))
                     (operand (aref prog-vec (1+ ip)))
@@ -75,11 +72,6 @@
   "Format output list as comma-separated string."
   (format nil "~{~A~^,~}" output))
 
-(defun lists-equal (list1 list2)
-  "Check if two lists are equal."
-  (and (= (length list1) (length list2))
-       (every #'= list1 list2)))
-
 (defun part1 (a b c program)
   "Run the program and return comma-separated output."
   (format-output (execute-vm a b c program)))
@@ -97,7 +89,7 @@
                          unless (and (= candidate-a 0) (= target-idx (1- prog-len)))
                          do (let* ((output (execute-vm candidate-a b c program))
                                    (expected (nthcdr target-idx program)))
-                              (when (lists-equal output expected)
+                              (when (equal output expected)
                                 (let ((result (search-a (1- target-idx) candidate-a)))
                                   (when result
                                     (return-from search-a result)))))

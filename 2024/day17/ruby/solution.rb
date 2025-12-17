@@ -14,7 +14,7 @@ def run_program(a, b, c, program)
   ip = 0
   output = []
 
-  combo = lambda do |operand|
+  combo = ->(operand) {
     case operand
     when 0..3 then operand
     when 4 then a
@@ -22,9 +22,9 @@ def run_program(a, b, c, program)
     when 6 then c
     else raise "Invalid combo operand: #{operand}"
     end
-  end
+  }
 
-  while ip < program.length
+  while ip < program.size
     opcode = program[ip]
     operand = program[ip + 1]
 
@@ -69,29 +69,29 @@ def part2(text)
   # We need to find A such that output == program.
   # Work backwards from the last digit - build A 3 bits at a time.
 
-  search = lambda do |target_idx, current_a|
+  search = ->(target_idx, current_a) {
     return current_a if target_idx < 0
 
     # Try all 8 possible 3-bit values for this position
     (0..7).each do |bits|
       candidate_a = (current_a << 3) | bits
       # A can't be 0 at start (would halt immediately without output)
-      next if candidate_a == 0 && target_idx == program.length - 1
+      next if candidate_a == 0 && target_idx == program.size - 1
 
       output = run_program(candidate_a, b, c, program)
 
       # Check if output matches the suffix of the program
-      expected = program[target_idx..-1]
+      expected = program[target_idx..]
       if output == expected
         result = search.call(target_idx - 1, candidate_a)
-        return result unless result.nil?
+        return result if result
       end
     end
 
     nil
-  end
+  }
 
-  search.call(program.length - 1, 0)
+  search.call(program.size - 1, 0)
 end
 
 if __FILE__ == $0

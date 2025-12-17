@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -17,6 +18,7 @@ func parseInput(text string) (int64, int64, int64, []int) {
 	reC := regexp.MustCompile(`Register C: (\d+)`)
 	reProg := regexp.MustCompile(`Program: ([\d,]+)`)
 
+	// Errors ignored - input is trusted AoC format
 	a, _ := strconv.ParseInt(reA.FindStringSubmatch(lines[0])[1], 10, 64)
 	b, _ := strconv.ParseInt(reB.FindStringSubmatch(lines[1])[1], 10, 64)
 	c, _ := strconv.ParseInt(reC.FindStringSubmatch(lines[2])[1], 10, 64)
@@ -25,7 +27,7 @@ func parseInput(text string) (int64, int64, int64, []int) {
 	progParts := strings.Split(progStr, ",")
 	program := make([]int, len(progParts))
 	for i, p := range progParts {
-		val, _ := strconv.Atoi(p)
+		val, _ := strconv.Atoi(p) // Error ignored - trusted input
 		program[i] = val
 	}
 
@@ -118,7 +120,7 @@ func part2(text string) int64 {
 
 			// Check if output matches the suffix of the program
 			expected := program[targetIdx:]
-			if sliceEqual(output, expected) {
+			if slices.Equal(output, expected) {
 				result, found := search(targetIdx-1, candidateA)
 				if found {
 					return result, true
@@ -131,18 +133,6 @@ func part2(text string) int64 {
 
 	result, _ := search(len(program)-1, 0)
 	return result
-}
-
-func sliceEqual(a []int, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func main() {

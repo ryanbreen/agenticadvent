@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdbool.h>
 
@@ -99,22 +100,31 @@ static void parse_input(const char *filename, VM *vm) {
     char line[256];
 
     /* Read Register A */
-    if (fgets(line, sizeof(line), f)) {
-        sscanf(line, "Register A: %lld", &vm->a);
+    if (!fgets(line, sizeof(line), f) ||
+        sscanf(line, "Register A: %" SCNd64, &vm->a) != 1) {
+        fprintf(stderr, "Failed to parse Register A\n");
+        exit(1);
     }
 
     /* Read Register B */
-    if (fgets(line, sizeof(line), f)) {
-        sscanf(line, "Register B: %lld", &vm->b);
+    if (!fgets(line, sizeof(line), f) ||
+        sscanf(line, "Register B: %" SCNd64, &vm->b) != 1) {
+        fprintf(stderr, "Failed to parse Register B\n");
+        exit(1);
     }
 
     /* Read Register C */
-    if (fgets(line, sizeof(line), f)) {
-        sscanf(line, "Register C: %lld", &vm->c);
+    if (!fgets(line, sizeof(line), f) ||
+        sscanf(line, "Register C: %" SCNd64, &vm->c) != 1) {
+        fprintf(stderr, "Failed to parse Register C\n");
+        exit(1);
     }
 
     /* Skip blank line */
-    fgets(line, sizeof(line), f);
+    if (!fgets(line, sizeof(line), f)) {
+        fprintf(stderr, "Unexpected end of input\n");
+        exit(1);
+    }
 
     /* Read Program */
     if (fgets(line, sizeof(line), f)) {
@@ -219,7 +229,7 @@ int main(void) {
     printf("Part 1: %s\n", result1);
 
     int64_t result2 = part2(&vm);
-    printf("Part 2: %lld\n", result2);
+    printf("Part 2: %" PRId64 "\n", result2);
 
     return 0;
 }

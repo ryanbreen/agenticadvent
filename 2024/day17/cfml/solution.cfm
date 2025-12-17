@@ -6,7 +6,7 @@
 // Read input
 inputPath = getDirectoryFromPath(getCurrentTemplatePath()) & "../input.txt";
 inputText = fileRead(inputPath);
-// Use includeEmptyFields to preserve blank lines
+// Third parameter (includeEmptyFields=true) preserves blank lines (line 4 is blank between registers and program)
 lines = listToArray(inputText, chr(10), true);
 
 // Parse registers
@@ -18,21 +18,7 @@ regC = val(reReplace(lines[3], "Register C: (\d+)", "\1"));
 programLine = lines[5];
 programStr = reReplace(programLine, "Program: ([\d,]+)", "\1");
 programArr = listToArray(programStr, ",");
-program = [];
-for (p in programArr) {
-    arrayAppend(program, val(p));
-}
-
-/**
- * Get combo operand value
- */
-function getCombo(operand, a, b, c) {
-    if (operand <= 3) return operand;
-    if (operand == 4) return a;
-    if (operand == 5) return b;
-    if (operand == 6) return c;
-    throw("Invalid combo operand: " & operand);
-}
+program = arrayMap(programArr, function(p) { return val(p); });
 
 /**
  * Run the 3-bit VM program using BigInteger for large number support
@@ -44,7 +30,6 @@ function runProgram(aVal, bVal, cVal, prog) {
     var c = BigInteger.valueOf(javaCast("long", cVal));
     var SEVEN = BigInteger.valueOf(7);
     var ZERO = BigInteger.valueOf(0);
-    var ONE = BigInteger.valueOf(1);
 
     var ip = 1; // CFML arrays are 1-indexed
     var output = [];
@@ -68,8 +53,7 @@ function runProgram(aVal, bVal, cVal, prog) {
 
         switch (opcode) {
             case 0: // adv - A = A >> combo
-                var shiftAmt = comboVal.intValue();
-                a = a.shiftRight(shiftAmt);
+                a = a.shiftRight(comboVal.intValue());
                 break;
             case 1: // bxl - B = B XOR literal
                 b = b.xor(BigInteger.valueOf(operand));
@@ -90,12 +74,10 @@ function runProgram(aVal, bVal, cVal, prog) {
                 arrayAppend(output, comboVal.and(SEVEN).intValue());
                 break;
             case 6: // bdv - B = A >> combo
-                var shiftAmt = comboVal.intValue();
-                b = a.shiftRight(shiftAmt);
+                b = a.shiftRight(comboVal.intValue());
                 break;
             case 7: // cdv - C = A >> combo
-                var shiftAmt = comboVal.intValue();
-                c = a.shiftRight(shiftAmt);
+                c = a.shiftRight(comboVal.intValue());
                 break;
         }
         ip += 2;
@@ -139,19 +121,11 @@ function part2(b, c, prog) {
 
             // Check if output matches the suffix of the program
             var expectedLen = progLen - targetIdx + 1;
-            if (arrayLen(output) == expectedLen) {
-                var matches = true;
-                for (var i = 1; i <= expectedLen; i++) {
-                    if (output[i] != prog[targetIdx + i - 1]) {
-                        matches = false;
-                        break;
-                    }
-                }
-                if (matches) {
-                    var result = search(targetIdx - 1, candidateA);
-                    if (!isNull(result)) {
-                        return result;
-                    }
+            var expectedSuffix = arraySlice(prog, targetIdx, expectedLen);
+            if (output.equals(expectedSuffix)) {
+                var result = search(targetIdx - 1, candidateA);
+                if (!isNull(result)) {
+                    return result;
                 }
             }
         }

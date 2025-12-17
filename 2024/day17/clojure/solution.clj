@@ -5,18 +5,20 @@
 (ns solution
   (:require [clojure.string :as str]))
 
-(defn parse-input [text]
+(defn parse-input
   "Parse registers and program from input."
-  (let [lines (str/split-lines (str/trim text))
-        a (Long/parseLong (second (re-find #"Register A: (\d+)" (nth lines 0))))
-        b (Long/parseLong (second (re-find #"Register B: (\d+)" (nth lines 1))))
-        c (Long/parseLong (second (re-find #"Register C: (\d+)" (nth lines 2))))
-        program-str (second (re-find #"Program: ([\d,]+)" (nth lines 4)))
-        program (vec (map #(Long/parseLong %) (str/split program-str #",")))]
+  [text]
+  (let [[line-a line-b line-c _ line-prog] (str/split-lines (str/trim text))
+        a (parse-long (second (re-find #": (\d+)" line-a)))
+        b (parse-long (second (re-find #": (\d+)" line-b)))
+        c (parse-long (second (re-find #": (\d+)" line-c)))
+        program-str (second (re-find #"Program: ([\d,]+)" line-prog))
+        program (vec (map parse-long (str/split program-str #",")))]
     {:a a :b b :c c :program program}))
 
-(defn combo-operand [operand a b c]
+(defn combo-operand
   "Get combo operand value."
+  [operand a b c]
   (case operand
     0 0
     1 1
@@ -27,8 +29,9 @@
     6 c
     (throw (ex-info "Invalid combo operand" {:operand operand}))))
 
-(defn run-program [a b c program]
+(defn run-program
   "Execute the 3-bit computer program and return output."
+  [a b c program]
   (let [program-len (count program)]
     (loop [ip 0
            a a
@@ -71,14 +74,16 @@
             7 (let [shift (combo-operand operand a b c)]
                 (recur (+ ip 2) a b (bit-shift-right a shift) output))))))))
 
-(defn part1 [text]
+(defn part1
   "Run the program and return comma-separated output."
+  [text]
   (let [{:keys [a b c program]} (parse-input text)
         output (run-program a b c program)]
     (str/join "," output)))
 
-(defn part2 [text]
+(defn part2
   "Find initial A value that makes program output itself."
+  [text]
   (let [{:keys [b c program]} (parse-input text)
         program-len (count program)]
 
@@ -87,25 +92,19 @@
               (if (< target-idx 0)
                 current-a
                 ;; Try all 8 possible 3-bit values for this position
-                (loop [bits 0]
-                  (if (>= bits 8)
-                    nil
-                    (let [candidate-a (bit-or (bit-shift-left current-a 3) bits)]
-                      ;; A can't be 0 at start (would halt immediately without output)
-                      (if (and (= candidate-a 0) (= target-idx (dec program-len)))
-                        (recur (inc bits))
-                        (let [output (run-program candidate-a b c program)
-                              expected (subvec program target-idx)]
-                          (if (= output expected)
-                            (if-let [result (search (dec target-idx) candidate-a)]
-                              result
-                              (recur (inc bits)))
-                            (recur (inc bits))))))))))]
+                (some (fn [bits]
+                        (let [candidate-a (bit-or (bit-shift-left current-a 3) bits)]
+                          ;; A can't be 0 at start (would halt immediately without output)
+                          (when-not (and (= candidate-a 0) (= target-idx (dec program-len)))
+                            (let [output (run-program candidate-a b c program)
+                                  expected (subvec program target-idx)]
+                              (when (= output expected)
+                                (search (dec target-idx) candidate-a))))))
+                      (range 8))))]
       (search (dec program-len) 0))))
 
 (defn -main []
-  (let [input-path (str (System/getProperty "user.dir") "/../input.txt")
-        text (slurp input-path)]
+  (let [text (slurp "../input.txt")]
     (println "Part 1:" (part1 text))
     (println "Part 2:" (part2 text))))
 

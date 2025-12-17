@@ -4,6 +4,9 @@
 // A 3-bit VM emulator
 // Part 1: Run VM and output comma-separated results
 // Part 2: Find smallest A that makes program output itself (recursive search)
+//
+// macOS ARM64 syscall numbers (x16):
+//   exit=1, read=3, write=4, open=5, close=6
 
 .global _start
 .align 4
@@ -70,8 +73,8 @@ _start:
     add     x0, x0, msg_newline@PAGEOFF
     bl      print_str
 
-    mov     x0, #0
-    mov     x16, #1
+    mov     x0, #0              // exit code
+    mov     x16, #1             // exit syscall
     svc     #0x80
 
 // Read and parse input
@@ -82,26 +85,26 @@ read_input:
     stp     x19, x20, [sp, #-16]!
     stp     x21, x22, [sp, #-16]!
 
-    // Open file
+    // Open file (open syscall = 5)
     mov     x16, #5
     adrp    x0, input_file@PAGE
     add     x0, x0, input_file@PAGEOFF
-    mov     x1, #0
-    mov     x2, #0
+    mov     x1, #0              // O_RDONLY
+    mov     x2, #0              // mode (unused for read)
     svc     #0x80
-    mov     x19, x0
+    mov     x19, x0             // save fd
 
-    // Read file
+    // Read file (read syscall = 3)
     mov     x16, #3
-    mov     x0, x19
+    mov     x0, x19             // fd
     adrp    x1, file_buffer@PAGE
     add     x1, x1, file_buffer@PAGEOFF
-    mov     x2, #4096
+    mov     x2, #4096           // buffer size
     svc     #0x80
 
-    // Close file
+    // Close file (close syscall = 6)
     mov     x16, #6
-    mov     x0, x19
+    mov     x0, x19             // fd
     svc     #0x80
 
     // Parse input
@@ -147,9 +150,9 @@ read_input:
     cmp     w0, #'\n'
     b.eq    .L_parse_prog_done
     cmp     w0, #'0'
-    b.lt    .L_parse_prog_skip
+    b.lo    .L_parse_prog_skip    // unsigned: below '0'
     cmp     w0, #'9'
-    b.gt    .L_parse_prog_skip
+    b.hi    .L_parse_prog_skip    // unsigned: above '9'
 
     // Parse digit (single digit 0-7)
     sub     w0, w0, #'0'
@@ -212,6 +215,19 @@ parse_number:
 // Run VM
 // x0 = A register, x1 = B register, x2 = C register
 // Output stored in output_buffer, length in output_len
+//
+// Register allocation:
+//   x19 = A register value
+//   x20 = B register value
+//   x21 = C register value
+//   x22 = IP (instruction pointer)
+//   x23 = program base address
+//   x24 = program length
+//   x25 = output_buffer base address
+//   x26 = output index
+//   x27 = opcode (w27)
+//   x28 = operand/literal (w28)
+//   x0  = combo value (scratch)
 run_vm:
     stp     x29, x30, [sp, #-16]!
     mov     x29, sp
@@ -377,21 +393,20 @@ print_output:
 
 // Print single digit (0-9)
 print_digit:
-    stp     x29, x30, [sp, #-16]!
+    stp     x29, x30, [sp, #-32]!
     mov     x29, sp
-    sub     sp, sp, #16
+    // Local buffer at [sp, #16]
 
     add     w0, w0, #'0'
-    strb    w0, [sp]
+    strb    w0, [sp, #16]
 
-    mov     x0, #1
-    mov     x1, sp
-    mov     x2, #1
-    mov     x16, #4
+    mov     x0, #1              // fd = stdout
+    add     x1, sp, #16         // buffer
+    mov     x2, #1              // length
+    mov     x16, #4             // write syscall
     svc     #0x80
 
-    add     sp, sp, #16
-    ldp     x29, x30, [sp], #16
+    ldp     x29, x30, [sp], #32
     ret
 
 // Part 2: Find A that makes program output itself
@@ -417,6 +432,16 @@ part2:
 // x0 = target_idx (which output position we're trying to match)
 // x1 = current_a
 // Returns: x0 = valid A or -1 if not found
+//
+// Register allocation:
+//   x19 = target_idx
+//   x20 = current_a
+//   x21 = program_len
+//   x22 = bits (0-7 loop counter)
+//   x23 = candidate_a
+//   x24 = output_len / output_buffer ptr
+//   x25 = expected_len / program ptr
+//   x26 = comparison index
 search_a:
     stp     x29, x30, [sp, #-16]!
     mov     x29, sp
@@ -477,21 +502,21 @@ search_a:
     b.ne    .L_search_next_bits
 
     // Compare output with program[target_idx:]
+    // x25 already holds expected_len from line 498
     adrp    x24, output_buffer@PAGE
     add     x24, x24, output_buffer@PAGEOFF
-    adrp    x25, program@PAGE
-    add     x25, x25, program@PAGEOFF
-    add     x25, x25, x19       // program + target_idx
+    adrp    x0, program@PAGE
+    add     x0, x0, program@PAGEOFF
+    add     x0, x0, x19         // x0 = program + target_idx
 
     mov     x26, #0             // comparison index
 .L_search_cmp:
-    sub     x0, x21, x19        // expected_len
-    cmp     x26, x0
+    cmp     x26, x25            // x25 = expected_len (hoisted)
     b.ge    .L_search_match
 
-    ldrb    w0, [x24, x26]      // output[i]
-    ldrb    w1, [x25, x26]      // program[target_idx + i]
-    cmp     w0, w1
+    ldrb    w1, [x24, x26]      // output[i]
+    ldrb    w2, [x0, x26]       // program[target_idx + i]
+    cmp     w1, w2
     b.ne    .L_search_next_bits
     add     x26, x26, #1
     b       .L_search_cmp
@@ -530,6 +555,7 @@ search_a:
 // x0 = pointer to string
 print_str:
     stp     x29, x30, [sp, #-16]!
+    mov     x29, sp
     stp     x19, x20, [sp, #-16]!
 
     mov     x19, x0
@@ -543,7 +569,7 @@ print_str:
     b       .L_strlen
 
 .L_write:
-    mov     x0, #1              // stdout
+    mov     x0, #1              // fd = stdout
     mov     x1, x19             // buffer
     mov     x2, x20             // length
     mov     x16, #4             // write syscall
@@ -556,12 +582,13 @@ print_str:
 // Print number (64-bit)
 // x0 = number to print
 print_num:
-    stp     x29, x30, [sp, #-16]!
-    stp     x19, x20, [sp, #-16]!
-    sub     sp, sp, #32
+    stp     x29, x30, [sp, #-48]!
+    mov     x29, sp
+    stp     x19, x20, [sp, #16]
+    // Local buffer at [sp, #32] (16 bytes)
 
     mov     x19, x0
-    add     x20, sp, #31
+    add     x20, sp, #47        // End of buffer (sp+32 to sp+47)
     strb    wzr, [x20]
 
     // Handle zero case
@@ -586,7 +613,6 @@ print_num:
     mov     x0, x20
     bl      print_str
 
-    add     sp, sp, #32
-    ldp     x19, x20, [sp], #16
-    ldp     x29, x30, [sp], #16
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #48
     ret

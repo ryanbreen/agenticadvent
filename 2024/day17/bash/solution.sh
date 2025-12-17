@@ -7,10 +7,10 @@ set -e
 INPUT_FILE="${1:-../input.txt}"
 
 # Read registers and program
-REG_A=$(grep "Register A:" "$INPUT_FILE" | sed 's/Register A: //')
-REG_B=$(grep "Register B:" "$INPUT_FILE" | sed 's/Register B: //')
-REG_C=$(grep "Register C:" "$INPUT_FILE" | sed 's/Register C: //')
-PROGRAM_STR=$(grep "Program:" "$INPUT_FILE" | sed 's/Program: //')
+REG_A=$(sed -n 's/Register A: //p' "$INPUT_FILE")
+REG_B=$(sed -n 's/Register B: //p' "$INPUT_FILE")
+REG_C=$(sed -n 's/Register C: //p' "$INPUT_FILE")
+PROGRAM_STR=$(sed -n 's/Program: //p' "$INPUT_FILE")
 
 # Parse program into array
 IFS=',' read -ra PROGRAM <<< "$PROGRAM_STR"
@@ -28,17 +28,14 @@ run_program() {
         local opcode=${PROGRAM[$ip]}
         local operand=${PROGRAM[$((ip + 1))]}
 
-        # Combo operand function inline
+        # Combo operand resolution
         local combo
-        if (( operand <= 3 )); then
-            combo=$operand
-        elif (( operand == 4 )); then
-            combo=$a
-        elif (( operand == 5 )); then
-            combo=$b
-        elif (( operand == 6 )); then
-            combo=$c
-        fi
+        case $operand in
+            [0-3]) combo=$operand ;;
+            4) combo=$a ;;
+            5) combo=$b ;;
+            6) combo=$c ;;
+        esac
 
         case $opcode in
             0)  # adv - A = A >> combo
@@ -60,7 +57,7 @@ run_program() {
                 b=$((b ^ c))
                 ;;
             5)  # out - output combo % 8
-                OUTPUT+=($((combo & 7)))
+                OUTPUT+=("$((combo & 7))")
                 ;;
             6)  # bdv - B = A >> combo
                 b=$((a >> combo))
@@ -77,15 +74,8 @@ run_program() {
 # Part 1: Run with initial registers and output comma-separated result
 part1() {
     run_program "$REG_A" "$REG_B" "$REG_C"
-    local result=""
-    for val in "${OUTPUT[@]}"; do
-        if [[ -n "$result" ]]; then
-            result="$result,$val"
-        else
-            result="$val"
-        fi
-    done
-    echo "$result"
+    local IFS=','
+    echo "${OUTPUT[*]}"
 }
 
 # Part 2: Find initial A that makes program output itself
@@ -109,7 +99,7 @@ search_a() {
 
     # Try all 8 possible 3-bit values
     local bits
-    for bits in 0 1 2 3 4 5 6 7; do
+    for bits in {0..7}; do
         local candidate_a=$(((current_a << 3) | bits))
 
         # Skip if A would be 0 at the start

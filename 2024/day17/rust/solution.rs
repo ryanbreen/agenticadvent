@@ -1,31 +1,22 @@
 //! Day 17: Chronospatial Computer - 3-bit VM emulator
 
+use std::error::Error;
 use std::fs;
+
+/// Extract the numeric value after ": " in a register line
+fn extract_register(line: &str) -> u64 {
+    line.split(": ").nth(1).unwrap().parse().unwrap()
+}
 
 /// Parse the input file and return (A, B, C, program)
 fn parse_input(text: &str) -> (u64, u64, u64, Vec<u64>) {
     let lines: Vec<&str> = text.trim().lines().collect();
 
-    let a = lines[0]
-        .split(": ")
-        .nth(1)
-        .unwrap()
-        .parse()
-        .unwrap();
-    let b = lines[1]
-        .split(": ")
-        .nth(1)
-        .unwrap()
-        .parse()
-        .unwrap();
-    let c = lines[2]
-        .split(": ")
-        .nth(1)
-        .unwrap()
-        .parse()
-        .unwrap();
+    let a = extract_register(lines[0]);
+    let b = extract_register(lines[1]);
+    let c = extract_register(lines[2]);
 
-    let program: Vec<u64> = lines[4]
+    let program = lines[4]
         .split(": ")
         .nth(1)
         .unwrap()
@@ -36,21 +27,21 @@ fn parse_input(text: &str) -> (u64, u64, u64, Vec<u64>) {
     (a, b, c, program)
 }
 
+/// Resolve a combo operand to its value
+fn combo(operand: u64, a: u64, b: u64, c: u64) -> u64 {
+    match operand {
+        0..=3 => operand,
+        4 => a,
+        5 => b,
+        6 => c,
+        _ => panic!("Invalid combo operand: {}", operand),
+    }
+}
+
 /// Execute the 3-bit computer program and return output
 fn run_program(mut a: u64, mut b: u64, mut c: u64, program: &[u64]) -> Vec<u64> {
-    let mut ip: usize = 0;
+    let mut ip = 0;
     let mut output = Vec::new();
-
-    // Get combo operand value
-    let combo = |operand: u64, a: u64, b: u64, c: u64| -> u64 {
-        match operand {
-            0..=3 => operand,
-            4 => a,
-            5 => b,
-            6 => c,
-            _ => panic!("Invalid combo operand: {}", operand),
-        }
-    };
 
     while ip < program.len() {
         let opcode = program[ip];
@@ -120,26 +111,34 @@ fn part2(text: &str) -> u64 {
     // We need to find A such that output == program.
     // Work backwards from the last digit - build A 3 bits at a time.
 
-    fn search(target_idx: i64, current_a: u64, b: u64, c: u64, program: &[u64]) -> Option<u64> {
-        if target_idx < 0 {
-            return Some(current_a);
-        }
+    fn search(
+        target_idx: Option<usize>,
+        current_a: u64,
+        b: u64,
+        c: u64,
+        program: &[u64],
+    ) -> Option<u64> {
+        let idx = match target_idx {
+            Some(i) => i,
+            None => return Some(current_a),
+        };
+
+        let is_first_digit = idx == program.len() - 1;
 
         // Try all 8 possible 3-bit values for this position
         for bits in 0..8u64 {
             let candidate_a = (current_a << 3) | bits;
 
             // A can't be 0 at start (would halt immediately without output)
-            if candidate_a == 0 && target_idx == (program.len() - 1) as i64 {
+            if candidate_a == 0 && is_first_digit {
                 continue;
             }
 
             let output = run_program(candidate_a, b, c, program);
 
             // Check if output matches the suffix of the program
-            let expected = &program[target_idx as usize..];
-            if output.as_slice() == expected {
-                if let Some(result) = search(target_idx - 1, candidate_a, b, c, program) {
+            if output.as_slice() == &program[idx..] {
+                if let Some(result) = search(idx.checked_sub(1), candidate_a, b, c, program) {
                     return Some(result);
                 }
             }
@@ -148,13 +147,14 @@ fn part2(text: &str) -> u64 {
         None
     }
 
-    search((program.len() - 1) as i64, 0, b, c, &program).unwrap()
+    search(Some(program.len() - 1), 0, b, c, &program).unwrap()
 }
 
-fn main() {
-    let text = fs::read_to_string("../input.txt")
-        .expect("Failed to read input file");
+fn main() -> Result<(), Box<dyn Error>> {
+    let text = fs::read_to_string("../input.txt")?;
 
     println!("Part 1: {}", part1(&text));
     println!("Part 2: {}", part2(&text));
+
+    Ok(())
 }

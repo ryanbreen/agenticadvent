@@ -1,12 +1,29 @@
 const std = @import("std");
 const ArrayList = std.ArrayList;
 
+/// Opcodes for the 3-bit computer instruction set
+const Opcode = enum(u3) {
+    adv = 0, // A = A >> combo
+    bxl = 1, // B = B XOR literal
+    bst = 2, // B = combo % 8
+    jnz = 3, // jump if A != 0
+    bxc = 4, // B = B XOR C
+    out = 5, // output combo % 8
+    bdv = 6, // B = A >> combo
+    cdv = 7, // C = A >> combo
+};
+
 const Program = struct {
-    a: u64,
-    b: u64,
-    c: u64,
+    reg_a: u64,
+    reg_b: u64,
+    reg_c: u64,
     instructions: []const u8,
 };
+
+/// Safely perform a right shift, returning 0 if shift amount exceeds bit width
+fn safeShift(value: u64, shift: u64) u64 {
+    return if (shift >= 64) 0 else value >> @intCast(shift);
+}
 
 fn parseInput(allocator: std.mem.Allocator, content: []const u8) !Program {
     var lines = std.mem.splitScalar(u8, content, '\n');
@@ -14,17 +31,17 @@ fn parseInput(allocator: std.mem.Allocator, content: []const u8) !Program {
     // Parse Register A
     const line_a = lines.next() orelse return error.InvalidInput;
     const a_start = std.mem.indexOf(u8, line_a, ": ") orelse return error.InvalidInput;
-    const a = try std.fmt.parseInt(u64, line_a[a_start + 2 ..], 10);
+    const reg_a = try std.fmt.parseInt(u64, line_a[a_start + 2 ..], 10);
 
     // Parse Register B
     const line_b = lines.next() orelse return error.InvalidInput;
     const b_start = std.mem.indexOf(u8, line_b, ": ") orelse return error.InvalidInput;
-    const b = try std.fmt.parseInt(u64, line_b[b_start + 2 ..], 10);
+    const reg_b = try std.fmt.parseInt(u64, line_b[b_start + 2 ..], 10);
 
     // Parse Register C
     const line_c = lines.next() orelse return error.InvalidInput;
     const c_start = std.mem.indexOf(u8, line_c, ": ") orelse return error.InvalidInput;
-    const c = try std.fmt.parseInt(u64, line_c[c_start + 2 ..], 10);
+    const reg_c = try std.fmt.parseInt(u64, line_c[c_start + 2 ..], 10);
 
     // Skip empty line
     _ = lines.next();
@@ -45,68 +62,68 @@ fn parseInput(allocator: std.mem.Allocator, content: []const u8) !Program {
     }
 
     return Program{
-        .a = a,
-        .b = b,
-        .c = c,
+        .reg_a = reg_a,
+        .reg_b = reg_b,
+        .reg_c = reg_c,
         .instructions = try instructions.toOwnedSlice(allocator),
     };
 }
 
-fn combo(operand: u8, a: u64, b: u64, c: u64) u64 {
+/// Evaluate a combo operand (0-3 = literal, 4-6 = registers A/B/C)
+fn combo(operand: u8, reg_a: u64, reg_b: u64, reg_c: u64) u64 {
     return switch (operand) {
-        0...3 => @as(u64, operand),
-        4 => a,
-        5 => b,
-        6 => c,
+        0...3 => operand,
+        4 => reg_a,
+        5 => reg_b,
+        6 => reg_c,
         else => unreachable,
     };
 }
 
 fn runProgram(allocator: std.mem.Allocator, init_a: u64, init_b: u64, init_c: u64, instructions: []const u8) ![]u8 {
-    var a = init_a;
-    var b = init_b;
-    var c = init_c;
+    var reg_a = init_a;
+    var reg_b = init_b;
+    var reg_c = init_c;
     var ip: usize = 0;
 
     var output = try ArrayList(u8).initCapacity(allocator, 32);
 
     while (ip < instructions.len) {
-        const opcode = instructions[ip];
+        const opcode: Opcode = @enumFromInt(instructions[ip]);
         const operand = instructions[ip + 1];
 
         switch (opcode) {
-            0 => { // adv - A = A >> combo
-                const shift = combo(operand, a, b, c);
-                a = if (shift >= 64) 0 else a >> @intCast(shift);
+            .adv => {
+                const shift = combo(operand, reg_a, reg_b, reg_c);
+                reg_a = safeShift(reg_a, shift);
             },
-            1 => { // bxl - B = B XOR literal
-                b = b ^ @as(u64, operand);
+            .bxl => {
+                reg_b = reg_b ^ operand;
             },
-            2 => { // bst - B = combo % 8
-                b = combo(operand, a, b, c) & 7;
+            .bst => {
+                reg_b = combo(operand, reg_a, reg_b, reg_c) & 7;
             },
-            3 => { // jnz - jump if A != 0
-                if (a != 0) {
-                    ip = @as(usize, operand);
+            .jnz => {
+                if (reg_a != 0) {
+                    ip = operand;
                     continue;
                 }
             },
-            4 => { // bxc - B = B XOR C
-                b = b ^ c;
+            .bxc => {
+                reg_b = reg_b ^ reg_c;
             },
-            5 => { // out - output combo % 8
-                const val: u8 = @intCast(combo(operand, a, b, c) & 7);
+            .out => {
+                const val: u8 = @intCast(combo(operand, reg_a, reg_b, reg_c) & 7);
                 try output.append(allocator, val);
             },
-            6 => { // bdv - B = A >> combo
-                const shift = combo(operand, a, b, c);
-                b = if (shift >= 64) 0 else a >> @intCast(shift);
+            .bdv => {
+                const shift = combo(operand, reg_a, reg_b, reg_c);
+                reg_b = safeShift(reg_a, shift);
             },
-            7 => { // cdv - C = A >> combo
-                const shift = combo(operand, a, b, c);
-                c = if (shift >= 64) 0 else a >> @intCast(shift);
+            .cdv => {
+                const shift = combo(operand, reg_a, reg_b, reg_c);
+                reg_c = safeShift(reg_a, shift);
             },
-            else => unreachable,
         }
         ip += 2;
     }
@@ -115,7 +132,7 @@ fn runProgram(allocator: std.mem.Allocator, init_a: u64, init_b: u64, init_c: u6
 }
 
 fn part1(allocator: std.mem.Allocator, program: Program) ![]u8 {
-    const output = try runProgram(allocator, program.a, program.b, program.c, program.instructions);
+    const output = try runProgram(allocator, program.reg_a, program.reg_b, program.reg_c, program.instructions);
     defer allocator.free(output);
 
     // Convert to comma-separated string
@@ -137,7 +154,7 @@ fn search(allocator: std.mem.Allocator, program: Program, target_idx: usize, cur
             continue;
         }
 
-        const output = try runProgram(allocator, candidate_a, program.b, program.c, program.instructions);
+        const output = try runProgram(allocator, candidate_a, program.reg_b, program.reg_c, program.instructions);
         defer allocator.free(output);
 
         // Check if output matches the suffix of the program
