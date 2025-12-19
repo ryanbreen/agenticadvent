@@ -8,6 +8,11 @@ import (
 	"strings"
 )
 
+const (
+	gridSize     = 71
+	initialBytes = 1024
+)
+
 type Point struct {
 	x, y int
 }
@@ -26,25 +31,41 @@ func parseInput(filename string) ([]Point, error) {
 
 	var positions []Point
 	scanner := bufio.NewScanner(file)
+	lineNum := 0
 	for scanner.Scan() {
+		lineNum++
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
 			continue
 		}
 		parts := strings.Split(line, ",")
-		x, _ := strconv.Atoi(parts[0])
-		y, _ := strconv.Atoi(parts[1])
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("line %d: expected format 'x,y', got %q", lineNum, line)
+		}
+		x, err := strconv.Atoi(parts[0])
+		if err != nil {
+			return nil, fmt.Errorf("line %d: parsing x coordinate: %w", lineNum, err)
+		}
+		y, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return nil, fmt.Errorf("line %d: parsing y coordinate: %w", lineNum, err)
+		}
 		positions = append(positions, Point{x, y})
 	}
-	return positions, scanner.Err()
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("reading input: %w", err)
+	}
+	return positions, nil
 }
 
-func bfs(corrupted map[Point]bool, size int) int {
+// bfs finds the shortest path from (0,0) to (size-1,size-1) avoiding corrupted cells.
+// Returns (steps, true) if a path exists, or (0, false) if no path is found.
+func bfs(corrupted map[Point]bool, size int) (int, bool) {
 	start := Point{0, 0}
 	goal := Point{size - 1, size - 1}
 
 	if corrupted[start] || corrupted[goal] {
-		return -1
+		return 0, false
 	}
 
 	queue := []QueueItem{{start, 0}}
@@ -58,7 +79,7 @@ func bfs(corrupted map[Point]bool, size int) int {
 		queue = queue[1:]
 
 		if current.point == goal {
-			return current.steps
+			return current.steps, true
 		}
 
 		for _, d := range directions {
@@ -71,7 +92,7 @@ func bfs(corrupted map[Point]bool, size int) int {
 		}
 	}
 
-	return -1
+	return 0, false
 }
 
 func part1(positions []Point, numBytes, size int) int {
@@ -79,7 +100,8 @@ func part1(positions []Point, numBytes, size int) int {
 	for i := 0; i < numBytes && i < len(positions); i++ {
 		corrupted[positions[i]] = true
 	}
-	return bfs(corrupted, size)
+	steps, _ := bfs(corrupted, size)
+	return steps
 }
 
 func part2(positions []Point, size int) string {
@@ -91,7 +113,8 @@ func part2(positions []Point, size int) string {
 		for i := 0; i <= mid; i++ {
 			corrupted[positions[i]] = true
 		}
-		if bfs(corrupted, size) == -1 {
+		_, found := bfs(corrupted, size)
+		if !found {
 			right = mid
 		} else {
 			left = mid + 1
@@ -109,6 +132,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Part 1:", part1(positions, 1024, 71))
-	fmt.Println("Part 2:", part2(positions, 71))
+	fmt.Println("Part 1:", part1(positions, initialBytes, gridSize))
+	fmt.Println("Part 2:", part2(positions, gridSize))
 }

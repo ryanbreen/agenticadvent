@@ -29,18 +29,18 @@ const directions = [_]Point{
     .{ .x = -1, .y = 0 },
 };
 
-fn bfs(corrupted: []const bool, allocator: std.mem.Allocator) !i32 {
+fn bfs(corrupted: []const bool, allocator: std.mem.Allocator) !?i32 {
     const start = Point{ .x = 0, .y = 0 };
     const goal = Point{ .x = SIZE - 1, .y = SIZE - 1 };
 
     if (corrupted[start.toIndex()] or corrupted[goal.toIndex()]) {
-        return -1;
+        return null;
     }
 
     var visited: [SIZE * SIZE]bool = [_]bool{false} ** (SIZE * SIZE);
     visited[start.toIndex()] = true;
 
-    var queue = try ArrayList(QueueItem).initCapacity(allocator, SIZE * SIZE);
+    var queue: ArrayList(QueueItem) = .empty;
     defer queue.deinit(allocator);
 
     try queue.append(allocator, .{ .point = start, .steps = 0 });
@@ -69,10 +69,10 @@ fn bfs(corrupted: []const bool, allocator: std.mem.Allocator) !i32 {
         }
     }
 
-    return -1;
+    return null;
 }
 
-fn part1(positions: []const Point, allocator: std.mem.Allocator) !i32 {
+fn part1(positions: []const Point, allocator: std.mem.Allocator) !?i32 {
     var corrupted: [SIZE * SIZE]bool = [_]bool{false} ** (SIZE * SIZE);
 
     const limit = @min(NUM_BYTES, positions.len);
@@ -100,7 +100,7 @@ fn part2(positions: []const Point, allocator: std.mem.Allocator) !Point {
         }
 
         const result = try bfs(&corrupted, allocator);
-        if (result == -1) {
+        if (result == null) {
             right = mid;
         } else {
             left = mid + 1;
@@ -123,7 +123,7 @@ pub fn main() !void {
     defer allocator.free(content);
 
     // Parse positions
-    var positions = try ArrayList(Point).initCapacity(allocator, 4096);
+    var positions: ArrayList(Point) = .empty;
     defer positions.deinit(allocator);
 
     var lines = std.mem.splitScalar(u8, content, '\n');
@@ -143,7 +143,7 @@ pub fn main() !void {
 
     // Part 1
     const p1_result = try part1(positions.items, allocator);
-    std.debug.print("Part 1: {d}\n", .{p1_result});
+    std.debug.print("Part 1: {d}\n", .{p1_result.?});
 
     // Part 2
     const p2_result = try part2(positions.items, allocator);

@@ -18,32 +18,47 @@
   "Create a unique hash key for a coordinate pair."
   (+ (* y +grid-size+) x))
 
+;; Two-list queue for amortized O(1) enqueue/dequeue
+(defstruct (queue (:constructor make-queue ()))
+  (front nil :type list)
+  (back nil :type list))
+
+(defun queue-empty-p (q)
+  "Check if queue is empty."
+  (and (null (queue-front q)) (null (queue-back q))))
+
+(defun enqueue (q item)
+  "Add item to back of queue. O(1)."
+  (push item (queue-back q)))
+
+(defun dequeue (q)
+  "Remove and return item from front of queue. Amortized O(1)."
+  (when (null (queue-front q))
+    (setf (queue-front q) (nreverse (queue-back q))
+          (queue-back q) nil))
+  (pop (queue-front q)))
+
 (defun bfs (corrupted-set size)
   "Find shortest path from (0,0) to (size-1, size-1) using BFS.
-   Returns -1 if no path exists."
+   Returns nil if no path exists."
   (let ((start-key (make-coord-key 0 0))
         (goal-x (1- size))
         (goal-y (1- size))
         (directions '((0 . 1) (0 . -1) (1 . 0) (-1 . 0)))
         (visited (make-hash-table :test 'eql))
-        (queue nil))
+        (q (make-queue)))
 
     ;; Check if start or goal is corrupted
     (when (or (gethash start-key corrupted-set)
               (gethash (make-coord-key goal-x goal-y) corrupted-set))
-      (return-from bfs -1))
+      (return-from bfs nil))
 
     ;; Initialize BFS
     (setf (gethash start-key visited) t)
-    (push (list 0 0 0) queue)  ; (x y steps)
-    (setf queue (nreverse queue))
+    (enqueue q (list 0 0 0))  ; (x y steps)
 
-    (loop while queue do
-      (let* ((current (pop queue))
-             (x (first current))
-             (y (second current))
-             (steps (third current)))
-
+    (loop until (queue-empty-p q) do
+      (destructuring-bind (x y steps) (dequeue q)
         ;; Check if we reached the goal
         (when (and (= x goal-x) (= y goal-y))
           (return-from bfs steps))
@@ -58,9 +73,9 @@
                 (unless (or (gethash key visited)
                             (gethash key corrupted-set))
                   (setf (gethash key visited) t)
-                  (setf queue (nconc queue (list (list nx ny (1+ steps))))))))))))
+                  (enqueue q (list nx ny (1+ steps))))))))))
 
-    -1))
+    nil))
 
 (defun build-corrupted-set (positions count)
   "Build a hash set of corrupted positions from the first COUNT positions."
@@ -83,7 +98,7 @@
       (let* ((mid (floor (+ left right) 2))
              (corrupted (build-corrupted-set positions (1+ mid)))
              (result (bfs corrupted size)))
-        (if (= result -1)
+        (if (null result)
             (setf right mid)
             (setf left (1+ mid)))))
     (let ((blocking-pos (nth left positions)))
