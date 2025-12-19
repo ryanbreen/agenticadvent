@@ -24,6 +24,7 @@ Solutions implemented in 16 languages.
 | 16  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 17  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 18  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 19  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -415,3 +416,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Clojure     | 559.1        | 164.6       |
 | Bash        | 688.7        | 7.1         |
 | ColdFusion  | 2,961.5      | 1,167.6     |
+
+### Day 19: Linen Layout
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| ARM64 asm   | 24.2         | 1.9         |
+| Zig         | 27.6         | 1.9         |
+| C++         | 41.2         | 1.9         |
+| C           | 50.4         | 1.9         |
+| Go          | 54.3         | 5.9         |
+| Rust        | 59.1         | 1.9         |
+| Node.js     | 202.9        | 50.0        |
+| Java        | 223.6        | 301.1       |
+| Common Lisp | 278.1        | 48.3        |
+| PHP         | 630.6        | 24.5        |
+| Python      | 817.7        | 18.4        |
+| Clojure     | 849.8        | 833.1       |
+| Perl        | 880.2        | 20.8        |
+| Ruby        | 1,224.2      | 28.8        |
+| ColdFusion  | 6,043.4      | 1,064.8     |
+| Bash        | 250,593.4    | 7.8         |
