@@ -18,43 +18,59 @@
 
 (defun grid-ref (grid row col)
   "Get character at grid position."
-  (let ((line (aref grid row)))
-    (if (and (>= col 0) (< col (length line)))
-        (char line col)
-        #\#)))
+  (char (aref grid row) col))
 
 (defun grid-rows (grid)
   (length grid))
 
 (defun grid-cols (grid)
-  (if (> (length grid) 0)
-      (length (aref grid 0))
-      0))
+  (length (aref grid 0)))
+
+;;; Two-list queue implementation for O(1) enqueue/dequeue
+(defstruct (queue (:constructor make-queue ()))
+  "Functional queue using two lists for O(1) amortized operations."
+  (head nil :type list)
+  (tail nil :type list))
+
+(defun queue-empty-p (q)
+  "Check if queue is empty."
+  (and (null (queue-head q)) (null (queue-tail q))))
+
+(defun queue-enqueue (q item)
+  "Add item to the back of the queue."
+  (push item (queue-tail q)))
+
+(defun queue-dequeue (q)
+  "Remove and return item from front of queue."
+  (when (null (queue-head q))
+    (setf (queue-head q) (nreverse (queue-tail q)))
+    (setf (queue-tail q) nil))
+  (pop (queue-head q)))
 
 (defun trace-path (grid start end)
   "BFS to trace path, returning hash table of position -> distance from start."
   (let ((rows (grid-rows grid))
         (cols (grid-cols grid))
         (dist (make-hash-table :test 'equal))
-        (queue nil))
+        (q (make-queue)))
     (setf (gethash start dist) 0)
-    (push start queue)
-    (loop while queue
-          for pos = (pop queue)
+    (queue-enqueue q start)
+    (loop until (queue-empty-p q)
+          for pos = (queue-dequeue q)
           for r = (car pos)
           for c = (cdr pos)
           for d = (gethash pos dist)
-          when (equal pos end) return nil
-          do (loop for (dr . dc) in '((-1 . 0) (1 . 0) (0 . -1) (0 . 1))
-                   for nr = (+ r dr)
-                   for nc = (+ c dc)
-                   for next-pos = (cons nr nc)
-                   when (and (>= nr 0) (< nr rows)
-                             (>= nc 0) (< nc cols)
-                             (char/= (grid-ref grid nr nc) #\#)
-                             (not (gethash next-pos dist)))
-                   do (setf (gethash next-pos dist) (1+ d))
-                      (setf queue (nconc queue (list next-pos)))))
+          unless (equal pos end)
+            do (dolist (delta '((-1 . 0) (1 . 0) (0 . -1) (0 . 1)))
+                 (let* ((nr (+ r (car delta)))
+                        (nc (+ c (cdr delta)))
+                        (next-pos (cons nr nc)))
+                   (when (and (>= nr 0) (< nr rows)
+                              (>= nc 0) (< nc cols)
+                              (char/= (grid-ref grid nr nc) #\#)
+                              (not (gethash next-pos dist)))
+                     (setf (gethash next-pos dist) (1+ d))
+                     (queue-enqueue q next-pos)))))
     dist))
 
 (defun count-cheats (dist max-cheat-time min-savings)
@@ -82,18 +98,19 @@
                   (incf count))))))))
     count))
 
-(defun part1 (grid start end)
-  (let ((dist (trace-path grid start end)))
-    (count-cheats dist 2 100)))
+(defun part1 (dist)
+  "Count cheats with max 2 steps that save at least 100 picoseconds."
+  (count-cheats dist 2 100))
 
-(defun part2 (grid start end)
-  (let ((dist (trace-path grid start end)))
-    (count-cheats dist 20 100)))
+(defun part2 (dist)
+  "Count cheats with max 20 steps that save at least 100 picoseconds."
+  (count-cheats dist 20 100))
 
 (defun main ()
   (multiple-value-bind (grid start end)
       (read-input "../input.txt")
-    (format t "Part 1: ~A~%" (part1 grid start end))
-    (format t "Part 2: ~A~%" (part2 grid start end))))
+    (let ((dist (trace-path grid start end)))
+      (format t "Part 1: ~A~%" (part1 dist))
+      (format t "Part 2: ~A~%" (part2 dist)))))
 
 (main)

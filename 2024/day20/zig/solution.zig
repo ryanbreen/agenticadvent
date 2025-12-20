@@ -6,12 +6,16 @@ const Point = struct {
     c: i32,
 };
 
+const TraceResult = struct {
+    track_positions: ArrayList(Point),
+    dist_array: []i32,
+};
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    // Read input file
     const file = try std.fs.cwd().openFile("../input.txt", .{});
     defer file.close();
 
@@ -20,22 +24,20 @@ pub fn main() !void {
 
     const input = std.mem.trim(u8, content, "\n\r ");
 
-    // Parse grid
-    var lines_list: ArrayList([]const u8) = .{};
-    defer lines_list.deinit(allocator);
+    var lines: ArrayList([]const u8) = .{};
+    defer lines.deinit(allocator);
 
     var line_iter = std.mem.splitScalar(u8, input, '\n');
     while (line_iter.next()) |line| {
         if (line.len > 0) {
-            try lines_list.append(allocator, line);
+            try lines.append(allocator, line);
         }
     }
 
-    const grid = lines_list.items;
+    const grid = lines.items;
     const rows: i32 = @intCast(grid.len);
     const cols: i32 = @intCast(grid[0].len);
 
-    // Find start and end
     var start: Point = undefined;
     var end: Point = undefined;
     for (grid, 0..) |row, r| {
@@ -48,17 +50,31 @@ pub fn main() !void {
         }
     }
 
-    // BFS to trace path - store distances
-    // Using a dense 2D array for fast lookup
+    var result = try tracePath(allocator, grid, rows, cols, start, end);
+    defer result.track_positions.deinit(allocator);
+    defer allocator.free(result.dist_array);
+
+    const part1 = countCheats(result.track_positions.items, result.dist_array, cols, 2, 100);
+    const part2 = countCheats(result.track_positions.items, result.dist_array, cols, 20, 100);
+
+    const stdout = std.fs.File.stdout();
+    var buf: [64]u8 = undefined;
+    const output = std.fmt.bufPrint(&buf, "Part 1: {d}\nPart 2: {d}\n", .{ part1, part2 }) catch unreachable;
+    _ = try stdout.write(output);
+}
+
+fn tracePath(
+    allocator: std.mem.Allocator,
+    grid: []const []const u8,
+    rows: i32,
+    cols: i32,
+    start: Point,
+    end: Point,
+) !TraceResult {
     const dist_array = try allocator.alloc(i32, @intCast(rows * cols));
-    defer allocator.free(dist_array);
     @memset(dist_array, -1);
 
-    // Also keep track of all track positions for iteration
     var track_positions: ArrayList(Point) = .{};
-    defer track_positions.deinit(allocator);
-
-    // BFS queue
     var queue: ArrayList(Point) = .{};
     defer queue.deinit(allocator);
 
@@ -92,24 +108,26 @@ pub fn main() !void {
         }
     }
 
-    // Count cheats
-    const part1_result = countCheats(track_positions.items, dist_array, cols, 2, 100);
-    const part2_result = countCheats(track_positions.items, dist_array, cols, 20, 100);
-
-    const stdout = std.fs.File.stdout();
-    var buf: [128]u8 = undefined;
-    const output = std.fmt.bufPrint(&buf, "Part 1: {d}\nPart 2: {d}\n", .{ part1_result, part2_result }) catch unreachable;
-    _ = stdout.write(output) catch {};
+    return .{
+        .track_positions = track_positions,
+        .dist_array = dist_array,
+    };
 }
 
-fn countCheats(track_positions: []const Point, dist_array: []const i32, cols: i32, max_cheat_time: i32, min_savings: i32) u64 {
+fn countCheats(
+    track_positions: []const Point,
+    dist_array: []const i32,
+    cols: i32,
+    max_cheat_time: i32,
+    min_savings: i32,
+) u64 {
     var count: u64 = 0;
 
     for (track_positions) |p1| {
         const d1 = dist_array[@intCast(p1.r * cols + p1.c)];
 
         for (track_positions) |p2| {
-            const cheat_cost = absInt(p2.r - p1.r) + absInt(p2.c - p1.c);
+            const cheat_cost: i32 = @intCast(@abs(p2.r - p1.r) + @abs(p2.c - p1.c));
             if (cheat_cost <= max_cheat_time) {
                 const d2 = dist_array[@intCast(p2.r * cols + p2.c)];
                 const savings = d2 - d1 - cheat_cost;
@@ -121,8 +139,4 @@ fn countCheats(track_positions: []const Point, dist_array: []const i32, cols: i3
     }
 
     return count;
-}
-
-fn absInt(x: i32) i32 {
-    return if (x < 0) -x else x;
 }

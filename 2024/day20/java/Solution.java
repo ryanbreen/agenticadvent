@@ -1,117 +1,96 @@
 import java.io.*;
+import java.nio.file.*;
 import java.util.*;
 
 public class Solution {
+    record Point(int r, int c) {}
+
     private char[][] grid;
     private int rows, cols;
-    private int[] start, end;
+    private Point start, end;
 
     public static void main(String[] args) throws IOException {
-        Solution solution = new Solution();
+        var solution = new Solution();
         solution.run();
     }
 
     private void run() throws IOException {
         parseInput();
+        var distances = tracePath();
 
-        Map<Long, Integer> dist = tracePath();
-
-        System.out.println("Part 1: " + countCheats(dist, 2, 100));
-        System.out.println("Part 2: " + countCheats(dist, 20, 100));
+        System.out.println("Part 1: " + countCheats(distances, 2, 100));
+        System.out.println("Part 2: " + countCheats(distances, 20, 100));
     }
 
     private void parseInput() throws IOException {
-        List<String> lines = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader("../input.txt"))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (!line.isEmpty()) {
-                    lines.add(line);
-                }
-            }
-        }
+        var lines = Files.readAllLines(Path.of("../input.txt"));
 
         rows = lines.size();
-        cols = lines.get(0).length();
+        cols = lines.getFirst().length();
         grid = new char[rows][cols];
 
         for (int r = 0; r < rows; r++) {
-            String line = lines.get(r);
+            var line = lines.get(r);
             for (int c = 0; c < cols; c++) {
                 char ch = line.charAt(c);
                 grid[r][c] = ch;
                 if (ch == 'S') {
-                    start = new int[]{r, c};
+                    start = new Point(r, c);
                 } else if (ch == 'E') {
-                    end = new int[]{r, c};
+                    end = new Point(r, c);
                 }
             }
         }
     }
 
-    private long key(int r, int c) {
-        return ((long) r << 16) | (c & 0xFFFF);
-    }
+    private Map<Point, Integer> tracePath() {
+        var distances = new HashMap<Point, Integer>();
+        var queue = new ArrayDeque<Point>();
 
-    private Map<Long, Integer> tracePath() {
-        Map<Long, Integer> dist = new HashMap<>();
-        Queue<int[]> queue = new LinkedList<>();
-
-        dist.put(key(start[0], start[1]), 0);
+        distances.put(start, 0);
         queue.add(start);
 
         int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
         while (!queue.isEmpty()) {
-            int[] pos = queue.poll();
-            int r = pos[0], c = pos[1];
+            var pos = queue.poll();
 
-            if (r == end[0] && c == end[1]) {
+            if (pos.equals(end)) {
                 break;
             }
 
-            int currentDist = dist.get(key(r, c));
+            int currentDist = distances.get(pos);
 
-            for (int[] dir : dirs) {
-                int nr = r + dir[0];
-                int nc = c + dir[1];
+            for (var dir : dirs) {
+                int nr = pos.r() + dir[0];
+                int nc = pos.c() + dir[1];
 
                 if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc] != '#') {
-                    long nkey = key(nr, nc);
-                    if (!dist.containsKey(nkey)) {
-                        dist.put(nkey, currentDist + 1);
-                        queue.add(new int[]{nr, nc});
+                    var next = new Point(nr, nc);
+                    if (!distances.containsKey(next)) {
+                        distances.put(next, currentDist + 1);
+                        queue.add(next);
                     }
                 }
             }
         }
 
-        return dist;
+        return distances;
     }
 
-    private long countCheats(Map<Long, Integer> dist, int maxCheatTime, int minSavings) {
+    private long countCheats(Map<Point, Integer> distances, int maxCheatTime, int minSavings) {
+        var positions = new ArrayList<>(distances.entrySet());
         long count = 0;
 
-        List<long[]> positions = new ArrayList<>();
-        for (Map.Entry<Long, Integer> entry : dist.entrySet()) {
-            long k = entry.getKey();
-            int r = (int) (k >> 16);
-            int c = (int) (k & 0xFFFF);
-            int d = entry.getValue();
-            positions.add(new long[]{r, c, d});
-        }
+        for (var entry1 : positions) {
+            var p1 = entry1.getKey();
+            int d1 = entry1.getValue();
 
-        for (long[] pos1 : positions) {
-            int r1 = (int) pos1[0];
-            int c1 = (int) pos1[1];
-            int d1 = (int) pos1[2];
+            for (var entry2 : positions) {
+                var p2 = entry2.getKey();
+                int d2 = entry2.getValue();
 
-            for (long[] pos2 : positions) {
-                int r2 = (int) pos2[0];
-                int c2 = (int) pos2[1];
-                int d2 = (int) pos2[2];
-
-                int cheatCost = Math.abs(r2 - r1) + Math.abs(c2 - c1);
+                int cheatCost = Math.abs(p2.r() - p1.r()) + Math.abs(p2.c() - p1.c());
 
                 if (cheatCost <= maxCheatTime) {
                     int savings = d2 - d1 - cheatCost;

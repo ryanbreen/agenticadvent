@@ -258,14 +258,23 @@ trace_path:
     stp     x27, x28, [sp, #-16]!
 
     // Initialize all distances to -1
+    // Use stp to store pairs of -1 values (8 bytes at a time) for efficiency
     LOAD_ADDR x0, distances
     mov     x1, #GRID_CELLS
     mov     w2, #-1
+    // Combine two -1 words into one 64-bit value for paired stores
+    orr     x3, x2, x2, lsl #32         // x3 = 0xFFFFFFFF_FFFFFFFF
 init_dist:
-    cbz     x1, init_done
-    str     w2, [x0], #4
-    sub     x1, x1, #1
+    cmp     x1, #2
+    b.lt    init_remainder
+    stp     w2, w2, [x0], #8            // Store two -1 values at once
+    sub     x1, x1, #2
     b       init_dist
+init_remainder:
+    cbz     x1, init_done
+    str     w2, [x0], #4                // Handle odd remaining cell
+    sub     x1, x1, #1
+    b       init_remainder
 
 init_done:
     // Get start position
@@ -279,23 +288,26 @@ init_done:
     mul     x21, x19, x1
     add     x21, x21, x20                   // start_index
 
+    // Load base addresses once (hoist out of loops for efficiency)
+    LOAD_ADDR x14, distances
+    LOAD_ADDR x15, grid
+    LOAD_ADDR x16, directions
+    LOAD_ADDR x17, queue_head
+    LOAD_ADDR x22, queue
+
     // Set distance[start] = 0
-    LOAD_ADDR x0, distances
-    str     wzr, [x0, x21, lsl #2]
+    str     wzr, [x14, x21, lsl #2]
 
     // Initialize queue
-    LOAD_ADDR x22, queue
     stp     w19, w20, [x22]                 // queue[0] = (row, col)
-    LOAD_ADDR x0, queue_head
-    str     xzr, [x0]
+    str     xzr, [x17]                      // queue_head = 0
     LOAD_ADDR x0, queue_tail
     mov     x1, #1
     str     x1, [x0]
 
 bfs_loop:
-    // Check if queue empty
-    LOAD_ADDR x0, queue_head
-    ldr     x23, [x0]                       // head
+    // Check if queue empty (head stored in x23, tail loaded fresh)
+    ldr     x23, [x17]                      // head
     LOAD_ADDR x0, queue_tail
     ldr     x24, [x0]                       // tail
     cmp     x23, x24
@@ -306,31 +318,28 @@ bfs_loop:
     add     x1, x22, x0                     // queue + offset
     ldp     w25, w26, [x1]                  // row, col
     add     x23, x23, #1
-    LOAD_ADDR x0, queue_head
-    str     x23, [x0]
+    str     x23, [x17]                      // update queue_head
 
-    // Calculate current index
+    // Calculate current index (reuse GRID_SIZE in register)
     mov     w0, #GRID_SIZE
     mul     w27, w25, w0
     add     w27, w27, w26                   // cur_index
 
-    // Get current distance
-    LOAD_ADDR x0, distances
-    ldr     w28, [x0, x27, lsl #2]          // cur_dist
+    // Get current distance (use hoisted x14 for distances)
+    ldr     w28, [x14, x27, lsl #2]         // cur_dist
 
-    // Try all 4 directions
-    LOAD_ADDR x1, directions
+    // Try all 4 directions (use hoisted x16 for directions)
     mov     w2, #0                          // dir index
 
 dir_loop:
     cmp     w2, #4
     b.ge    bfs_loop
 
-    // Get dr, dc
+    // Get dr, dc from directions array
     lsl     w3, w2, #3                      // dir * 8
-    ldrsw   x4, [x1, x3]                    // dr
+    ldrsw   x4, [x16, x3]                   // dr
     add     w3, w3, #4
-    ldrsw   x5, [x1, x3]                    // dc
+    ldrsw   x5, [x16, x3]                   // dc
 
     // Calculate new row, col
     add     w6, w25, w4                     // nr = row + dr
@@ -351,21 +360,19 @@ dir_loop:
     mul     w8, w6, w3
     add     w8, w8, w7                      // new_index
 
-    // Check if wall
-    LOAD_ADDR x0, grid
-    ldrb    w9, [x0, x8]
+    // Check if wall (use hoisted x15 for grid)
+    ldrb    w9, [x15, x8]
     cmp     w9, #'#'
     b.eq    next_dir
 
-    // Check if already visited (distance != -1)
-    LOAD_ADDR x0, distances
-    ldr     w9, [x0, x8, lsl #2]
+    // Check if already visited (distance != -1, use hoisted x14)
+    ldr     w9, [x14, x8, lsl #2]
     cmn     w9, #1                          // compare with -1
     b.ne    next_dir
 
     // Set distance
     add     w9, w28, #1                     // new_dist = cur_dist + 1
-    str     w9, [x0, x8, lsl #2]
+    str     w9, [x14, x8, lsl #2]
 
     // Enqueue
     LOAD_ADDR x0, queue_tail
@@ -440,6 +447,11 @@ build_done:
 // count_cheats: Count cheats saving >= 100 picoseconds
 // Input: x0 = max_cheat_time
 // Output: x0 = count
+//
+// For each pair of track positions (i, j), we calculate the Manhattan distance
+// and check if cheating through walls saves enough time. A cheat is valid if:
+//   cheat_cost <= max_cheat_time AND savings >= MIN_SAVINGS
+// where savings = dist[j] - dist[i] - cheat_cost
 // ============================================================================
 count_cheats:
     stp     x29, x30, [sp, #-16]!
@@ -452,11 +464,14 @@ count_cheats:
     mov     x19, x0                         // max_cheat_time
     mov     x20, #0                         // count
 
+    // Load all base addresses once (hoist out of O(n^2) loop)
     LOAD_ADDR x0, num_track_positions
     ldr     x21, [x0]                       // num_positions
-
     LOAD_ADDR x22, track_positions
     LOAD_ADDR x23, distances
+
+    // Keep GRID_SIZE in a register since we use it frequently
+    mov     w13, #GRID_SIZE
 
     mov     x24, #0                         // i
 
@@ -464,14 +479,13 @@ outer_loop:
     cmp     x24, x21
     b.ge    count_done
 
-    // Get position i: (r1, c1)
+    // Get position i: (r1, c1) - calculate offset once for outer loop
     lsl     x0, x24, #3
-    add     x1, x22, x0                     // track_positions + offset
+    add     x1, x22, x0                     // track_positions + i * 8
     ldp     w25, w26, [x1]                  // r1, c1
 
-    // Calculate index1 and get dist1
-    mov     w0, #GRID_SIZE
-    mul     w1, w25, w0
+    // Calculate index1 and get dist1 (invariant for inner loop)
+    mul     w1, w25, w13                    // r1 * GRID_SIZE
     add     w1, w1, w26                     // index1
     ldr     w27, [x23, x1, lsl #2]          // dist1
 
@@ -483,21 +497,18 @@ inner_loop:
 
     // Get position j: (r2, c2)
     lsl     x0, x28, #3
-    add     x1, x22, x0                     // track_positions + offset
+    add     x1, x22, x0                     // track_positions + j * 8
     ldp     w2, w3, [x1]                    // r2, c2
 
     // Calculate Manhattan distance = |r2-r1| + |c2-c1|
+    // Use conditional negate for branchless absolute value
     sub     w4, w2, w25                     // r2 - r1
     cmp     w4, #0
-    b.ge    abs_dr_done
-    neg     w4, w4
-abs_dr_done:
+    cneg    w4, w4, lt                      // abs(dr) - branchless
 
     sub     w5, w3, w26                     // c2 - c1
     cmp     w5, #0
-    b.ge    abs_dc_done
-    neg     w5, w5
-abs_dc_done:
+    cneg    w5, w5, lt                      // abs(dc) - branchless
 
     add     w6, w4, w5                      // cheat_cost = |dr| + |dc|
 
@@ -506,8 +517,7 @@ abs_dc_done:
     b.gt    next_inner
 
     // Calculate index2 and get dist2
-    mov     w0, #GRID_SIZE
-    mul     w7, w2, w0
+    mul     w7, w2, w13                     // r2 * GRID_SIZE
     add     w7, w7, w3                      // index2
     ldr     w8, [x23, x7, lsl #2]           // dist2
 
