@@ -42,10 +42,17 @@ Find the first second where robots form a recognizable Christmas tree pattern.
 - **Position set**: Hash set for O(1) position lookup in Part 2
 - **Grid array**: Alternative to set for Part 2 (mark occupied cells)
 
-### Complexity
-- **Part 1**: O(N) where N = number of robots (~500)
-- **Part 2**: O(S * N * W) where S = seconds until tree (~7569), W = WIDTH
-  - Each second: build set O(N), scan grid O(W * H)
+## Complexity
+
+- **Part 1 Time**: O(N) where N = number of robots (~500)
+  - Direct position computation for each robot after 100 seconds
+  - No simulation required
+- **Part 2 Time**: O(S × N × W × H) where S = seconds until tree (~7,569), N = robots, W = WIDTH (101), H = HEIGHT (103)
+  - For each second: compute positions O(N), build position set O(N), scan grid for patterns O(W × H)
+  - Maximum iterations: lcm(101, 103) = 10,403 (grid period)
+- **Space**: O(N + W × H)
+  - Robot storage: O(N)
+  - Position set or grid: O(N) for set, O(W × H) for array
 
 ## Programming Techniques
 

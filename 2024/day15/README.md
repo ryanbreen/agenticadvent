@@ -122,7 +122,9 @@ The crucial realization for Part 2 is that vertical box pushing requires **tree 
 | Ruby        | 89.6         | 30.2        |
 | Clojure     | 523.4        | 190.9       |
 | ColdFusion  | 2,945.5      | 1,072.9     |
-| Bash        | >300,000     | TBD         |
+| Bash        | >60,000*     | 7.3         |
+
+\* Timed out after 60 seconds
 
 ## Answers
 

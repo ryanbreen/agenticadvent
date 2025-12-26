@@ -34,6 +34,51 @@ Solutions implemented in 16 languages.
 
 *Bash Part 1 works but Part 2 times out on some days (solution is correct but takes >10 minutes)
 
+## Easter Eggs
+
+The 2024 Advent of Code has a meta-narrative: The Historians are searching for the Chief Historian by traveling through time and space to locations from **every previous AoC year**!
+
+### Cross-Year References
+
+| Day | 2024 Puzzle | Location/Reference | Callback |
+|-----|-------------|-------------------|----------|
+| 2 | Red-Nosed Reports | Red-Nosed Reindeer nuclear fusion plant | [2015/Day 19](https://adventofcode.com/2015/day/19) |
+| 3 | Mull It Over | North Pole Toboggan Rental Shop | [2020/Day 2](https://adventofcode.com/2020/day/2) |
+| 4 | Ceres Search | Ceres monitoring station | [2019/Day 10](https://adventofcode.com/2019/day/10) |
+| 5 | Print Queue | A very familiar printer | [2017/Day 1](https://adventofcode.com/2017/day/1) |
+| 6 | Guard Gallivant | Year 1518, guard recording | [2018/Day 4-5](https://adventofcode.com/2018/day/4) |
+| 7 | Bridge Repair | Familiar rope bridge | [2022/Day 9](https://adventofcode.com/2022/day/9) |
+| 8 | Resonant Collinearity | Roof of Easter Bunny HQ | [2016/Day 25](https://adventofcode.com/2016/day/25) |
+| 9 | Disk Fragmenter | Friendly amphipods | [2021/Day 23](https://adventofcode.com/2021/day/23) |
+| 10 | Hoof It | Lava Production Facility | [2023/Day 15](https://adventofcode.com/2023/day/15) |
+| 11 | Plutonian Pebbles | Pluto | [2019/Day 20](https://adventofcode.com/2019/day/20) |
+| 12 | Garden Groups | The gardener + massive farm | [2023/Day 5, 21](https://adventofcode.com/2023/day/5) |
+| 13 | Claw Contraption | Lobby with hexagonal tiles | [2020/Day 24](https://adventofcode.com/2020/day/24) |
+| 14 | Restroom Redoubt | Bathroom security | [2016/Day 2](https://adventofcode.com/2016/day/2) |
+| 15 | Warehouse Woes | Lanternfish | [2021/Day 6](https://adventofcode.com/2021/day/6) |
+| 16 | Reindeer Maze | Reindeer Olympics | [2015/Day 14](https://adventofcode.com/2015/day/14) |
+| 17 | Chronospatial Computer | "Falling" | [2018/Day 6](https://adventofcode.com/2018/day/6) |
+| 18 | RAM Run | Inside a computer | [2017/Day 2](https://adventofcode.com/2017/day/2) |
+| 19 | Linen Layout | Hot springs | [2023/Day 12](https://adventofcode.com/2023/day/12) |
+| 20 | Race Condition | Right outside the CPU | [2017/Day 24](https://adventofcode.com/2017/day/24) |
+| 21 | Keypad Conundrum | Reindeer-class starship | [2019/Day 25](https://adventofcode.com/2019/day/25) |
+| 22 | Monkey Market | Two monkeys! | [2022/Day 11, 21](https://adventofcode.com/2022/day/11) |
+| 23 | LAN Party | Datalink port | [2016/Day 9](https://adventofcode.com/2016/day/9) |
+| 24 | Crossed Wires | Large grove | [2022/Day 23](https://adventofcode.com/2022/day/23) |
+
+### Hidden YouTube Easter Eggs
+
+- **Day 18**: The word "nanosecond" links to [Admiral Grace Hopper Explains the Nanosecond](https://www.youtube.com/watch?v=9eyFDBPk4Yw) - her famous 1983 demo using wire to visualize how far electricity travels in a billionth of a second.
+
+- **Day 19**: The word "suspiciously" (in "Very suspiciously, absolutely nothing goes wrong") links to the [Among Us Role Reveal sound effect](https://www.youtube.com/watch?v=ekL881PJMjI). 📮
+
+### CS/Technical References
+
+- **Day 20**: mutex, segmentation fault, race condition (the title itself!)
+- **Day 18**: pushdown automaton
+- **Day 22**: pseudorandom number generator, bitwise XOR, modulo
+- **Day 25**: five-pin tumbler locks
+
 ## Benchmarks
 
 All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.

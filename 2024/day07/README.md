@@ -88,9 +88,9 @@ With ~850 equations and max ~12 numbers: up to 850 × 3^11 ≈ 150 million evalu
 - **Clojure (17s):** Functional style adds overhead, massive memory use
 
 ### Special Cases
+- **ARM64 Assembly (511ms):** Hand-optimized assembly, competitive with compiled languages
 - **ColdFusion (43s):** Enterprise scripting, very slow for computation
-- **Bash:** Too slow for brute force (would take hours)
-- **ARM64 Assembly:** Implementation exists but has bugs
+- **Bash (>5 minutes):** Too slow for brute force due to interpreter overhead
 
 ## Benchmarks
 
@@ -99,6 +99,7 @@ With ~850 equations and max ~12 numbers: up to 850 × 3^11 ≈ 150 million evalu
 | C | 352 | 1.9 |
 | Zig | 363 | 1.9 |
 | Rust | 476 | 1.9 |
+| ARM64 | 511 | 1.9 |
 | C++ | 579 | 1.9 |
 | Java | 1,486 | 1,274 |
 | Node.js | 3,094 | 65 |
@@ -110,6 +111,9 @@ With ~850 equations and max ~12 numbers: up to 850 × 3^11 ≈ 150 million evalu
 | Clojure | 17,571 | 1,320 |
 | Perl | 24,006 | 196 |
 | ColdFusion | 42,807 | 1,304 |
+| Bash | >300,000* | ~10 |
+
+\* Bash Part 1 takes ~5 minutes, Part 2 takes ~2+ hours. Too slow for practical benchmarking.
 
 ## Optimization Opportunities
 
