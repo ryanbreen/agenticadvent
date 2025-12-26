@@ -28,8 +28,11 @@ Solutions implemented in 16 languages.
 | 20  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 21  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 22  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash*, Clojure, Common Lisp, ColdFusion |
+| 23  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 24  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 25  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
-*Bash Part 1 works but Part 2 times out (solution is correct but takes >10 minutes)
+*Bash Part 1 works but Part 2 times out on some days (solution is correct but takes >10 minutes)
 
 ## Benchmarks
 
@@ -507,3 +510,26 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Bash        | >120,000*    | -           |
 
 *Bash solution is correct but Part 2 requires extensive computation that exceeds practical time limits.
+
+### Day 25: Code Chronicle
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 5.2          | 1.9         |
+| ARM64 asm   | 5.4          | 1.9         |
+| Rust        | 5.7          | 1.9         |
+| C++         | 5.8          | 1.9         |
+| Zig         | 7.1          | 1.9         |
+| Go          | 7.2          | 4.1         |
+| Perl        | 22.4         | 4.5         |
+| Common Lisp | 26.1         | 44.0        |
+| Python      | 32.8         | 15.8        |
+| Java        | 45.3         | 48.7        |
+| Node.js     | 45.3         | 43.3        |
+| PHP         | 51.3         | 25.6        |
+| Ruby        | 64.6         | 28.0        |
+| Clojure     | 416.8        | 178.6       |
+| Bash        | 31,447.7     | 7.0         |
+| ColdFusion  | N/A*         | N/A         |
+
+*ColdFusion requires a web server context and cannot be benchmarked via CLI.
