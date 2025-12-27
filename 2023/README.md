@@ -10,6 +10,9 @@ Solutions implemented in 16 languages.
 | 2   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 3   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 4   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 5   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash*, Clojure, Common Lisp, ColdFusion |
+
+*Bash solution exists but is too slow for benchmarking due to range processing.
 
 ## Benchmarks
 
@@ -98,3 +101,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Java        | 56.5         | 55.4        |
 | Clojure     | 408.6        | 137.6       |
 | ColdFusion  | 2,497.6      | 1,162.2     |
+
+### Day 5: If You Give A Seed A Fertilizer
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 5.7          | 1.9         |
+| ARM64 asm   | 6.3          | 1.9         |
+| C++         | 6.3          | 1.9         |
+| Rust        | 7.3          | 1.9         |
+| Perl        | 19.9         | 6.1         |
+| Python      | 31.1         | 15.8        |
+| Lisp        | 31.2         | 43.4        |
+| Zig         | 33.5         | 2.1         |
+| Go          | 51.5         | 27.9        |
+| Java        | 53.0         | 48.2        |
+| PHP         | 54.9         | 25.9        |
+| Node.js     | 58.5         | 45.8        |
+| Ruby        | 61.0         | 28.1        |
+| Clojure     | 443.5        | 139.4       |
+| ColdFusion  | 2,651.6      | 1,131.8     |
+| Bash        | N/A          | N/A         |
