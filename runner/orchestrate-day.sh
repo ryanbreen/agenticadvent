@@ -117,8 +117,8 @@ echo
 
 cd "$PROJECT_ROOT"
 
-# Run Claude for implementation
-if claude --print "$IMPLEMENT_PROMPT"; then
+# Run Claude for implementation (--dangerously-skip-permissions for autonomous tool use)
+if claude --print --dangerously-skip-permissions "$IMPLEMENT_PROMPT"; then
     echo
     log_success "Implementation pass completed"
 else
@@ -170,8 +170,8 @@ VALIDATE_PROMPT="/validate-implementation $YEAR $DAY"
 log_step "Starting Claude session for validation..."
 echo
 
-# Run Claude for validation
-if claude --print "$VALIDATE_PROMPT"; then
+# Run Claude for validation (--dangerously-skip-permissions for autonomous tool use)
+if claude --print --dangerously-skip-permissions "$VALIDATE_PROMPT"; then
     echo
     log_success "Validation pass completed"
 else
