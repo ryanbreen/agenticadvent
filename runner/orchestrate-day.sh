@@ -19,7 +19,9 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
 BOLD='\033[1m'
+DIM='\033[2m'
 NC='\033[0m' # No Color
 
 # Get script directory and project root
@@ -31,6 +33,86 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_step() { echo -e "${CYAN}[STEP]${NC} $1"; }
+log_tool() { echo -e "${MAGENTA}[TOOL]${NC} $1"; }
+
+# Process streaming JSON output from Claude
+# Extracts and displays progress information in real-time
+process_claude_stream() {
+    local last_tool=""
+    local tool_count=0
+    local start_time=$(date +%s)
+
+    while IFS= read -r line; do
+        # Skip empty lines
+        [[ -z "$line" ]] && continue
+
+        # Parse JSON using jq if available, otherwise basic grep
+        if command -v jq &> /dev/null; then
+            local msg_type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
+
+            case "$msg_type" in
+                "assistant")
+                    # Assistant text message
+                    local text=$(echo "$line" | jq -r '.message.content[]? | select(.type=="text") | .text // empty' 2>/dev/null)
+                    if [[ -n "$text" ]]; then
+                        echo -e "${DIM}$text${NC}"
+                    fi
+                    ;;
+                "content_block_start")
+                    # Tool use starting
+                    local tool_name=$(echo "$line" | jq -r '.content_block.name // empty' 2>/dev/null)
+                    if [[ -n "$tool_name" ]]; then
+                        ((tool_count++))
+                        last_tool="$tool_name"
+                        local elapsed=$(($(date +%s) - start_time))
+                        echo -e "${MAGENTA}[${elapsed}s]${NC} ${CYAN}Tool #${tool_count}:${NC} $tool_name"
+                    fi
+                    ;;
+                "result")
+                    # Final result
+                    local is_error=$(echo "$line" | jq -r '.is_error // false' 2>/dev/null)
+                    if [[ "$is_error" == "true" ]]; then
+                        echo -e "${RED}Session ended with error${NC}"
+                        return 1
+                    fi
+                    ;;
+            esac
+        else
+            # Fallback: basic pattern matching without jq
+            if [[ "$line" == *'"type":"content_block_start"'* ]] && [[ "$line" == *'"name":'* ]]; then
+                local tool_name=$(echo "$line" | sed -n 's/.*"name":"\([^"]*\)".*/\1/p')
+                if [[ -n "$tool_name" ]]; then
+                    ((tool_count++))
+                    echo -e "${CYAN}Tool #${tool_count}:${NC} $tool_name"
+                fi
+            fi
+        fi
+    done
+
+    echo -e "${GREEN}Session completed with $tool_count tool calls${NC}"
+    return 0
+}
+
+# Run Claude with streaming output and progress display
+run_claude_session() {
+    local prompt="$1"
+    local description="$2"
+
+    log_step "Starting Claude session: $description"
+    echo
+
+    # Run Claude with streaming JSON output
+    # The output is piped through our progress processor
+    if claude --print --dangerously-skip-permissions --output-format stream-json "$prompt" 2>&1 | process_claude_stream; then
+        echo
+        log_success "$description completed"
+        return 0
+    else
+        echo
+        log_error "$description failed"
+        return 1
+    fi
+}
 
 # Validate arguments
 if [[ $# -lt 2 ]]; then
@@ -41,6 +123,11 @@ if [[ $# -lt 2 ]]; then
     echo "  1. Extracts problem and implements in 16 languages"
     echo "  2. Validates and tunes all implementations"
     echo "  3. Commits and pushes after each pass"
+    echo
+    echo "Features:"
+    echo "  - Real-time progress via streaming JSON"
+    echo "  - Tool call tracking with timestamps"
+    echo "  - Automatic git commit and push after each phase"
     exit 1
 fi
 
@@ -55,6 +142,11 @@ DAY_DIR="$PROJECT_ROOT/$YEAR/day$DAY_PADDED"
 if ! command -v claude &> /dev/null; then
     log_error "claude CLI not found. Please install Claude Code first."
     exit 1
+fi
+
+# Check for jq (optional but recommended)
+if ! command -v jq &> /dev/null; then
+    log_warn "jq not found. Progress display will be limited. Install with: brew install jq"
 fi
 
 echo
@@ -98,7 +190,7 @@ Follow the workflow from CLAUDE.md:
 3. Verify both implementations produce the same answer
 4. Submit Part 1 answer using: node runner/submit.js $YEAR $DAY 1 <answer>
 5. Implement Part 2 in Python and Node.js
-6. Verify both implementations produce the same answer  
+6. Verify both implementations produce the same answer
 7. Submit Part 2 answer using: node runner/submit.js $YEAR $DAY 2 <answer>
 8. Dispatch agents in parallel to implement the remaining 14 languages:
    ARM64, C, C++, Rust, Zig, Go, Java, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion
@@ -112,24 +204,15 @@ IMPORTANT:
 - All 16 languages are required
 - Include benchmark table in the day README"
 
-log_step "Starting Claude session for implementation..."
-echo
-
 cd "$PROJECT_ROOT"
 
-# Run Claude for implementation (--dangerously-skip-permissions for autonomous tool use)
-if claude --print --dangerously-skip-permissions "$IMPLEMENT_PROMPT"; then
-    echo
-    log_success "Implementation pass completed"
-else
-    echo
-    log_error "Implementation pass failed"
+if ! run_claude_session "$IMPLEMENT_PROMPT" "Implementation"; then
     exit 1
 fi
 
 PASS1_END=$(date +%s)
 PASS1_DURATION=$((PASS1_END - PASS1_START))
-log_info "Pass 1 duration: ${PASS1_DURATION}s"
+log_info "Pass 1 duration: ${PASS1_DURATION}s ($((PASS1_DURATION / 60))m $((PASS1_DURATION % 60))s)"
 
 # Commit and push after implementation
 echo
@@ -167,22 +250,13 @@ PASS2_START=$(date +%s)
 
 VALIDATE_PROMPT="/validate-implementation $YEAR $DAY"
 
-log_step "Starting Claude session for validation..."
-echo
-
-# Run Claude for validation (--dangerously-skip-permissions for autonomous tool use)
-if claude --print --dangerously-skip-permissions "$VALIDATE_PROMPT"; then
-    echo
-    log_success "Validation pass completed"
-else
-    echo
-    log_error "Validation pass failed"
+if ! run_claude_session "$VALIDATE_PROMPT" "Validation"; then
     exit 1
 fi
 
 PASS2_END=$(date +%s)
 PASS2_DURATION=$((PASS2_END - PASS2_START))
-log_info "Pass 2 duration: ${PASS2_DURATION}s"
+log_info "Pass 2 duration: ${PASS2_DURATION}s ($((PASS2_DURATION / 60))m $((PASS2_DURATION % 60))s)"
 
 # Commit and push after validation
 echo
@@ -224,8 +298,8 @@ echo
 echo -e "${BOLD}Summary:${NC}"
 echo -e "  Day:              ${GREEN}$YEAR Day $DAY${NC}"
 echo -e "  Location:         ${GREEN}$DAY_DIR${NC}"
-echo -e "  Pass 1 (impl):    ${CYAN}${PASS1_DURATION}s${NC}"
-echo -e "  Pass 2 (tune):    ${CYAN}${PASS2_DURATION}s${NC}"
+echo -e "  Pass 1 (impl):    ${CYAN}${PASS1_DURATION}s${NC} ($((PASS1_DURATION / 60))m $((PASS1_DURATION % 60))s)"
+echo -e "  Pass 2 (tune):    ${CYAN}${PASS2_DURATION}s${NC} ($((PASS2_DURATION / 60))m $((PASS2_DURATION % 60))s)"
 echo -e "  Total time:       ${CYAN}${TOTAL_DURATION}s${NC} ($((TOTAL_DURATION / 60))m $((TOTAL_DURATION % 60))s)"
 echo
 
