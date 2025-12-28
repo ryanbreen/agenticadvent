@@ -1,83 +1,85 @@
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.IntStream;
 
 public class Solution {
+
+    // Hand type constants (higher = stronger)
+    private static final int HIGH_CARD = 0;
+    private static final int ONE_PAIR = 1;
+    private static final int TWO_PAIR = 2;
+    private static final int THREE_OF_A_KIND = 3;
+    private static final int FULL_HOUSE = 4;
+    private static final int FOUR_OF_A_KIND = 5;
+    private static final int FIVE_OF_A_KIND = 6;
 
     // Card strength order (higher index = stronger)
     private static final String CARD_STRENGTH = "23456789TJQKA";
     private static final String CARD_STRENGTH_JOKER = "J23456789TQKA";
 
     public static void main(String[] args) throws IOException {
-        String input = Files.readString(Path.of("../input.txt")).trim();
-        String[] lines = input.split("\n");
+        var input = Files.readString(Path.of("../input.txt")).trim();
+        var lines = input.split("\n");
 
         System.out.println("Part 1: " + part1(lines));
         System.out.println("Part 2: " + part2(lines));
     }
 
     private static long part1(String[] lines) {
-        List<Hand> hands = new ArrayList<>();
-        for (String line : lines) {
-            String[] parts = line.split("\\s+");
-            hands.add(new Hand(parts[0], Integer.parseInt(parts[1])));
-        }
+        var hands = Arrays.stream(lines)
+                .map(line -> {
+                    var parts = line.split("\\s+");
+                    return new Hand(parts[0], Integer.parseInt(parts[1]));
+                })
+                .sorted(Comparator.comparingInt((Hand h) -> getHandType(h.cards))
+                        .thenComparing(h -> getCardValues(h.cards, CARD_STRENGTH)))
+                .toList();
 
-        hands.sort(Comparator.comparingInt((Hand h) -> getHandType(h.cards))
-                .thenComparing(h -> getCardValues(h.cards, CARD_STRENGTH)));
-
-        long total = 0;
-        for (int rank = 1; rank <= hands.size(); rank++) {
-            total += (long) rank * hands.get(rank - 1).bid;
-        }
-        return total;
+        return IntStream.rangeClosed(1, hands.size())
+                .mapToLong(rank -> (long) rank * hands.get(rank - 1).bid)
+                .sum();
     }
 
     private static long part2(String[] lines) {
-        List<Hand> hands = new ArrayList<>();
-        for (String line : lines) {
-            String[] parts = line.split("\\s+");
-            hands.add(new Hand(parts[0], Integer.parseInt(parts[1])));
-        }
+        var hands = Arrays.stream(lines)
+                .map(line -> {
+                    var parts = line.split("\\s+");
+                    return new Hand(parts[0], Integer.parseInt(parts[1]));
+                })
+                .sorted(Comparator.comparingInt((Hand h) -> getHandTypeWithJokers(h.cards))
+                        .thenComparing(h -> getCardValues(h.cards, CARD_STRENGTH_JOKER)))
+                .toList();
 
-        hands.sort(Comparator.comparingInt((Hand h) -> getHandTypeWithJokers(h.cards))
-                .thenComparing(h -> getCardValues(h.cards, CARD_STRENGTH_JOKER)));
-
-        long total = 0;
-        for (int rank = 1; rank <= hands.size(); rank++) {
-            total += (long) rank * hands.get(rank - 1).bid;
-        }
-        return total;
+        return IntStream.rangeClosed(1, hands.size())
+                .mapToLong(rank -> (long) rank * hands.get(rank - 1).bid)
+                .sum();
     }
 
     private static int getHandType(String hand) {
-        int[] counts = getCardCounts(hand);
+        var counts = getCardCounts(hand);
         Arrays.sort(counts);
         return classifyHand(counts);
     }
 
     private static int getHandTypeWithJokers(String hand) {
-        int jokerCount = 0;
-        for (char c : hand.toCharArray()) {
-            if (c == 'J') jokerCount++;
-        }
+        var jokerCount = (int) hand.chars().filter(c -> c == 'J').count();
 
         if (jokerCount == 0) {
             return getHandType(hand);
         }
         if (jokerCount == 5) {
-            return 6; // Five of a kind
+            return FIVE_OF_A_KIND;
         }
 
         // Count non-joker cards
-        int[] counts = new int[13];
+        var counts = new int[13];
         for (char c : hand.toCharArray()) {
             if (c != 'J') {
-                int idx = CARD_STRENGTH.indexOf(c);
+                var idx = CARD_STRENGTH.indexOf(c);
                 counts[idx]++;
             }
         }
@@ -90,49 +92,32 @@ public class Solution {
     }
 
     private static int[] getCardCounts(String hand) {
-        int[] counts = new int[13];
+        var counts = new int[13];
         for (char c : hand.toCharArray()) {
-            int idx = CARD_STRENGTH.indexOf(c);
+            var idx = CARD_STRENGTH.indexOf(c);
             counts[idx]++;
         }
         Arrays.sort(counts);
         return counts;
     }
 
-    private static int classifyHand(int[] sortedCounts) {
-        // Get the last 5 non-zero counts (sorted ascending)
-        int[] relevant = new int[5];
-        int idx = 0;
-        for (int i = sortedCounts.length - 1; i >= 0 && idx < 5; i--) {
-            if (sortedCounts[i] > 0) {
-                relevant[idx++] = sortedCounts[i];
-            }
-        }
-        // Sort descending for comparison
-        Arrays.sort(relevant);
-        reverse(relevant);
+    private static int classifyHand(int[] counts) {
+        // counts is sorted ascending, so counts[12] is highest, counts[11] is second highest
+        var highest = counts[12];
+        var secondHighest = counts[11];
 
-        // Classify based on pattern
-        if (relevant[0] == 5) return 6;        // Five of a kind
-        if (relevant[0] == 4) return 5;        // Four of a kind
-        if (relevant[0] == 3 && relevant[1] == 2) return 4;  // Full house
-        if (relevant[0] == 3) return 3;        // Three of a kind
-        if (relevant[0] == 2 && relevant[1] == 2) return 2;  // Two pair
-        if (relevant[0] == 2) return 1;        // One pair
-        return 0;                              // High card
-    }
-
-    private static void reverse(int[] arr) {
-        for (int i = 0; i < arr.length / 2; i++) {
-            int temp = arr[i];
-            arr[i] = arr[arr.length - 1 - i];
-            arr[arr.length - 1 - i] = temp;
-        }
+        if (highest == 5) return FIVE_OF_A_KIND;
+        if (highest == 4) return FOUR_OF_A_KIND;
+        if (highest == 3 && secondHighest == 2) return FULL_HOUSE;
+        if (highest == 3) return THREE_OF_A_KIND;
+        if (highest == 2 && secondHighest == 2) return TWO_PAIR;
+        if (highest == 2) return ONE_PAIR;
+        return HIGH_CARD;
     }
 
     private static CardValues getCardValues(String hand, String cardStrength) {
-        int[] values = new int[5];
-        for (int i = 0; i < 5; i++) {
+        var values = new int[5];
+        for (var i = 0; i < 5; i++) {
             values[i] = cardStrength.indexOf(hand.charAt(i));
         }
         return new CardValues(values);
@@ -143,12 +128,7 @@ public class Solution {
     private record CardValues(int[] values) implements Comparable<CardValues> {
         @Override
         public int compareTo(CardValues other) {
-            for (int i = 0; i < 5; i++) {
-                if (this.values[i] != other.values[i]) {
-                    return Integer.compare(this.values[i], other.values[i]);
-                }
-            }
-            return 0;
+            return Arrays.compare(this.values, other.values);
         }
     }
 }

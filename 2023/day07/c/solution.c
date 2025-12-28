@@ -5,6 +5,17 @@
 #define MAX_HANDS 1024
 #define HAND_SIZE 5
 
+/* Hand type rankings (higher value = stronger hand) */
+typedef enum {
+    HIGH_CARD = 0,
+    ONE_PAIR = 1,
+    TWO_PAIR = 2,
+    THREE_OF_A_KIND = 3,
+    FULL_HOUSE = 4,
+    FOUR_OF_A_KIND = 5,
+    FIVE_OF_A_KIND = 6
+} HandType;
+
 typedef struct {
     char cards[HAND_SIZE + 1];
     int bid;
@@ -53,13 +64,13 @@ static int get_hand_type(const char *hand) {
     }
 
     /* Determine hand type based on sorted counts */
-    if (num_counts == 1) return 6;                                    /* Five of a kind */
-    if (num_counts == 2 && sorted_counts[0] == 4) return 5;           /* Four of a kind */
-    if (num_counts == 2 && sorted_counts[0] == 3) return 4;           /* Full house */
-    if (num_counts == 3 && sorted_counts[0] == 3) return 3;           /* Three of a kind */
-    if (num_counts == 3 && sorted_counts[0] == 2) return 2;           /* Two pair */
-    if (num_counts == 4) return 1;                                    /* One pair */
-    return 0;                                                         /* High card */
+    if (num_counts == 1) return FIVE_OF_A_KIND;
+    if (num_counts == 2 && sorted_counts[0] == 4) return FOUR_OF_A_KIND;
+    if (num_counts == 2 && sorted_counts[0] == 3) return FULL_HOUSE;
+    if (num_counts == 3 && sorted_counts[0] == 3) return THREE_OF_A_KIND;
+    if (num_counts == 3 && sorted_counts[0] == 2) return TWO_PAIR;
+    if (num_counts == 4) return ONE_PAIR;
+    return HIGH_CARD;
 }
 
 static int get_hand_type_with_jokers(const char *hand) {
@@ -69,7 +80,7 @@ static int get_hand_type_with_jokers(const char *hand) {
     }
 
     if (joker_count == 0) return get_hand_type(hand);
-    if (joker_count == 5) return 6;  /* Five of a kind */
+    if (joker_count == 5) return FIVE_OF_A_KIND;
 
     /* Count non-joker cards */
     int counts[13] = {0};
@@ -104,34 +115,16 @@ static int get_hand_type_with_jokers(const char *hand) {
     sorted_counts[0] += joker_count;
 
     /* Determine hand type based on sorted counts */
-    if (num_counts == 1 || sorted_counts[0] == 5) return 6;           /* Five of a kind */
-    if (sorted_counts[0] == 4) return 5;                              /* Four of a kind */
-    if (sorted_counts[0] == 3 && sorted_counts[1] == 2) return 4;     /* Full house */
-    if (sorted_counts[0] == 3) return 3;                              /* Three of a kind */
-    if (sorted_counts[0] == 2 && sorted_counts[1] == 2) return 2;     /* Two pair */
-    if (sorted_counts[0] == 2) return 1;                              /* One pair */
-    return 0;                                                         /* High card */
+    if (num_counts == 1 || sorted_counts[0] == 5) return FIVE_OF_A_KIND;
+    if (sorted_counts[0] == 4) return FOUR_OF_A_KIND;
+    if (sorted_counts[0] == 3 && sorted_counts[1] == 2) return FULL_HOUSE;
+    if (sorted_counts[0] == 3) return THREE_OF_A_KIND;
+    if (sorted_counts[0] == 2 && sorted_counts[1] == 2) return TWO_PAIR;
+    if (sorted_counts[0] == 2) return ONE_PAIR;
+    return HIGH_CARD;
 }
 
-static int compare_hands_part1(const void *a, const void *b) {
-    const Hand *ha = (const Hand *)a;
-    const Hand *hb = (const Hand *)b;
-
-    /* Compare by type first */
-    if (ha->type != hb->type) {
-        return ha->type - hb->type;
-    }
-
-    /* Then by card values left to right */
-    for (int i = 0; i < HAND_SIZE; i++) {
-        if (ha->card_values[i] != hb->card_values[i]) {
-            return ha->card_values[i] - hb->card_values[i];
-        }
-    }
-    return 0;
-}
-
-static int compare_hands_part2(const void *a, const void *b) {
+static int compare_hands(const void *a, const void *b) {
     const Hand *ha = (const Hand *)a;
     const Hand *hb = (const Hand *)b;
 
@@ -166,11 +159,7 @@ static long long solve(Hand *hands, int num_hands, int part2) {
     }
 
     /* Sort hands */
-    if (part2) {
-        qsort(hands, num_hands, sizeof(Hand), compare_hands_part2);
-    } else {
-        qsort(hands, num_hands, sizeof(Hand), compare_hands_part1);
-    }
+    qsort(hands, num_hands, sizeof(Hand), compare_hands);
 
     /* Calculate total winnings */
     long long total = 0;

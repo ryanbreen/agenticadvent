@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 $input = trim(file_get_contents(__DIR__ . '/../input.txt'));
 $lines = explode("\n", $input);
@@ -7,6 +8,25 @@ $lines = explode("\n", $input);
 const CARD_STRENGTH = '23456789TJQKA';
 const CARD_STRENGTH_JOKER = 'J23456789TQKA';  // J is weakest in Part 2
 
+// Pattern-to-type mapping (pattern => hand type value)
+const HAND_TYPE_MAP = [
+    '5'     => 6,  // Five of a kind
+    '4,1'   => 5,  // Four of a kind
+    '3,2'   => 4,  // Full house
+    '3,1,1' => 3,  // Three of a kind
+    '2,2,1' => 2,  // Two pair
+    '2,1,1,1' => 1,  // One pair
+    '1,1,1,1,1' => 0,  // High card
+];
+
+/**
+ * Convert sorted count values to a hand type integer.
+ */
+function patternToType(array $values): int {
+    $pattern = implode(',', $values);
+    return HAND_TYPE_MAP[$pattern] ?? 0;
+}
+
 /**
  * Return hand type as integer (higher = stronger).
  */
@@ -14,22 +34,7 @@ function getHandType(string $hand): int {
     $counts = array_count_values(str_split($hand));
     $values = array_values($counts);
     rsort($values);
-
-    if ($values === [5]) {
-        return 6;  // Five of a kind
-    } elseif ($values === [4, 1]) {
-        return 5;  // Four of a kind
-    } elseif ($values === [3, 2]) {
-        return 4;  // Full house
-    } elseif ($values === [3, 1, 1]) {
-        return 3;  // Three of a kind
-    } elseif ($values === [2, 2, 1]) {
-        return 2;  // Two pair
-    } elseif ($values === [2, 1, 1, 1]) {
-        return 1;  // One pair
-    } else {
-        return 0;  // High card
-    }
+    return patternToType($values);
 }
 
 /**
@@ -66,21 +71,7 @@ function getHandTypeWithJokers(string $hand): int {
     // Add jokers to the highest count
     $values[0] += $jokerCount;
 
-    if ($values === [5]) {
-        return 6;  // Five of a kind
-    } elseif ($values === [4, 1]) {
-        return 5;  // Four of a kind
-    } elseif ($values === [3, 2]) {
-        return 4;  // Full house
-    } elseif ($values === [3, 1, 1]) {
-        return 3;  // Three of a kind
-    } elseif ($values === [2, 2, 1]) {
-        return 2;  // Two pair
-    } elseif ($values === [2, 1, 1, 1]) {
-        return 1;  // One pair
-    } else {
-        return 0;  // High card
-    }
+    return patternToType($values);
 }
 
 /**
@@ -117,9 +108,7 @@ function part1(array $lines): int {
     }
 
     // Sort by hand strength
-    usort($hands, function($a, $b) {
-        return compareKeys($a['key'], $b['key']);
-    });
+    usort($hands, fn(array $a, array $b): int => compareKeys($a['key'], $b['key']));
 
     // Calculate total winnings
     $total = 0;
@@ -140,9 +129,7 @@ function part2(array $lines): int {
     }
 
     // Sort by hand strength with joker rules
-    usort($hands, function($a, $b) {
-        return compareKeys($a['key'], $b['key']);
-    });
+    usort($hands, fn(array $a, array $b): int => compareKeys($a['key'], $b['key']));
 
     // Calculate total winnings
     $total = 0;

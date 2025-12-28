@@ -51,20 +51,33 @@ card_value_p2() {
 count_cards() {
     local hand="$1"
     # Split hand into individual characters, count each, sort counts descending
-    echo "$hand" | fold -w1 | sort | uniq -c | awk '{print $1}' | sort -rn | tr '\n' ' ' | sed 's/ *$//'
+    echo "$hand" \
+        | fold -w1 \
+        | sort \
+        | uniq -c \
+        | awk '{print $1}' \
+        | sort -rn \
+        | tr '\n' ' ' \
+        | sed 's/ *$//'
 }
 
 # Count non-joker cards and return sorted counts
 count_cards_no_jokers() {
     local hand="$1"
     # Remove all J's, then count
-    local no_j
-    no_j=$(echo "$hand" | tr -d 'J')
+    local no_j="${hand//J/}"
     if [[ -z "$no_j" ]]; then
         echo ""
         return
     fi
-    echo "$no_j" | fold -w1 | sort | uniq -c | awk '{print $1}' | sort -rn | tr '\n' ' ' | sed 's/ *$//'
+    echo "$no_j" \
+        | fold -w1 \
+        | sort \
+        | uniq -c \
+        | awk '{print $1}' \
+        | sort -rn \
+        | tr '\n' ' ' \
+        | sed 's/ *$//'
 }
 
 # Get hand type from sorted counts (higher = stronger)
@@ -95,7 +108,8 @@ get_hand_type() {
 # Count jokers in hand
 count_jokers() {
     local hand="$1"
-    echo "$hand" | tr -cd 'J' | wc -c | tr -d ' '
+    local jokers_only="${hand//[^J]/}"
+    echo "${#jokers_only}"
 }
 
 # Get hand type with jokers (Part 2)
@@ -167,8 +181,10 @@ hand_sort_key_p2() {
     echo "${type}${card_vals}"
 }
 
-# Part 1: Standard rules
-part1() {
+# Calculate total winnings using the specified key function
+# Usage: calculate_winnings <key_function>
+calculate_winnings() {
+    local key_func="$1"
     local total=0
     local rank=1
     local lines_with_keys=""
@@ -177,7 +193,7 @@ part1() {
     while IFS=' ' read -r hand bid || [[ -n "$hand" ]]; do
         [[ -z "$hand" ]] && continue
         local key
-        key=$(hand_sort_key_p1 "$hand")
+        key=$("$key_func" "$hand")
         lines_with_keys+="${key}:${bid}"$'\n'
     done < "$INPUT_FILE"
 
@@ -191,28 +207,14 @@ part1() {
     echo "$total"
 }
 
+# Part 1: Standard rules
+part1() {
+    calculate_winnings hand_sort_key_p1
+}
+
 # Part 2: Joker rules
 part2() {
-    local total=0
-    local rank=1
-    local lines_with_keys=""
-
-    # Read all hands and compute sort keys
-    while IFS=' ' read -r hand bid || [[ -n "$hand" ]]; do
-        [[ -z "$hand" ]] && continue
-        local key
-        key=$(hand_sort_key_p2 "$hand")
-        lines_with_keys+="${key}:${bid}"$'\n'
-    done < "$INPUT_FILE"
-
-    # Sort by key and calculate winnings
-    while IFS=':' read -r key bid; do
-        [[ -z "$key" ]] && continue
-        total=$((total + rank * bid))
-        ((rank++))
-    done < <(echo "$lines_with_keys" | sort)
-
-    echo "$total"
+    calculate_winnings hand_sort_key_p2
 }
 
 # Main

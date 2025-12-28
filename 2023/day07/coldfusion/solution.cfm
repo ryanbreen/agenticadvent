@@ -16,9 +16,34 @@ CARD_STRENGTH = "23456789TJQKA";
 CARD_STRENGTH_JOKER = "J23456789TQKA";  // J is weakest in Part 2
 
 /**
+ * Classify a hand based on sorted count values
+ * Returns: 6 = Five of a kind, 5 = Four of a kind, 4 = Full house,
+ *          3 = Three of a kind, 2 = Two pair, 1 = One pair, 0 = High card
+ */
+function classifyCounts(countValues) {
+    var numGroups = arrayLen(countValues);
+    var highest = countValues[1];
+    var second = numGroups >= 2 ? countValues[2] : 0;
+
+    if (numGroups == 1 && highest == 5) {
+        return 6;  // Five of a kind
+    } else if (numGroups == 2 && highest == 4) {
+        return 5;  // Four of a kind
+    } else if (numGroups == 2 && highest == 3 && second == 2) {
+        return 4;  // Full house
+    } else if (numGroups == 3 && highest == 3) {
+        return 3;  // Three of a kind
+    } else if (numGroups == 3 && highest == 2 && second == 2) {
+        return 2;  // Two pair
+    } else if (numGroups == 4 && highest == 2) {
+        return 1;  // One pair
+    } else {
+        return 0;  // High card
+    }
+}
+
+/**
  * Get the hand type as an integer (higher = stronger)
- * 6 = Five of a kind, 5 = Four of a kind, 4 = Full house,
- * 3 = Three of a kind, 2 = Two pair, 1 = One pair, 0 = High card
  */
 function getHandType(hand) {
     var counts = {};
@@ -26,6 +51,7 @@ function getHandType(hand) {
     // Count each card
     for (var i = 1; i <= len(hand); i++) {
         var card = mid(hand, i, 1);
+
         if (!structKeyExists(counts, card)) {
             counts[card] = 0;
         }
@@ -34,24 +60,10 @@ function getHandType(hand) {
 
     // Get sorted counts (descending)
     var countValues = structValueArray(counts);
+
     arraySort(countValues, "numeric", "desc");
 
-    // Determine hand type based on pattern
-    if (arrayLen(countValues) == 1 && countValues[1] == 5) {
-        return 6;  // Five of a kind
-    } else if (arrayLen(countValues) == 2 && countValues[1] == 4) {
-        return 5;  // Four of a kind
-    } else if (arrayLen(countValues) == 2 && countValues[1] == 3 && countValues[2] == 2) {
-        return 4;  // Full house
-    } else if (arrayLen(countValues) == 3 && countValues[1] == 3) {
-        return 3;  // Three of a kind
-    } else if (arrayLen(countValues) == 3 && countValues[1] == 2 && countValues[2] == 2) {
-        return 2;  // Two pair
-    } else if (arrayLen(countValues) == 4 && countValues[1] == 2) {
-        return 1;  // One pair
-    } else {
-        return 0;  // High card
-    }
+    return classifyCounts(countValues);
 }
 
 /**
@@ -79,8 +91,10 @@ function getHandTypeWithJokers(hand) {
 
     // Count non-joker cards
     var counts = {};
+
     for (var i = 1; i <= len(hand); i++) {
         var card = mid(hand, i, 1);
+
         if (card != "J") {
             if (!structKeyExists(counts, card)) {
                 counts[card] = 0;
@@ -91,27 +105,13 @@ function getHandTypeWithJokers(hand) {
 
     // Get sorted counts (descending)
     var countValues = structValueArray(counts);
+
     arraySort(countValues, "numeric", "desc");
 
     // Add jokers to highest count
     countValues[1] += jokerCount;
 
-    // Determine hand type based on pattern
-    if (arrayLen(countValues) == 1 && countValues[1] == 5) {
-        return 6;  // Five of a kind
-    } else if (arrayLen(countValues) == 2 && countValues[1] == 4) {
-        return 5;  // Four of a kind
-    } else if (arrayLen(countValues) == 2 && countValues[1] == 3 && countValues[2] == 2) {
-        return 4;  // Full house
-    } else if (arrayLen(countValues) == 3 && countValues[1] == 3) {
-        return 3;  // Three of a kind
-    } else if (arrayLen(countValues) == 3 && countValues[1] == 2 && countValues[2] == 2) {
-        return 2;  // Two pair
-    } else if (arrayLen(countValues) == 4 && countValues[1] == 2) {
-        return 1;  // One pair
-    } else {
-        return 0;  // High card
-    }
+    return classifyCounts(countValues);
 }
 
 /**
@@ -119,6 +119,7 @@ function getHandTypeWithJokers(hand) {
  */
 function getCardStrength(card, useJokerRules) {
     var strengthStr = useJokerRules ? CARD_STRENGTH_JOKER : CARD_STRENGTH;
+
     return find(card, strengthStr);
 }
 
@@ -127,7 +128,6 @@ function getCardStrength(card, useJokerRules) {
  * Returns: -1 if hand1 < hand2, 0 if equal, 1 if hand1 > hand2
  */
 function compareHands(hand1, hand2, useJokerRules) {
-    // Get hand types
     var type1 = useJokerRules ? getHandTypeWithJokers(hand1) : getHandType(hand1);
     var type2 = useJokerRules ? getHandTypeWithJokers(hand2) : getHandType(hand2);
 

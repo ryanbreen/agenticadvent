@@ -43,59 +43,40 @@
 
 (defun get-sorted-counts (counts-table)
   "Get sorted list of counts (descending)."
-  (let ((counts nil))
-    (maphash (lambda (k v)
-               (declare (ignore k))
-               (push v counts))
-             counts-table)
-    (sort counts #'>)))
+  (sort (loop for v being the hash-values of counts-table collect v) #'>))
+
+(defun classify-from-counts (counts)
+  "Classify hand type from sorted count list (descending).
+   6 = Five of a kind, 5 = Four of a kind, 4 = Full house,
+   3 = Three of a kind, 2 = Two pair, 1 = One pair, 0 = High card"
+  (cond
+    ((equal counts '(5)) 6)
+    ((equal counts '(4 1)) 5)
+    ((equal counts '(3 2)) 4)
+    ((equal counts '(3 1 1)) 3)
+    ((equal counts '(2 2 1)) 2)
+    ((equal counts '(2 1 1 1)) 1)
+    (t 0)))
 
 (defun get-hand-type (hand)
-  "Return hand type as integer (higher = stronger).
-   6 = Five of a kind
-   5 = Four of a kind
-   4 = Full house
-   3 = Three of a kind
-   2 = Two pair
-   1 = One pair
-   0 = High card"
-  (let* ((counts-table (count-cards hand))
-         (counts (get-sorted-counts counts-table)))
-    (cond
-      ((equal counts '(5)) 6)           ; Five of a kind
-      ((equal counts '(4 1)) 5)         ; Four of a kind
-      ((equal counts '(3 2)) 4)         ; Full house
-      ((equal counts '(3 1 1)) 3)       ; Three of a kind
-      ((equal counts '(2 2 1)) 2)       ; Two pair
-      ((equal counts '(2 1 1 1)) 1)     ; One pair
-      (t 0))))                          ; High card
+  "Return hand type as integer (higher = stronger)."
+  (classify-from-counts (get-sorted-counts (count-cards hand))))
 
 (defun get-hand-type-with-jokers (hand)
   "Return hand type with J as wildcards (higher = stronger)."
   (let ((joker-count (count #\J hand)))
     (cond
       ((= joker-count 0) (get-hand-type hand))
-      ((= joker-count 5) 6)             ; Five of a kind (all jokers)
+      ((= joker-count 5) 6)
       (t
-       ;; Count non-joker cards
        (let* ((non-jokers (remove #\J hand))
-              (counts-table (count-cards non-jokers))
-              (counts (get-sorted-counts counts-table)))
-         ;; Add jokers to the highest count
-         (setf (first counts) (+ (first counts) joker-count))
-         (cond
-           ((equal counts '(5)) 6)        ; Five of a kind
-           ((equal counts '(4 1)) 5)      ; Four of a kind
-           ((equal counts '(3 2)) 4)      ; Full house
-           ((equal counts '(3 1 1)) 3)    ; Three of a kind
-           ((equal counts '(2 2 1)) 2)    ; Two pair
-           ((equal counts '(2 1 1 1)) 1)  ; One pair
-           (t 0)))))))                    ; High card
+              (counts (get-sorted-counts (count-cards non-jokers))))
+         (incf (first counts) joker-count)
+         (classify-from-counts counts))))))
 
 (defun hand-card-values (hand strength-string)
   "Return list of card values for tiebreaking."
-  (loop for c across hand
-        collect (card-value c strength-string)))
+  (map 'list (lambda (c) (card-value c strength-string)) hand))
 
 (defun compare-hands (hand1 hand2 type-fn strength-string)
   "Compare two hands. Returns T if hand1 < hand2."

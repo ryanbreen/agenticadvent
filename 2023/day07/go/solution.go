@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -14,14 +13,44 @@ import (
 const cardStrength = "23456789TJQKA"
 const cardStrengthJoker = "J23456789TQKA" // J is weakest in Part 2
 
+// Hand type constants (higher = stronger)
+const (
+	HighCard     = iota // 0 - [1,1,1,1,1]
+	OnePair             // 1 - [2,1,1,1]
+	TwoPair             // 2 - [2,2,1]
+	ThreeOfKind         // 3 - [3,1,1]
+	FullHouse           // 4 - [3,2]
+	FourOfKind          // 5 - [4,1]
+	FiveOfKind          // 6 - [5]
+)
+
+// Hand represents a Camel Cards hand with its cards and bid amount.
 type Hand struct {
 	cards string
 	bid   int
 }
 
-// getHandType returns the hand type as an integer (higher = stronger)
-// 6 = Five of a kind, 5 = Four of a kind, 4 = Full house
-// 3 = Three of a kind, 2 = Two pair, 1 = One pair, 0 = High card
+// classifyFromCounts determines hand type from sorted card counts (descending).
+func classifyFromCounts(values []int) int {
+	switch {
+	case len(values) == 1 || values[0] == 5:
+		return FiveOfKind
+	case values[0] == 4:
+		return FourOfKind
+	case values[0] == 3 && len(values) > 1 && values[1] == 2:
+		return FullHouse
+	case values[0] == 3:
+		return ThreeOfKind
+	case values[0] == 2 && len(values) > 1 && values[1] == 2:
+		return TwoPair
+	case values[0] == 2:
+		return OnePair
+	default:
+		return HighCard
+	}
+}
+
+// getHandType returns the hand type as an integer (higher = stronger).
 func getHandType(hand string) int {
 	counts := make(map[rune]int)
 	for _, c := range hand {
@@ -35,33 +64,17 @@ func getHandType(hand string) int {
 	}
 	sort.Sort(sort.Reverse(sort.IntSlice(values)))
 
-	// Classify hand type
-	switch {
-	case len(values) == 1: // Five of a kind [5]
-		return 6
-	case values[0] == 4: // Four of a kind [4, 1]
-		return 5
-	case values[0] == 3 && values[1] == 2: // Full house [3, 2]
-		return 4
-	case values[0] == 3: // Three of a kind [3, 1, 1]
-		return 3
-	case values[0] == 2 && values[1] == 2: // Two pair [2, 2, 1]
-		return 2
-	case values[0] == 2: // One pair [2, 1, 1, 1]
-		return 1
-	default: // High card [1, 1, 1, 1, 1]
-		return 0
-	}
+	return classifyFromCounts(values)
 }
 
-// getHandTypeWithJokers returns hand type with J as wildcards
+// getHandTypeWithJokers returns hand type with J as wildcards.
 func getHandTypeWithJokers(hand string) int {
 	jokerCount := strings.Count(hand, "J")
 	if jokerCount == 0 {
 		return getHandType(hand)
 	}
 	if jokerCount == 5 {
-		return 6 // Five of a kind
+		return FiveOfKind
 	}
 
 	// Count non-joker cards
@@ -79,26 +92,10 @@ func getHandTypeWithJokers(hand string) int {
 	}
 	sort.Sort(sort.Reverse(sort.IntSlice(values)))
 
-	// Add jokers to the highest count
+	// Add jokers to the highest count (optimal strategy)
 	values[0] += jokerCount
 
-	// Classify hand type
-	switch {
-	case values[0] == 5: // Five of a kind
-		return 6
-	case values[0] == 4: // Four of a kind
-		return 5
-	case values[0] == 3 && len(values) > 1 && values[1] == 2: // Full house
-		return 4
-	case values[0] == 3: // Three of a kind
-		return 3
-	case values[0] == 2 && len(values) > 1 && values[1] == 2: // Two pair
-		return 2
-	case values[0] == 2: // One pair
-		return 1
-	default: // High card
-		return 0
-	}
+	return classifyFromCounts(values)
 }
 
 // handKey returns a sort key for comparing hands
@@ -155,7 +152,10 @@ func parseInput(filename string) ([]Hand, error) {
 			continue
 		}
 		parts := strings.Fields(line)
-		bid, _ := strconv.Atoi(parts[1])
+		bid, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return nil, fmt.Errorf("invalid bid value %q: %w", parts[1], err)
+		}
 		hands = append(hands, Hand{cards: parts[0], bid: bid})
 	}
 	return hands, scanner.Err()
@@ -194,27 +194,7 @@ func part2(hands []Hand) int {
 }
 
 func main() {
-	// Get the directory of the current executable/source file
-	execPath, _ := os.Executable()
-	dir := filepath.Dir(execPath)
-
-	// Try multiple possible input locations
-	inputPaths := []string{
-		filepath.Join(dir, "..", "input.txt"),
-		"../input.txt",
-		filepath.Join(filepath.Dir(os.Args[0]), "..", "input.txt"),
-	}
-
-	var hands []Hand
-	var err error
-
-	for _, path := range inputPaths {
-		hands, err = parseInput(path)
-		if err == nil {
-			break
-		}
-	}
-
+	hands, err := parseInput("../input.txt")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading input: %v\n", err)
 		os.Exit(1)

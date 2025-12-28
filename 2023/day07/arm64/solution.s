@@ -73,6 +73,23 @@
         .space 20
 
     .align 4
+    // Card-to-index lookup table for counting (maps ASCII char - '2' to card index 0-12)
+    // Used by get_hand_type to count card occurrences
+    // 2=0, 3=1, 4=2, 5=3, 6=4, 7=5, 8=6, 9=7, T=8, J=9, Q=10, K=11, A=12
+    card_index_table:
+        .byte 0, 1, 2, 3, 4, 5, 6, 7   // 2-9 at indices 0-7 (ASCII 50-57 minus 50)
+        .byte 0, 0, 0, 0, 0, 0, 0      // : ; < = > ? @  (indices 8-14, unused)
+        .byte 12                       // A at index 15 (65-50)
+        .byte 0, 0, 0, 0, 0, 0, 0, 0   // B-I (indices 16-23, unused)
+        .byte 9                        // J at index 24 (74-50)
+        .byte 11                       // K at index 25 (75-50)
+        .byte 0, 0, 0, 0, 0            // L, M, N, O, P (indices 26-30, unused)
+        .byte 10                       // Q at index 31 (81-50)
+        .byte 0, 0                     // R, S (indices 32-33, unused)
+        .byte 8                        // T at index 34 (84-50)
+        .space 20
+
+    .align 4
     // Storage for hands: each hand is 16 bytes
     // Bytes 0-4: card characters
     // Byte 5: hand type (for sorting)
@@ -187,24 +204,31 @@ read_error:
 // PARSING
 // ============================================================================
 
-// parse_number: parse integer from string
-// Input: x0 = string pointer
-// Output: x0 = parsed number, x1 = updated pointer
+// ----------------------------------------------------------------------------
+// parse_number: Parse an integer from a string
+// ----------------------------------------------------------------------------
+// Input:  x0 = pointer to start of string
+// Output: x0 = parsed integer value
+//         x1 = pointer to first non-digit character
+// Clobbers: x3, x4, x5
+// ----------------------------------------------------------------------------
 parse_number:
     mov     x3, x0
     mov     x0, #0
-1:  ldrb    w4, [x3]
+parse_digit_loop:
+    ldrb    w4, [x3]
     cmp     w4, #'0'
-    b.lt    2f
+    b.lt    parse_number_done
     cmp     w4, #'9'
-    b.gt    2f
+    b.gt    parse_number_done
     mov     x5, #10
     mul     x0, x0, x5
     sub     w4, w4, #'0'
     add     x0, x0, x4
     add     x3, x3, #1
-    b       1b
-2:  mov     x1, x3
+    b       parse_digit_loop
+parse_number_done:
+    mov     x1, x3
     ret
 
 // get_hand_type: Calculate hand type for 5 cards
@@ -244,37 +268,12 @@ count_cards_loop:
     b       next_card
 
 not_joker_check:
-    // Map card to index 0-12
+    // Map card to index 0-12 using lookup table
     // 2=0, 3=1, 4=2, 5=3, 6=4, 7=5, 8=6, 9=7, T=8, J=9, Q=10, K=11, A=12
-    cmp     w24, #'A'
-    b.eq    card_A
-    cmp     w24, #'K'
-    b.eq    card_K
-    cmp     w24, #'Q'
-    b.eq    card_Q
-    cmp     w24, #'J'
-    b.eq    card_J
-    cmp     w24, #'T'
-    b.eq    card_T
-    // Digit 2-9
-    sub     w24, w24, #'2'
-    b       increment_count
-
-card_A:
-    mov     w24, #12
-    b       increment_count
-card_K:
-    mov     w24, #11
-    b       increment_count
-card_Q:
-    mov     w24, #10
-    b       increment_count
-card_J:
-    mov     w24, #9
-    b       increment_count
-card_T:
-    mov     w24, #8
-    b       increment_count
+    adrp    x0, card_index_table@PAGE
+    add     x0, x0, card_index_table@PAGEOFF
+    sub     w24, w24, #'2'            // Convert ASCII to table index
+    ldrb    w24, [x0, x24]            // Look up card index
 
 increment_count:
     ldrb    w0, [x21, x24]
@@ -716,27 +715,47 @@ calc_done:
 // ============================================================================
 // OUTPUT
 // ============================================================================
+
+// ----------------------------------------------------------------------------
+// print_str: Print a null-terminated string to stdout
+// ----------------------------------------------------------------------------
+// Input:  x0 = pointer to null-terminated string
+// Output: none
+// Clobbers: x0, x1, x2, x16, x19, x20
+// ----------------------------------------------------------------------------
 print_str:
     stp     x29, x30, [sp, #-16]!
     stp     x19, x20, [sp, #-16]!
     mov     x19, x0
 
+    // Calculate string length by scanning for null terminator
     mov     x1, #0
-1:  ldrb    w2, [x19, x1]
-    cbz     w2, 2f
+strlen_loop:
+    ldrb    w2, [x19, x1]
+    cbz     w2, strlen_done
     add     x1, x1, #1
-    b       1b
+    b       strlen_loop
 
-2:  mov     x2, x1
-    mov     x1, x19
-    mov     x0, #1
-    mov     x16, #4                   // write
+strlen_done:
+    // Write string to stdout
+    mov     x2, x1                    // length
+    mov     x1, x19                   // string pointer
+    mov     x0, #1                    // stdout
+    mov     x16, #4                   // write syscall
     svc     #0x80
 
     ldp     x19, x20, [sp], #16
     ldp     x29, x30, [sp], #16
     ret
 
+// ----------------------------------------------------------------------------
+// print_num: Print an unsigned 64-bit integer to stdout
+// ----------------------------------------------------------------------------
+// Input:  x0 = unsigned 64-bit integer to print
+// Output: none
+// Clobbers: x0, x1, x2, x3, x4, x16, x19, x20
+// Notes:  Converts number to decimal string and prints via print_str
+// ----------------------------------------------------------------------------
 print_num:
     stp     x29, x30, [sp, #-16]!
     stp     x19, x20, [sp, #-16]!
@@ -744,27 +763,29 @@ print_num:
     mov     x19, x0
     adrp    x20, num_buffer@PAGE
     add     x20, x20, num_buffer@PAGEOFF
-    add     x20, x20, #30
-    strb    wzr, [x20]
+    add     x20, x20, #30             // Start at end of buffer
+    strb    wzr, [x20]                // Null terminator
 
-    cbz     x19, print_zero
+    cbz     x19, print_num_zero
 
+    // Convert digits in reverse order (least significant first)
     mov     x2, #10
-1:  sub     x20, x20, #1
-    udiv    x3, x19, x2
-    msub    x4, x3, x2, x19
-    add     w4, w4, #'0'
+convert_digit_loop:
+    sub     x20, x20, #1
+    udiv    x3, x19, x2               // quotient
+    msub    x4, x3, x2, x19           // remainder = n - (quotient * 10)
+    add     w4, w4, #'0'              // Convert to ASCII
     strb    w4, [x20]
     mov     x19, x3
-    cbnz    x19, 1b
-    b       print_done
+    cbnz    x19, convert_digit_loop
+    b       print_num_output
 
-print_zero:
+print_num_zero:
     sub     x20, x20, #1
     mov     w4, #'0'
     strb    w4, [x20]
 
-print_done:
+print_num_output:
     mov     x0, x20
     bl      print_str
 

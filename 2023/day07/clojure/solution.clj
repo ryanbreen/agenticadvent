@@ -10,25 +10,30 @@
        (map #(str/split % #"\s+"))
        (map (fn [[hand bid]] [hand (parse-long bid)]))))
 
-(defn get-hand-type
-  "Return hand type as integer (higher = stronger).
+(defn counts->hand-type
+  "Convert sorted frequency counts to hand type integer.
    6=five-of-a-kind, 5=four-of-a-kind, 4=full-house,
    3=three-of-a-kind, 2=two-pair, 1=one-pair, 0=high-card"
+  [counts]
+  (condp = counts
+    [5]          6  ; Five of a kind
+    [4 1]        5  ; Four of a kind
+    [3 2]        4  ; Full house
+    [3 1 1]      3  ; Three of a kind
+    [2 2 1]      2  ; Two pair
+    [2 1 1 1]    1  ; One pair
+    [1 1 1 1 1]  0  ; High card
+    0))             ; Default fallback
+
+(defn get-hand-type
+  "Return hand type as integer (higher = stronger)."
   [hand]
-  (let [counts (->> hand
-                    frequencies
-                    vals
-                    (sort >)
-                    vec)]
-    (condp = counts
-      [5]          6  ; Five of a kind
-      [4 1]        5  ; Four of a kind
-      [3 2]        4  ; Full house
-      [3 1 1]      3  ; Three of a kind
-      [2 2 1]      2  ; Two pair
-      [2 1 1 1]    1  ; One pair
-      [1 1 1 1 1]  0  ; High card
-      0)))            ; Default fallback
+  (->> hand
+       frequencies
+       vals
+       (sort >)
+       vec
+       counts->hand-type))
 
 (defn hand-key
   "Return sort key for a hand (type, then card strengths)."
@@ -40,12 +45,12 @@
 (defn get-hand-type-with-jokers
   "Return hand type with J as wildcards (higher = stronger)."
   [hand]
-  (let [joker-count (count (filter #(= % \J) hand))]
+  (let [joker-count (count (filter #{\J} hand))]
     (cond
       (= joker-count 0) (get-hand-type hand)
       (= joker-count 5) 6  ; Five of a kind
       :else
-      (let [non-jokers (filter #(not= % \J) hand)
+      (let [non-jokers (remove #{\J} hand)
             counts (->> non-jokers
                         frequencies
                         vals
@@ -53,15 +58,7 @@
                         vec)
             ;; Add jokers to the highest count
             adjusted-counts (update counts 0 + joker-count)]
-        (condp = adjusted-counts
-          [5]          6  ; Five of a kind
-          [4 1]        5  ; Four of a kind
-          [3 2]        4  ; Full house
-          [3 1 1]      3  ; Three of a kind
-          [2 2 1]      2  ; Two pair
-          [2 1 1 1]    1  ; One pair
-          [1 1 1 1 1]  0  ; High card
-          0)))))
+        (counts->hand-type adjusted-counts)))))
 
 (defn hand-key-with-jokers
   "Return sort key for a hand with joker rules."
