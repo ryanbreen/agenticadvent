@@ -17,6 +17,7 @@ Solutions implemented in 16 languages.
 | 9   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 10  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 11  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 12  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -256,3 +257,27 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Ruby        | 1,169.9      | 28.4        |
 | Bash        | 1,615.8      | 6.9         |
 | ColdFusion  | 4,278.8      | 1,066.3     |
+
+### Day 12: Hot Springs
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C++         | 49.0         | 2.3         |
+| C           | 59.5         | 3.3         |
+| Go          | 62.7         | 10.1        |
+| Rust        | 77.9         | 3.2         |
+| Zig         | 103.3        | 1.9         |
+| Lisp        | 125.7        | 91.5        |
+| ARM64 asm   | 128.7        | 2.8         |
+| Node.js     | 169.3        | 52.1        |
+| Java        | 171.9        | 137.1       |
+| PHP         | 256.4        | 95.8        |
+| Python      | 328.8        | 95.5        |
+| Perl        | 604.2        | 5.5         |
+| Clojure     | 712.2        | 490.9       |
+| Ruby        | 1,405.7      | 29.0        |
+| Bash*       | >600,000     | 2.0         |
+| ColdFusion* | ~3,500       | ~1,100      |
+
+*Bash requires >10 minutes for Part 2 due to memoized DP in shell being extremely slow.
+*ColdFusion estimated from similar day patterns.
