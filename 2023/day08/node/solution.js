@@ -22,18 +22,19 @@ function parseInput(text) {
     return { instructions, network };
 }
 
+const DIR = { L: 0, R: 1 };
+
+function step(network, node, instruction) {
+    return network.get(node)[DIR[instruction]];
+}
+
 function part1(instructions, network) {
     let current = 'AAA';
     let steps = 0;
     const instructionLen = instructions.length;
 
     while (current !== 'ZZZ') {
-        const instruction = instructions[steps % instructionLen];
-        if (instruction === 'L') {
-            current = network.get(current)[0];
-        } else {
-            current = network.get(current)[1];
-        }
+        current = step(network, current, instructions[steps % instructionLen]);
         steps++;
     }
 
@@ -63,24 +64,15 @@ function part2(instructions, network) {
         let steps = 0;
 
         while (!current.endsWith('Z')) {
-            const instruction = instructions[steps % instructionLen];
-            if (instruction === 'L') {
-                current = network.get(current)[0];
-            } else {
-                current = network.get(current)[1];
-            }
+            current = step(network, current, instructions[steps % instructionLen]);
             steps++;
         }
         cycleLengths.push(BigInt(steps));
     }
 
-    // Find LCM of all cycle lengths
-    let result = cycleLengths[0];
-    for (let i = 1; i < cycleLengths.length; i++) {
-        result = lcm(result, cycleLengths[i]);
-    }
-
-    return result;
+    // Each ghost cycles with a fixed period. All ghosts align at Z-nodes
+    // simultaneously at the LCM of their individual cycle lengths.
+    return cycleLengths.reduce((acc, len) => lcm(acc, len));
 }
 
 function main() {

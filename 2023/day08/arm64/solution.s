@@ -195,6 +195,16 @@ encode_node:
 // ============================================================================
 
 // parse_input: Parse the input file
+//
+// Register allocation:
+//   x19 = buffer pointer (current position)
+//   x20 = instructions base address
+//   x21 = instruction length counter
+//   x22 = network base address
+//   x23 = start_nodes base address
+//   x24 = start node count
+//   x25 = current node index
+//   x26 = left node index
 parse_input:
     stp     x29, x30, [sp, #-16]!
     stp     x19, x20, [sp, #-16]!
@@ -340,6 +350,14 @@ parse_done:
 
 // part1: Navigate from AAA to ZZZ
 // Output: x0 = number of steps
+//
+// Register allocation:
+//   x19 = network base address
+//   x20 = instructions base address
+//   x21 = instruction length
+//   x22 = current node index
+//   x23 = target node index (ZZZ)
+//   x24 = step counter
 part1:
     stp     x29, x30, [sp, #-16]!
     stp     x19, x20, [sp, #-16]!
@@ -356,12 +374,10 @@ part1:
     add     x0, x0, instr_len@PAGEOFF
     ldr     x21, [x0]                 // instruction length
 
-    // Encode "AAA" -> start node
-    // A = 10, so AAA = 10*36*36 + 10*36 + 10 = 12960 + 360 + 10 = 13330
+    // AAA encoded: A=10, so 10*36*36 + 10*36 + 10 = 13330
     mov     x22, #13330               // current node = AAA
 
-    // Encode "ZZZ" -> target node
-    // Z = 35, so ZZZ = 35*36*36 + 35*36 + 35 = 45360 + 1260 + 35 = 46655
+    // ZZZ encoded: Z=35, so 35*36*36 + 35*36 + 35 = 46655
     mov     x23, #46655               // target = ZZZ
 
     mov     x24, #0                   // steps
@@ -407,10 +423,10 @@ part1_done:
 // Check if node ends with 'Z'
 // Input: x0 = node index
 // Output: x0 = 1 if ends with Z, 0 otherwise
+//
+// Node encoding: index = c1*36*36 + c2*36 + c3
+// Last char c3 = index % 36; Z='Z'-'A'+10 = 35
 ends_with_z:
-    // Node index = c1*36*36 + c2*36 + c3
-    // c3 = index % 36
-    // Z = 35
     mov     x1, #36
     udiv    x2, x0, x1
     msub    x0, x2, x1, x0            // c3 = index % 36
@@ -421,11 +437,18 @@ ends_with_z:
 // find_cycle_length: Find steps to reach a node ending in 'Z'
 // Input: x0 = starting node index
 // Output: x0 = cycle length
+//
+// Register allocation:
+//   x19 = network base address
+//   x20 = instructions base address
+//   x21 = instruction length
+//   x22 = current node index
+//   x23 = step counter
 find_cycle_length:
     stp     x29, x30, [sp, #-16]!
     stp     x19, x20, [sp, #-16]!
     stp     x21, x22, [sp, #-16]!
-    stp     x23, x24, [sp, #-16]!
+    str     x23, [sp, #-16]!
 
     mov     x22, x0                   // current node
 
@@ -439,7 +462,7 @@ find_cycle_length:
     add     x0, x0, instr_len@PAGEOFF
     ldr     x21, [x0]                 // instruction length
 
-    mov     x24, #0                   // steps
+    mov     x23, #0                   // steps
 
 find_cycle_loop:
     // Check if current ends with 'Z'
@@ -448,8 +471,8 @@ find_cycle_loop:
     cbnz    x0, find_cycle_done
 
     // Get instruction
-    udiv    x0, x24, x21
-    msub    x0, x0, x21, x24          // step % instr_len
+    udiv    x0, x23, x21
+    msub    x0, x0, x21, x23          // step % instr_len
     ldrb    w1, [x20, x0]             // 'L' or 'R'
 
     // Get network entry for current node
@@ -465,13 +488,13 @@ cycle_go_left:
     ldr     w22, [x0]                 // left
 
 cycle_step_done:
-    add     x24, x24, #1
+    add     x23, x23, #1
     b       find_cycle_loop
 
 find_cycle_done:
-    mov     x0, x24
+    mov     x0, x23
 
-    ldp     x23, x24, [sp], #16
+    ldr     x23, [sp], #16
     ldp     x21, x22, [sp], #16
     ldp     x19, x20, [sp], #16
     ldp     x29, x30, [sp], #16
@@ -514,11 +537,18 @@ lcm:
 
 // part2: Find LCM of all cycle lengths
 // Output: x0 = steps until all paths end on 'Z'
+//
+// Register allocation:
+//   x19 = start_nodes base address
+//   x20 = number of starting nodes
+//   x21 = cycle_lengths base address
+//   x22 = loop counter (i)
+//   x23 = running LCM result
 part2:
     stp     x29, x30, [sp, #-16]!
     stp     x19, x20, [sp, #-16]!
     stp     x21, x22, [sp, #-16]!
-    stp     x23, x24, [sp, #-16]!
+    str     x23, [sp, #-16]!
 
     adrp    x19, start_nodes@PAGE
     add     x19, x19, start_nodes@PAGEOFF
@@ -568,7 +598,7 @@ lcm_loop:
 part2_done:
     mov     x0, x23
 
-    ldp     x23, x24, [sp], #16
+    ldr     x23, [sp], #16
     ldp     x21, x22, [sp], #16
     ldp     x19, x20, [sp], #16
     ldp     x29, x30, [sp], #16

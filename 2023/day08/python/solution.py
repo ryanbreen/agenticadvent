@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-import sys
+"""Advent of Code 2023 Day 8: Haunted Wasteland"""
+import itertools
+import math
 from pathlib import Path
+from typing import Callable
 
-def parse_input(text):
+
+def parse_input(text: str) -> tuple[str, dict[str, tuple[str, str]]]:
     """Parse the input into instructions and network."""
     lines = text.strip().split('\n')
     instructions = lines[0]
 
-    network = {}
+    network: dict[str, tuple[str, str]] = {}
     for line in lines[2:]:
         if not line.strip():
             continue
@@ -19,60 +23,44 @@ def parse_input(text):
     return instructions, network
 
 
-def part1(instructions, network):
+def navigate(
+    start: str,
+    instructions: str,
+    network: dict[str, tuple[str, str]],
+    is_end: Callable[[str], bool]
+) -> int:
+    """Navigate from start node until is_end condition is met, returning step count."""
+    current = start
+    for steps, instruction in enumerate(itertools.cycle(instructions)):
+        if is_end(current):
+            return steps
+        current = network[current][0 if instruction == 'L' else 1]
+    return 0  # unreachable, satisfies type checker
+
+
+def part1(instructions: str, network: dict[str, tuple[str, str]]) -> int:
     """Navigate from AAA to ZZZ following L/R instructions."""
-    current = 'AAA'
-    steps = 0
-    instruction_len = len(instructions)
-
-    while current != 'ZZZ':
-        instruction = instructions[steps % instruction_len]
-        if instruction == 'L':
-            current = network[current][0]
-        else:
-            current = network[current][1]
-        steps += 1
-
-    return steps
+    return navigate('AAA', instructions, network, lambda n: n == 'ZZZ')
 
 
-def part2(instructions, network):
+def part2(instructions: str, network: dict[str, tuple[str, str]]) -> int:
     """Navigate all nodes ending in A simultaneously to nodes ending in Z."""
     # Find all starting nodes (ending in A)
-    current_nodes = [node for node in network if node.endswith('A')]
+    starting_nodes = [node for node in network if node.endswith('A')]
 
     # For each starting node, find the cycle length to reach a Z node
     # This works because of the structure of the input - each starting node
     # reaches exactly one Z node in a regular cycle
-    from math import gcd
-
-    def lcm(a, b):
-        return a * b // gcd(a, b)
-
-    cycle_lengths = []
-    instruction_len = len(instructions)
-
-    for node in current_nodes:
-        current = node
-        steps = 0
-        while not current.endswith('Z'):
-            instruction = instructions[steps % instruction_len]
-            if instruction == 'L':
-                current = network[current][0]
-            else:
-                current = network[current][1]
-            steps += 1
-        cycle_lengths.append(steps)
+    cycle_lengths = [
+        navigate(node, instructions, network, lambda n: n.endswith('Z'))
+        for node in starting_nodes
+    ]
 
     # Find LCM of all cycle lengths
-    result = cycle_lengths[0]
-    for length in cycle_lengths[1:]:
-        result = lcm(result, length)
-
-    return result
+    return math.lcm(*cycle_lengths)
 
 
-def main():
+def main() -> None:
     input_path = Path(__file__).parent.parent / 'input.txt'
     text = input_path.read_text()
 

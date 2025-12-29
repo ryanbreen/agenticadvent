@@ -49,13 +49,13 @@ func parseInput(filename string) (string, map[string]Node, error) {
 	return instructions, network, scanner.Err()
 }
 
-// part1 navigates from AAA to ZZZ following L/R instructions
-func part1(instructions string, network map[string]Node) int {
-	current := "AAA"
+// navigate follows instructions from start until endCondition returns true
+func navigate(start, instructions string, network map[string]Node, endCondition func(string) bool) int {
+	current := start
 	steps := 0
 	instructionLen := len(instructions)
 
-	for current != "ZZZ" {
+	for !endCondition(current) {
 		instruction := instructions[steps%instructionLen]
 		if instruction == 'L' {
 			current = network[current].Left
@@ -68,6 +68,13 @@ func part1(instructions string, network map[string]Node) int {
 	return steps
 }
 
+// part1 navigates from AAA to ZZZ following L/R instructions
+func part1(instructions string, network map[string]Node) int {
+	return navigate("AAA", instructions, network, func(node string) bool {
+		return node == "ZZZ"
+	})
+}
+
 // gcd calculates the greatest common divisor
 func gcd(a, b int) int {
 	for b != 0 {
@@ -76,9 +83,14 @@ func gcd(a, b int) int {
 	return a
 }
 
-// lcm calculates the least common multiple
+// lcm calculates the least common multiple (overflow-safe: divide before multiply)
 func lcm(a, b int) int {
-	return a * b / gcd(a, b)
+	return a / gcd(a, b) * b
+}
+
+// endsWithZ returns true if the node name ends with 'Z'
+func endsWithZ(node string) bool {
+	return strings.HasSuffix(node, "Z")
 }
 
 // part2 navigates all nodes ending in A simultaneously to nodes ending in Z
@@ -91,23 +103,11 @@ func part2(instructions string, network map[string]Node) int {
 		}
 	}
 
-	instructionLen := len(instructions)
 	cycleLengths := make([]int, 0, len(startingNodes))
 
 	// For each starting node, find the cycle length to reach a Z node
 	for _, node := range startingNodes {
-		current := node
-		steps := 0
-		for !strings.HasSuffix(current, "Z") {
-			instruction := instructions[steps%instructionLen]
-			if instruction == 'L' {
-				current = network[current].Left
-			} else {
-				current = network[current].Right
-			}
-			steps++
-		}
-		cycleLengths = append(cycleLengths, steps)
+		cycleLengths = append(cycleLengths, navigate(node, instructions, network, endsWithZ))
 	}
 
 	// Find LCM of all cycle lengths

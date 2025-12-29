@@ -54,64 +54,58 @@ component {
         return {instructions: instructions, network: network};
     }
 
-    function part1(instructions, network) {
-        // Navigate from AAA to ZZZ following L/R instructions
-        var current = "AAA";
-        var steps = 0;
+    function traverse(startNode, endCondition, instructions, network) {
+        // Navigate from startNode until endCondition is met
+        var currentNode = startNode;
+        var stepCount = 0;
         var instructionLen = len(instructions);
 
-        while (current != "ZZZ") {
-            var idx = (steps mod instructionLen) + 1;
-            var instruction = mid(instructions, idx, 1);
+        while (!endCondition(currentNode)) {
+            var instructionIdx = (stepCount mod instructionLen) + 1;
+            var direction = mid(instructions, instructionIdx, 1);
 
-            if (instruction == "L") {
-                current = network[current].left;
+            if (direction == "L") {
+                currentNode = network[currentNode].left;
             } else {
-                current = network[current].right;
+                currentNode = network[currentNode].right;
             }
-            steps++;
+            stepCount++;
         }
 
-        return steps;
+        return stepCount;
+    }
+
+    function part1(instructions, network) {
+        // Navigate from AAA to ZZZ following L/R instructions
+        var isEndNode = function(node) {
+            return node == "ZZZ";
+        };
+
+        return traverse("AAA", isEndNode, instructions, network);
     }
 
     function part2(instructions, network) {
-        // Find all starting nodes (ending in A)
-        var startNodes = [];
-        var allKeys = structKeyArray(network);
-        for (var k = 1; k <= arrayLen(allKeys); k++) {
-            var nodeName = allKeys[k];
-            if (right(nodeName, 1) == "A") {
-                arrayAppend(startNodes, nodeName);
-            }
-        }
+        // Find all starting nodes (ending in A) using arrayFilter
+        var startNodes = arrayFilter(structKeyArray(network), function(node) {
+            return right(node, 1) == "A";
+        });
+
+        // Define end condition for Part 2 (node ends in Z)
+        var isEndNode = function(node) {
+            return right(node, 1) == "Z";
+        };
 
         // For each starting node, find the cycle length to reach a Z node
         var cycleLengths = [];
-        var instructionLen = len(instructions);
-
-        for (var j = 1; j <= arrayLen(startNodes); j++) {
-            var current = startNodes[j];
-            var steps = 0;
-
-            while (right(current, 1) != "Z") {
-                var idx = (steps mod instructionLen) + 1;
-                var instruction = mid(instructions, idx, 1);
-
-                if (instruction == "L") {
-                    current = network[current].left;
-                } else {
-                    current = network[current].right;
-                }
-                steps++;
-            }
-            arrayAppend(cycleLengths, steps);
+        for (var nodeIdx = 1; nodeIdx <= arrayLen(startNodes); nodeIdx++) {
+            var cycleLength = traverse(startNodes[nodeIdx], isEndNode, instructions, network);
+            arrayAppend(cycleLengths, cycleLength);
         }
 
         // Find LCM of all cycle lengths
         var result = cycleLengths[1];
-        for (var i = 2; i <= arrayLen(cycleLengths); i++) {
-            result = lcm(result, cycleLengths[i]);
+        for (var cycleIdx = 2; cycleIdx <= arrayLen(cycleLengths); cycleIdx++) {
+            result = lcm(result, cycleLengths[cycleIdx]);
         }
 
         return result;

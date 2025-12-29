@@ -9,19 +9,37 @@ fn parseNodeName(slice: []const u8) [3]u8 {
     return .{ slice[0], slice[1], slice[2] };
 }
 
-fn gcd(a: u64, b: u64) u64 {
-    var x = a;
-    var y = b;
-    while (y != 0) {
-        const temp = y;
-        y = x % y;
-        x = temp;
-    }
-    return x;
+fn lcm(a: u64, b: u64) u64 {
+    return a / std.math.gcd(a, b) * b;
 }
 
-fn lcm(a: u64, b: u64) u64 {
-    return a / gcd(a, b) * b;
+/// Navigate from a starting node until the predicate returns true.
+/// Returns the number of steps taken.
+fn navigate(
+    network: std.AutoHashMap([3]u8, Node),
+    instructions: []const u8,
+    start: [3]u8,
+    comptime isEnd: fn ([3]u8) bool,
+) !u64 {
+    var current = start;
+    var steps: u64 = 0;
+
+    while (!isEnd(current)) {
+        const instruction = instructions[steps % instructions.len];
+        const node = network.get(current) orelse return error.NodeNotFound;
+        current = if (instruction == 'L') node.left else node.right;
+        steps += 1;
+    }
+
+    return steps;
+}
+
+fn isZZZ(node: [3]u8) bool {
+    return std.mem.eql(u8, &node, &[3]u8{ 'Z', 'Z', 'Z' });
+}
+
+fn endsWithZ(node: [3]u8) bool {
+    return node[2] == 'Z';
 }
 
 pub fn main() !void {
@@ -48,6 +66,7 @@ pub fn main() !void {
     defer starting_nodes.deinit(allocator);
 
     while (lines.next()) |line| {
+        // Minimum valid line: "AAA = (BBB, CCC)" is 16 characters
         if (line.len < 16) continue;
 
         // Parse: AAA = (BBB, CCC)
@@ -64,35 +83,14 @@ pub fn main() !void {
     }
 
     // Part 1: Navigate from AAA to ZZZ
-    var current: [3]u8 = .{ 'A', 'A', 'A' };
-    const target: [3]u8 = .{ 'Z', 'Z', 'Z' };
-    var steps: u64 = 0;
-
-    while (!std.mem.eql(u8, &current, &target)) {
-        const instruction = instructions[steps % instructions.len];
-        const node = network.get(current) orelse return error.NodeNotFound;
-        current = if (instruction == 'L') node.left else node.right;
-        steps += 1;
-    }
-
-    std.debug.print("Part 1: {}\n", .{steps});
+    const part1 = try navigate(network, instructions, .{ 'A', 'A', 'A' }, isZZZ);
+    std.debug.print("Part 1: {}\n", .{part1});
 
     // Part 2: Find LCM of all cycle lengths
     var result: u64 = 1;
-
     for (starting_nodes.items) |start_node| {
-        var node = start_node;
-        var cycle_steps: u64 = 0;
-
-        while (node[2] != 'Z') {
-            const instruction = instructions[cycle_steps % instructions.len];
-            const network_node = network.get(node) orelse return error.NodeNotFound;
-            node = if (instruction == 'L') network_node.left else network_node.right;
-            cycle_steps += 1;
-        }
-
+        const cycle_steps = try navigate(network, instructions, start_node, endsWithZ);
         result = lcm(result, cycle_steps);
     }
-
     std.debug.print("Part 2: {}\n", .{result});
 }

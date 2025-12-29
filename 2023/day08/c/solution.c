@@ -5,6 +5,8 @@
 
 #define MAX_NODES 1024
 #define NAME_LEN 4
+/* Instruction buffer sized for typical AoC inputs (usually <400 chars) */
+#define MAX_INSTRUCTIONS 512
 
 typedef struct {
     char name[NAME_LEN];
@@ -16,7 +18,7 @@ typedef struct {
 
 static Node nodes[MAX_NODES];
 static int node_count = 0;
-static char instructions[512];
+static char instructions[MAX_INSTRUCTIONS];
 static int instruction_len = 0;
 
 static int find_node_index(const char *name) {
@@ -120,6 +122,7 @@ int main(void) {
     }
 
     if (fgets(instructions, sizeof(instructions), fp) == NULL) {
+        fprintf(stderr, "Error: failed to read instructions line\n");
         fclose(fp);
         return 1;
     }
@@ -134,11 +137,20 @@ int main(void) {
     while (fgets(line, sizeof(line), fp)) {
         if (strlen(line) < 10) continue;
 
+        if (node_count >= MAX_NODES) {
+            fprintf(stderr, "Error: exceeded maximum node count (%d)\n", MAX_NODES);
+            break;
+        }
+
         char name[NAME_LEN], left[NAME_LEN], right[NAME_LEN];
         if (sscanf(line, "%3s = (%3s, %3s)", name, left, right) == 3) {
             strncpy(nodes[node_count].name, name, NAME_LEN);
             strncpy(nodes[node_count].left, left, NAME_LEN);
             strncpy(nodes[node_count].right, right, NAME_LEN);
+            /* Ensure null-termination (strncpy may not terminate if src >= n) */
+            nodes[node_count].name[NAME_LEN - 1] = '\0';
+            nodes[node_count].left[NAME_LEN - 1] = '\0';
+            nodes[node_count].right[NAME_LEN - 1] = '\0';
             node_count++;
         }
     }

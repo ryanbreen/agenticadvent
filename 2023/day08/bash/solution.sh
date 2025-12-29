@@ -1,18 +1,17 @@
 #!/bin/bash
+# Requires bash 4.0+ for associative arrays
 
 # Day 8: Haunted Wasteland
 # Navigate network using L/R instructions
-# Compatible with bash 3.x (macOS default)
 
 input_file="../input.txt"
 
-# Read input line by line
+# Read input
 instructions=""
 line_num=0
-declare -a nodes
-declare -a lefts
-declare -a rights
-node_count=0
+declare -A left_map
+declare -A right_map
+declare -a all_nodes
 
 while IFS= read -r line || [[ -n "$line" ]]; do
     if [[ $line_num -eq 0 ]]; then
@@ -25,84 +24,68 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         left="${rest%%, *}"
         right="${rest##*, }"
 
-        nodes[$node_count]="$node"
-        lefts[$node_count]="$left"
-        rights[$node_count]="$right"
-        ((node_count++))
+        left_map["$node"]="$left"
+        right_map["$node"]="$right"
+        all_nodes+=("$node")
     fi
     ((line_num++))
 done < "$input_file"
 
 instructions_len=${#instructions}
 
-# Function to find index of a node
-find_node_index() {
-    local target=$1
-    for ((i = 0; i < node_count; i++)); do
-        if [[ "${nodes[i]}" == "$target" ]]; then
-            echo "$i"
-            return
-        fi
+# GCD using iterative Euclidean algorithm
+gcd() {
+    local a=$1 b=$2
+    while [[ $b -ne 0 ]]; do
+        local t=$b
+        b=$((a % b))
+        a=$t
     done
-    echo "-1"
+    echo "$a"
+}
+
+# LCM computed from GCD
+lcm() {
+    local a=$1 b=$2
+    local g
+    g=$(gcd "$a" "$b")
+    echo $((a / g * b))
 }
 
 # Part 1: Navigate from AAA to ZZZ
 part1() {
     local current="AAA"
     local steps=0
-    local current_idx
-    current_idx=$(find_node_index "$current")
 
     while [[ "$current" != "ZZZ" ]]; do
         local idx=$((steps % instructions_len))
         local direction="${instructions:idx:1}"
 
         if [[ "$direction" == "L" ]]; then
-            current="${lefts[current_idx]}"
+            current="${left_map[$current]}"
         else
-            current="${rights[current_idx]}"
+            current="${right_map[$current]}"
         fi
-        current_idx=$(find_node_index "$current")
         ((steps++))
     done
 
     echo "$steps"
 }
 
-# GCD using bc for arbitrary precision
-gcd() {
-    local a=$1
-    local b=$2
-    echo "define gcd(a,b) { if (b==0) return a; return gcd(b, a%b); }; gcd($a,$b)" | bc
-}
-
-# LCM using bc for arbitrary precision
-lcm() {
-    local a=$1
-    local b=$2
-    local g
-    g=$(gcd "$a" "$b")
-    echo "$a * $b / $g" | bc
-}
-
 # Part 2: Navigate all nodes ending in A to nodes ending in Z simultaneously
 part2() {
     # Find all starting nodes (ending in A)
     local -a start_nodes=()
-    local -a start_indices=()
-    for ((i = 0; i < node_count; i++)); do
-        if [[ "${nodes[i]}" == *A ]]; then
-            start_nodes+=("${nodes[i]}")
-            start_indices+=("$i")
+    for node in "${all_nodes[@]}"; do
+        if [[ "$node" == *A ]]; then
+            start_nodes+=("$node")
         fi
     done
 
     # Find cycle length for each starting node
     local -a cycle_lengths=()
-    for ((j = 0; j < ${#start_nodes[@]}; j++)); do
-        local current="${start_nodes[j]}"
-        local current_idx="${start_indices[j]}"
+    for start in "${start_nodes[@]}"; do
+        local current="$start"
         local steps=0
 
         # Navigate until we reach a node ending in Z
@@ -111,11 +94,10 @@ part2() {
             local direction="${instructions:idx:1}"
 
             if [[ "$direction" == "L" ]]; then
-                current="${lefts[current_idx]}"
+                current="${left_map[$current]}"
             else
-                current="${rights[current_idx]}"
+                current="${right_map[$current]}"
             fi
-            current_idx=$(find_node_index "$current")
             ((steps++))
         done
 

@@ -18,40 +18,32 @@ def parse_input(text)
   [instructions, network]
 end
 
-def part1(instructions, network)
-  current = 'AAA'
-  steps = 0
-  instruction_len = instructions.length
+DIR_INDEX = { 'L' => 0, 'R' => 1 }.freeze
 
-  while current != 'ZZZ'
-    instruction = instructions[steps % instruction_len]
-    current = instruction == 'L' ? network[current][0] : network[current][1]
-    steps += 1
+def navigate_until(start, instructions, network, &goal_reached)
+  current = start
+  instructions.chars.cycle.with_index do |dir, steps|
+    return steps if goal_reached.call(current)
+
+    current = network[current][DIR_INDEX[dir]]
   end
+end
 
-  steps
+def part1(instructions, network)
+  navigate_until('AAA', instructions, network) { |node| node == 'ZZZ' }
 end
 
 def part2(instructions, network)
   # Find all starting nodes (ending in A)
-  current_nodes = network.keys.select { |node| node.end_with?('A') }
-
-  instruction_len = instructions.length
+  start_nodes = network.keys.select { |node| node.end_with?('A') }
 
   # For each starting node, find the cycle length to reach a Z node
-  cycle_lengths = current_nodes.map do |node|
-    current = node
-    steps = 0
-    until current.end_with?('Z')
-      instruction = instructions[steps % instruction_len]
-      current = instruction == 'L' ? network[current][0] : network[current][1]
-      steps += 1
-    end
-    steps
+  cycle_lengths = start_nodes.map do |node|
+    navigate_until(node, instructions, network) { |n| n.end_with?('Z') }
   end
 
   # Find LCM of all cycle lengths
-  cycle_lengths.reduce(1) { |acc, length| acc.lcm(length) }
+  cycle_lengths.reduce(1, :lcm)
 end
 
 def main

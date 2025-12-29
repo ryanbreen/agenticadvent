@@ -11,7 +11,7 @@ fn lcm(a: u64, b: u64) -> u64 {
 
 fn parse_input(text: &str) -> (&str, HashMap<&str, (&str, &str)>) {
     let mut lines = text.lines();
-    let instructions = lines.next().unwrap();
+    let instructions = lines.next().expect("Expected instructions line");
     lines.next(); // Skip empty line
 
     let mut network = HashMap::new();
@@ -20,35 +20,46 @@ fn parse_input(text: &str) -> (&str, HashMap<&str, (&str, &str)>) {
             continue;
         }
         // Parse: AAA = (BBB, CCC)
-        let (node, rest) = line.split_once(" = ").unwrap();
-        let rest = &rest[1..rest.len() - 1]; // Remove parentheses
-        let (left, right) = rest.split_once(", ").unwrap();
+        let (node, rest) = line.split_once(" = ").expect("Expected ' = ' separator");
+        let rest = rest.trim_start_matches('(').trim_end_matches(')');
+        let (left, right) = rest.split_once(", ").expect("Expected ', ' separator");
         network.insert(node, (left, right));
     }
 
     (instructions, network)
 }
 
-fn part1(instructions: &str, network: &HashMap<&str, (&str, &str)>) -> u64 {
-    let mut current = "AAA";
+/// Navigate from a starting node until the goal predicate is satisfied.
+/// Returns the number of steps taken.
+fn navigate<F>(
+    instructions: &str,
+    network: &HashMap<&str, (&str, &str)>,
+    start: &str,
+    is_goal: F,
+) -> u64
+where
+    F: Fn(&str) -> bool,
+{
+    let mut current = start;
     let mut steps = 0u64;
-    let instruction_bytes = instructions.as_bytes();
-    let instruction_len = instruction_bytes.len();
 
-    while current != "ZZZ" {
-        let instruction = instruction_bytes[steps as usize % instruction_len];
-        let (left, right) = network.get(current).unwrap();
-        current = if instruction == b'L' { left } else { right };
+    for instruction in instructions.chars().cycle() {
+        if is_goal(current) {
+            break;
+        }
+        let (left, right) = network.get(current).expect("Node not found in network");
+        current = if instruction == 'L' { left } else { right };
         steps += 1;
     }
 
     steps
 }
 
-fn part2(instructions: &str, network: &HashMap<&str, (&str, &str)>) -> u64 {
-    let instruction_bytes = instructions.as_bytes();
-    let instruction_len = instruction_bytes.len();
+fn part1(instructions: &str, network: &HashMap<&str, (&str, &str)>) -> u64 {
+    navigate(instructions, network, "AAA", |node| node == "ZZZ")
+}
 
+fn part2(instructions: &str, network: &HashMap<&str, (&str, &str)>) -> u64 {
     // Find all starting nodes (ending in 'A')
     let starting_nodes: Vec<&str> = network
         .keys()
@@ -59,21 +70,11 @@ fn part2(instructions: &str, network: &HashMap<&str, (&str, &str)>) -> u64 {
     // For each starting node, find the cycle length to reach a Z node
     let cycle_lengths: Vec<u64> = starting_nodes
         .iter()
-        .map(|&start| {
-            let mut current = start;
-            let mut steps = 0u64;
-            while !current.ends_with('Z') {
-                let instruction = instruction_bytes[steps as usize % instruction_len];
-                let (left, right) = network.get(current).unwrap();
-                current = if instruction == b'L' { left } else { right };
-                steps += 1;
-            }
-            steps
-        })
+        .map(|&start| navigate(instructions, network, start, |node| node.ends_with('Z')))
         .collect();
 
     // Find LCM of all cycle lengths
-    cycle_lengths.iter().fold(1u64, |acc, &len| lcm(acc, len))
+    cycle_lengths.into_iter().reduce(lcm).unwrap_or(1)
 }
 
 fn main() {

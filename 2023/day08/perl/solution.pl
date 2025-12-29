@@ -1,94 +1,66 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Math::BigInt;
+use List::Util qw(reduce);
 
-# Read input file
+# Direction mapping: L -> 0 (left), R -> 1 (right)
+my %dir = (L => 0, R => 1);
+
+# Read and parse input
 my $input_file = '../input.txt';
 open my $fh, '<', $input_file or die "Cannot open $input_file: $!";
 my @lines = <$fh>;
 close $fh;
 chomp @lines;
 
-# Parse input
-my $instructions = shift @lines;
+my @instructions = map { $dir{$_} } split //, shift @lines;
 shift @lines;  # Skip blank line
 
 my %network;
 for my $line (@lines) {
-    next unless $line =~ /\S/;
-    # Parse: AAA = (BBB, CCC)
     if ($line =~ /^(\w+)\s*=\s*\((\w+),\s*(\w+)\)/) {
         $network{$1} = [$2, $3];
     }
 }
 
-# Part 1: Navigate from AAA to ZZZ
-sub part1 {
-    my $current = 'AAA';
+# Navigate from a starting node until reaching a node matching the end pattern
+sub navigate {
+    my ($start, $end_pattern) = @_;
+    my $current = $start;
     my $steps = 0;
-    my $instruction_len = length($instructions);
+    my $num_instructions = @instructions;
 
-    while ($current ne 'ZZZ') {
-        my $instruction = substr($instructions, $steps % $instruction_len, 1);
-        if ($instruction eq 'L') {
-            $current = $network{$current}[0];
-        } else {
-            $current = $network{$current}[1];
-        }
+    while ($current !~ $end_pattern) {
+        $current = $network{$current}[$instructions[$steps % $num_instructions]];
         $steps++;
     }
 
     return $steps;
 }
 
-# GCD function
+# GCD using Euclidean algorithm
 sub gcd {
     my ($a, $b) = @_;
-    while ($b) {
-        ($a, $b) = ($b, $a % $b);
-    }
+    ($a, $b) = ($b, $a % $b) while $b;
     return $a;
 }
 
-# LCM function using Math::BigInt for large numbers
+# LCM of two numbers
 sub lcm {
     my ($a, $b) = @_;
-    $a = Math::BigInt->new($a) unless ref($a) eq 'Math::BigInt';
-    $b = Math::BigInt->new($b) unless ref($b) eq 'Math::BigInt';
-    return $a * $b / gcd($a, $b);
+    return $a / gcd($a, $b) * $b;
 }
 
-# Part 2: Navigate all nodes ending in A simultaneously to nodes ending in Z
+# Part 1: Navigate from AAA to ZZZ
+sub part1 {
+    return navigate('AAA', qr/^ZZZ$/);
+}
+
+# Part 2: Find when all ghost paths align at nodes ending in Z
 sub part2 {
     my @starting_nodes = grep { /A$/ } keys %network;
-    my $instruction_len = length($instructions);
-
-    my @cycle_lengths;
-
-    for my $node (@starting_nodes) {
-        my $current = $node;
-        my $steps = 0;
-
-        while ($current !~ /Z$/) {
-            my $instruction = substr($instructions, $steps % $instruction_len, 1);
-            if ($instruction eq 'L') {
-                $current = $network{$current}[0];
-            } else {
-                $current = $network{$current}[1];
-            }
-            $steps++;
-        }
-        push @cycle_lengths, $steps;
-    }
-
-    # Find LCM of all cycle lengths
-    my $result = Math::BigInt->new($cycle_lengths[0]);
-    for my $i (1 .. $#cycle_lengths) {
-        $result = lcm($result, $cycle_lengths[$i]);
-    }
-
-    return $result;
+    my @cycle_lengths = map { navigate($_, qr/Z$/) } @starting_nodes;
+    return reduce { lcm($a, $b) } @cycle_lengths;
 }
 
 print "Part 1: ", part1(), "\n";

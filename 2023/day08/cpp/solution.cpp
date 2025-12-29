@@ -1,6 +1,5 @@
 #include <iostream>
 #include <fstream>
-#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -35,23 +34,26 @@ std::pair<std::string, std::unordered_map<std::string, Node>> parseInput(const s
     return {instructions, network};
 }
 
-long long part1(const std::string& instructions, const std::unordered_map<std::string, Node>& network) {
-    std::string current = "AAA";
+template<typename EndCondition>
+long long navigate(const std::string& instructions,
+                   const std::unordered_map<std::string, Node>& network,
+                   std::string current,
+                   EndCondition isEnd) {
     long long steps = 0;
-    size_t instructionLen = instructions.size();
+    const size_t instructionLen = instructions.size();
 
-    while (current != "ZZZ") {
+    while (!isEnd(current)) {
         char instruction = instructions[steps % instructionLen];
         const Node& node = network.at(current);
-        if (instruction == 'L') {
-            current = node.left;
-        } else {
-            current = node.right;
-        }
+        current = (instruction == 'L') ? node.left : node.right;
         steps++;
     }
 
     return steps;
+}
+
+long long part1(const std::string& instructions, const std::unordered_map<std::string, Node>& network) {
+    return navigate(instructions, network, "AAA", [](const std::string& s) { return s == "ZZZ"; });
 }
 
 long long part2(const std::string& instructions, const std::unordered_map<std::string, Node>& network) {
@@ -63,34 +65,18 @@ long long part2(const std::string& instructions, const std::unordered_map<std::s
         }
     }
 
-    size_t instructionLen = instructions.size();
-    std::vector<long long> cycleLengths;
-
     // For each starting node, find steps to reach a Z node
+    std::vector<long long> cycleLengths;
+    cycleLengths.reserve(startingNodes.size());
     for (const std::string& startNode : startingNodes) {
-        std::string current = startNode;
-        long long steps = 0;
-
-        while (current[2] != 'Z') {
-            char instruction = instructions[steps % instructionLen];
-            const Node& node = network.at(current);
-            if (instruction == 'L') {
-                current = node.left;
-            } else {
-                current = node.right;
-            }
-            steps++;
-        }
-        cycleLengths.push_back(steps);
+        cycleLengths.push_back(
+            navigate(instructions, network, startNode, [](const std::string& s) { return s[2] == 'Z'; })
+        );
     }
 
-    // Find LCM of all cycle lengths
-    long long result = cycleLengths[0];
-    for (size_t i = 1; i < cycleLengths.size(); i++) {
-        result = std::lcm(result, cycleLengths[i]);
-    }
-
-    return result;
+    // Find LCM of all cycle lengths using std::reduce
+    return std::reduce(cycleLengths.begin(), cycleLengths.end(), 1LL,
+                       [](long long a, long long b) { return std::lcm(a, b); });
 }
 
 int main() {

@@ -37,33 +37,19 @@
   "Navigate from AAA to ZZZ."
   (navigate instructions network "AAA" (lambda (node) (string= node "ZZZ"))))
 
-(defun gcd-int (a b)
-  "Compute the greatest common divisor of A and B."
-  (if (zerop b)
-      a
-      (gcd-int b (mod a b))))
-
-(defun lcm-int (a b)
-  "Compute the least common multiple of A and B."
-  (* a (/ b (gcd-int a b))))
-
 (defun part2 (instructions network)
   "Navigate all nodes ending in A simultaneously to nodes ending in Z."
-  ;; Find all starting nodes (ending in A)
-  (let ((starting-nodes nil))
-    (maphash (lambda (key value)
-               (declare (ignore value))
-               (when (char= (char key 2) #\A)
-                 (push key starting-nodes)))
-             network)
-    ;; Find cycle length for each starting node
-    (let ((cycle-lengths
+  ;; Find all starting nodes (ending in A) using loop collect
+  (let ((starting-nodes
+          (loop for key being the hash-keys of network
+                when (char= (char key 2) #\A)
+                collect key)))
+    ;; Find cycle length for each starting node and compute LCM
+    (reduce #'lcm
             (mapcar (lambda (node)
                       (navigate instructions network node
                                 (lambda (n) (char= (char n 2) #\Z))))
-                    starting-nodes)))
-      ;; Compute LCM of all cycle lengths
-      (reduce #'lcm-int cycle-lengths))))
+                    starting-nodes))))
 
 (defun main ()
   "Main entry point."

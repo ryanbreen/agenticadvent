@@ -2,13 +2,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 public class Solution {
+    private record Node(String left, String right) {}
+
     private final String instructions;
-    private final Map<String, String[]> network;
+    private final Map<String, Node> network;
 
     public Solution(String input) {
         String[] parts = input.split("\n\n");
@@ -19,55 +20,37 @@ public class Solution {
             if (line.isBlank()) continue;
             // Parse: AAA = (BBB, CCC)
             String[] nodeParts = line.split(" = ");
-            String node = nodeParts[0];
+            String name = nodeParts[0];
             String connections = nodeParts[1].substring(1, nodeParts[1].length() - 1);
             String[] leftRight = connections.split(", ");
-            network.put(node, leftRight);
+            network.put(name, new Node(leftRight[0], leftRight[1]));
         }
     }
 
-    public long part1() {
-        String current = "AAA";
+    private long navigate(String start, Predicate<String> isEnd) {
+        String current = start;
         long steps = 0;
         int instructionLen = instructions.length();
 
-        while (!current.equals("ZZZ")) {
+        while (!isEnd.test(current)) {
             char instruction = instructions.charAt((int) (steps % instructionLen));
-            current = (instruction == 'L') ? network.get(current)[0] : network.get(current)[1];
+            Node node = network.get(current);
+            current = (instruction == 'L') ? node.left() : node.right();
             steps++;
         }
 
         return steps;
     }
 
+    public long part1() {
+        return navigate("AAA", node -> node.equals("ZZZ"));
+    }
+
     public long part2() {
-        // Find all starting nodes (ending in A)
-        List<String> startNodes = network.keySet().stream()
+        return network.keySet().stream()
                 .filter(node -> node.endsWith("A"))
-                .collect(Collectors.toList());
-
-        int instructionLen = instructions.length();
-
-        // For each starting node, find steps to reach a Z node
-        long[] cycleLengths = new long[startNodes.size()];
-        for (int i = 0; i < startNodes.size(); i++) {
-            String current = startNodes.get(i);
-            long steps = 0;
-            while (!current.endsWith("Z")) {
-                char instruction = instructions.charAt((int) (steps % instructionLen));
-                current = (instruction == 'L') ? network.get(current)[0] : network.get(current)[1];
-                steps++;
-            }
-            cycleLengths[i] = steps;
-        }
-
-        // Find LCM of all cycle lengths
-        long result = cycleLengths[0];
-        for (int i = 1; i < cycleLengths.length; i++) {
-            result = lcm(result, cycleLengths[i]);
-        }
-
-        return result;
+                .mapToLong(start -> navigate(start, node -> node.endsWith("Z")))
+                .reduce(1L, Solution::lcm);
     }
 
     private static long gcd(long a, long b) {
@@ -80,7 +63,7 @@ public class Solution {
     }
 
     private static long lcm(long a, long b) {
-        return a * b / gcd(a, b);
+        return a / gcd(a, b) * b;
     }
 
     public static void main(String[] args) throws IOException {

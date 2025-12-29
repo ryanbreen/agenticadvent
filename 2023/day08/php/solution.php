@@ -16,7 +16,8 @@ function parseInput(string $text): array {
     $instructions = $lines[0];
 
     $network = [];
-    for ($i = 2; $i < count($lines); $i++) {
+    $lineCount = count($lines);
+    for ($i = 2; $i < $lineCount; $i++) {
         $line = trim($lines[$i]);
         if (empty($line)) {
             continue;
@@ -47,20 +48,6 @@ function part1(string $instructions, array $network): int {
 }
 
 /**
- * Calculate GCD using GMP for large numbers.
- */
-function gmpGcd($a, $b) {
-    return gmp_gcd($a, $b);
-}
-
-/**
- * Calculate LCM using GMP for large numbers.
- */
-function gmpLcm($a, $b) {
-    return gmp_div(gmp_mul($a, $b), gmpGcd($a, $b));
-}
-
-/**
  * Part 2: Navigate all nodes ending in A simultaneously to nodes ending in Z.
  */
 function part2(string $instructions, array $network): string {
@@ -85,10 +72,11 @@ function part2(string $instructions, array $network): string {
     }
 
     // Find LCM of all cycle lengths using GMP
-    $result = gmp_init($cycleLengths[0]);
-    for ($i = 1; $i < count($cycleLengths); $i++) {
-        $result = gmpLcm($result, gmp_init($cycleLengths[$i]));
-    }
+    $result = array_reduce(
+        $cycleLengths,
+        fn($carry, $item) => gmp_lcm($carry, $item),
+        gmp_init(1)
+    );
 
     return gmp_strval($result);
 }

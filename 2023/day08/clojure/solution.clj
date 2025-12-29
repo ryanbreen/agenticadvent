@@ -1,7 +1,8 @@
 #!/usr/bin/env bb
 ;; Advent of Code 2023 - Day 8: Haunted Wasteland
 
-(require '[clojure.string :as str])
+(require '[clojure.string :as str]
+         '[clojure.java.io :as io])
 
 (defn parse-input
   "Parse the input into instructions and network map."
@@ -9,7 +10,7 @@
   (let [lines (str/split-lines (str/trim text))
         instructions (first lines)
         network (->> (drop 2 lines)
-                     (filter #(not (str/blank? %)))
+                     (remove str/blank?)
                      (map (fn [line]
                             (let [[node rest] (str/split line #" = ")
                                   [left right] (-> rest
@@ -22,15 +23,14 @@
 (defn follow-instructions
   "Follow instructions from start until end condition is met."
   [instructions network start end-pred]
-  (let [n (count instructions)]
-    (loop [current start
-           steps 0]
-      (if (end-pred current)
-        steps
-        (let [instruction (nth instructions (mod steps n))
-              [left right] (get network current)
-              next-node (if (= instruction \L) left right)]
-          (recur next-node (inc steps)))))))
+  (loop [current start
+         steps 0
+         instrs (cycle instructions)]
+    (if (end-pred current)
+      steps
+      (let [[left right] (network current)
+            next-node (if (= (first instrs) \L) left right)]
+        (recur next-node (inc steps) (rest instrs))))))
 
 (defn part1
   "Navigate from AAA to ZZZ following L/R instructions."
@@ -55,11 +55,11 @@
   (let [start-nodes (filter #(str/ends-with? % "A") (keys network))
         cycle-lengths (map #(follow-instructions instructions network % (fn [s] (str/ends-with? s "Z")))
                            start-nodes)]
-    (reduce lcm cycle-lengths)))
+    (reduce lcm 1 cycle-lengths)))
 
 (defn -main []
-  (let [input-path (str (System/getProperty "user.dir") "/../input.txt")
-        text (slurp input-path)
+  (let [input-file (io/file (System/getProperty "user.dir") ".." "input.txt")
+        text (slurp input-file)
         [instructions network] (parse-input text)]
     (println "Part 1:" (part1 instructions network))
     (println "Part 2:" (part2 instructions network))))
