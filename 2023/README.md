@@ -16,6 +16,7 @@ Solutions implemented in 16 languages.
 | 8   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 9   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 10  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 11  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -234,3 +235,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Clojure     | 540.4        | 199.1       |
 | ColdFusion  | 2,837.2      | 1,130.0     |
 | Bash        | 36,354.9     | 6.9         |
+
+### Day 11: Cosmic Expansion
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 13.1         | 1.8         |
+| ARM64 asm   | 22.1         | 1.9         |
+| Zig         | 42.9         | 1.9         |
+| C++         | 73.5         | 1.9         |
+| Rust        | 109.2        | 1.9         |
+| Java        | 125.6        | 54.9        |
+| Lisp        | 131.0        | 40.5        |
+| Node.js     | 133.9        | 49.3        |
+| PHP         | 163.6        | 25.9        |
+| Go          | 182.6        | 56.7        |
+| Python      | 429.5        | 15.0        |
+| Perl        | 789.4        | 4.6         |
+| Clojure     | 808.4        | 454.0       |
+| Ruby        | 1,169.9      | 28.4        |
+| Bash        | 1,615.8      | 6.9         |
+| ColdFusion  | 4,278.8      | 1,066.3     |
