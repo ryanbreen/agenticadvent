@@ -14,6 +14,7 @@ Solutions implemented in 16 languages.
 | 6   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 7   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 8   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 9   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -190,3 +191,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Bash        | 230,070      | 2.1         |
 
 *ColdFusion estimated from similar day patterns (server not running).
+
+### Day 9: Mirage Maintenance
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| Zig         | 3.7          | 1.9         |
+| C           | 4.8          | 1.8         |
+| ARM64 asm   | 5.5          | 1.9         |
+| C++         | 6.6          | 2.0         |
+| Rust        | 6.5          | 2.0         |
+| Perl        | 17.9         | 5.2         |
+| Lisp        | 20.7         | 41.0        |
+| Python      | 27.8         | 15.8        |
+| Node.js     | 42.7         | 42.8        |
+| Go          | 48.3         | 26.8        |
+| Java        | 49.8         | 50.4        |
+| PHP         | 50.1         | 25.9        |
+| Ruby        | 58.9         | 28.3        |
+| Clojure     | 420.8        | 178.0       |
+| Bash        | 1,065.5      | 2.3         |
+| ColdFusion  | 2,373.1      | 1,173.9     |
