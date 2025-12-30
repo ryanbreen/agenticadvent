@@ -18,6 +18,10 @@ Solutions implemented in 16 languages.
 | 10  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 11  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 12  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 13  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 14  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 15  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 16  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -281,3 +285,87 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 
 *Bash requires >10 minutes for Part 2 due to memoized DP in shell being extremely slow.
 *ColdFusion estimated from similar day patterns.
+
+### Day 13: Point of Incidence
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 5.3          | 1.9         |
+| C++         | 5.8          | 1.9         |
+| Zig         | 5.9          | 1.9         |
+| ARM64 asm   | 6.0          | 1.9         |
+| Rust        | 6.2          | 1.9         |
+| Go          | 9.1          | 4.8         |
+| Perl        | 21.9         | 6.2         |
+| Lisp        | 30.1         | 40.1        |
+| Python      | 30.2         | 16.0        |
+| Node.js     | 47.7         | 44.1        |
+| PHP         | 63.7         | 26.0        |
+| Java        | 69.3         | 53.0        |
+| Ruby        | 76.3         | 28.7        |
+| Clojure     | 447.9        | 144.9       |
+| Bash        | 1,824.7      | 7.0         |
+| ColdFusion  | 2,680.5      | 1,156.9     |
+
+### Day 14: Parabolic Reflector Dish
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| ARM64 asm   | 23.7         | 1.9         |
+| C           | 26.7         | 1.9         |
+| C++         | 29.7         | 1.9         |
+| Rust        | 33.9         | 2.4         |
+| Zig         | 37.9         | 1.9         |
+| Go          | 61.1         | 5.4         |
+| Lisp        | 128.9        | 42.4        |
+| Java        | 155.3        | 71.7        |
+| Node.js     | 283.9        | 58.9        |
+| Python      | 449.1        | 17.9        |
+| Perl        | 505.9        | 8.1         |
+| PHP         | 563.3        | 26.1        |
+| Clojure     | 693.8        | 216.7       |
+| Ruby        | 1,341.1      | 28.9        |
+| ColdFusion  | 3,855.9      | 1,162.7     |
+| Bash        | ~180,000     | 7.0         |
+
+### Day 15: Lens Library
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C++         | 5.8          | 1.9         |
+| ARM64       | 6.2          | 1.9         |
+| Zig         | 6.5          | 1.9         |
+| C           | 6.6          | 1.9         |
+| Rust        | 7.0          | 1.9         |
+| Go          | 7.3          | 4.3         |
+| Perl        | 16.8         | 4.9         |
+| Common Lisp | 30.4         | 40.7        |
+| Python      | 31.8         | 16.2        |
+| Java        | 52.6         | 50.6        |
+| Node.js     | 52.1         | 44.4        |
+| PHP         | 56.0         | 26.4        |
+| Ruby        | 64.0         | 28.9        |
+| Clojure     | 446.1        | 139.3       |
+| Bash        | ~2,000       | ~10         |
+| ColdFusion  | 2,695.3      | 1,168.3     |
+
+### Day 16: The Floor Will Be Lava
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 20.0         | 1.9         |
+| ARM64       | 28.4         | 1.9         |
+| C++         | 31.0         | 1.9         |
+| Rust        | 31.8         | 1.9         |
+| Zig         | 42.5         | 1.9         |
+| Go          | 50.8         | 11.5        |
+| Common Lisp | 406.3        | 106.7       |
+| Java        | 735.5        | 571.9       |
+| PHP         | 1,064.4      | 27.9        |
+| Python      | 1,222.3      | 20.2        |
+| Node.js     | 1,257.9      | 111.3       |
+| Clojure     | 2,841.2      | 1,313.2     |
+| Perl        | 3,389.4      | 8.2         |
+| Ruby        | 6,062.9      | 34.0        |
+| ColdFusion  | 8,601.7      | 1,000.1     |
+| Bash        | ~121,000     | 6.8         |
