@@ -1,93 +1,28 @@
 <?php
 
-function parseInput($text) {
+declare(strict_types=1);
+
+/**
+ * Parse input text into pattern arrays.
+ *
+ * @param string $text Raw input text
+ * @return array<int, array<int, string>> Array of patterns (each pattern is array of strings)
+ */
+function parseInput(string $text): array
+{
     $blocks = array_filter(explode("\n\n", trim($text)));
-    $patterns = [];
-    foreach ($blocks as $block) {
-        $patterns[] = explode("\n", $block);
-    }
-    return $patterns;
+    return array_map(fn(string $block): array => explode("\n", $block), $blocks);
 }
 
-function findVerticalReflection($pattern) {
-    if (empty($pattern)) {
-        return 0;
-    }
-    $width = strlen($pattern[0]);
-
-    for ($col = 1; $col < $width; $col++) {
-        $isReflection = true;
-        foreach ($pattern as $row) {
-            // Split at column position
-            $left = substr($row, 0, $col);
-            $right = substr($row, $col);
-
-            // Reverse left side for comparison
-            $left = strrev($left);
-
-            // Compare overlapping parts
-            $minLen = min(strlen($left), strlen($right));
-            if (substr($left, 0, $minLen) !== substr($right, 0, $minLen)) {
-                $isReflection = false;
-                break;
-            }
-        }
-        if ($isReflection) {
-            return $col;
-        }
-    }
-    return 0;
-}
-
-function findHorizontalReflection($pattern) {
-    if (empty($pattern)) {
-        return 0;
-    }
-    $height = count($pattern);
-
-    for ($row = 1; $row < $height; $row++) {
-        $isReflection = true;
-
-        // Split at row position
-        $top = array_slice($pattern, 0, $row);
-        $bottom = array_slice($pattern, $row);
-
-        // Reverse top for comparison
-        $top = array_reverse($top);
-
-        // Compare overlapping parts
-        $minLen = min(count($top), count($bottom));
-        for ($i = 0; $i < $minLen; $i++) {
-            if ($top[$i] !== $bottom[$i]) {
-                $isReflection = false;
-                break;
-            }
-        }
-        if ($isReflection) {
-            return $row;
-        }
-    }
-    return 0;
-}
-
-function summarizePattern($pattern) {
-    $v = findVerticalReflection($pattern);
-    if ($v > 0) {
-        return $v;
-    }
-    $h = findHorizontalReflection($pattern);
-    return $h * 100;
-}
-
-function part1($patterns) {
-    $sum = 0;
-    foreach ($patterns as $pattern) {
-        $sum += summarizePattern($pattern);
-    }
-    return $sum;
-}
-
-function countDifferences($s1, $s2) {
+/**
+ * Count character differences between two strings.
+ *
+ * @param string $s1 First string
+ * @param string $s2 Second string
+ * @return int Number of differing characters
+ */
+function countDifferences(string $s1, string $s2): int
+{
     $len = min(strlen($s1), strlen($s2));
     $diff = 0;
     for ($i = 0; $i < $len; $i++) {
@@ -98,86 +33,136 @@ function countDifferences($s1, $s2) {
     return $diff;
 }
 
-function findVerticalReflectionWithSmudge($pattern) {
+/**
+ * Find vertical reflection column with exactly $targetDiff differences.
+ *
+ * @param array<int, string> $pattern The pattern to analyze
+ * @param int $targetDiff Required total differences (0 for Part 1, 1 for Part 2)
+ * @return int Column number of reflection, or 0 if not found
+ */
+function findVerticalReflection(array $pattern, int $targetDiff): int
+{
     if (empty($pattern)) {
         return 0;
     }
+
     $width = strlen($pattern[0]);
 
     for ($col = 1; $col < $width; $col++) {
         $totalDiff = 0;
+
         foreach ($pattern as $row) {
-            $left = substr($row, 0, $col);
+            $left = strrev(substr($row, 0, $col));
             $right = substr($row, $col);
-
-            // Reverse left side for comparison
-            $left = strrev($left);
-
-            // Count differences in overlapping parts
             $minLen = min(strlen($left), strlen($right));
+
             $totalDiff += countDifferences(substr($left, 0, $minLen), substr($right, 0, $minLen));
 
-            if ($totalDiff > 1) {
+            if ($totalDiff > $targetDiff) {
                 break;
             }
         }
-        if ($totalDiff === 1) {
+
+        if ($totalDiff === $targetDiff) {
             return $col;
         }
     }
+
     return 0;
 }
 
-function findHorizontalReflectionWithSmudge($pattern) {
+/**
+ * Find horizontal reflection row with exactly $targetDiff differences.
+ *
+ * @param array<int, string> $pattern The pattern to analyze
+ * @param int $targetDiff Required total differences (0 for Part 1, 1 for Part 2)
+ * @return int Row number of reflection, or 0 if not found
+ */
+function findHorizontalReflection(array $pattern, int $targetDiff): int
+{
     if (empty($pattern)) {
         return 0;
     }
+
     $height = count($pattern);
 
     for ($row = 1; $row < $height; $row++) {
-        $totalDiff = 0;
-
-        $top = array_slice($pattern, 0, $row);
+        $top = array_reverse(array_slice($pattern, 0, $row));
         $bottom = array_slice($pattern, $row);
-
-        // Reverse top for comparison
-        $top = array_reverse($top);
-
-        // Compare overlapping parts and count differences
         $minLen = min(count($top), count($bottom));
+
+        $totalDiff = 0;
         for ($i = 0; $i < $minLen; $i++) {
             $totalDiff += countDifferences($top[$i], $bottom[$i]);
-            if ($totalDiff > 1) {
+
+            if ($totalDiff > $targetDiff) {
                 break;
             }
         }
-        if ($totalDiff === 1) {
+
+        if ($totalDiff === $targetDiff) {
             return $row;
         }
     }
+
     return 0;
 }
 
-function summarizePatternWithSmudge($pattern) {
-    $v = findVerticalReflectionWithSmudge($pattern);
-    if ($v > 0) {
-        return $v;
+/**
+ * Summarize a pattern by finding its reflection value.
+ *
+ * @param array<int, string> $pattern The pattern to analyze
+ * @param int $targetDiff Required differences (0 for Part 1, 1 for Part 2)
+ * @return int Reflection value (column number or row number * 100)
+ */
+function summarizePattern(array $pattern, int $targetDiff): int
+{
+    $vertical = findVerticalReflection($pattern, $targetDiff);
+    if ($vertical > 0) {
+        return $vertical;
     }
-    $h = findHorizontalReflectionWithSmudge($pattern);
-    return $h * 100;
+
+    return findHorizontalReflection($pattern, $targetDiff) * 100;
 }
 
-function part2($patterns) {
-    $sum = 0;
-    foreach ($patterns as $pattern) {
-        $sum += summarizePatternWithSmudge($pattern);
-    }
-    return $sum;
+/**
+ * Solve Part 1: Find perfect reflections (0 differences).
+ *
+ * @param array<int, array<int, string>> $patterns All patterns
+ * @return int Sum of all reflection values
+ */
+function part1(array $patterns): int
+{
+    return array_reduce(
+        $patterns,
+        fn(int $sum, array $pattern): int => $sum + summarizePattern($pattern, 0),
+        0
+    );
+}
+
+/**
+ * Solve Part 2: Find reflections with exactly 1 smudge difference.
+ *
+ * @param array<int, array<int, string>> $patterns All patterns
+ * @return int Sum of all reflection values
+ */
+function part2(array $patterns): int
+{
+    return array_reduce(
+        $patterns,
+        fn(int $sum, array $pattern): int => $sum + summarizePattern($pattern, 1),
+        0
+    );
 }
 
 // Main execution
 $inputFile = __DIR__ . '/../input.txt';
 $text = file_get_contents($inputFile);
+
+if ($text === false) {
+    throw new RuntimeException("Failed to read input file: {$inputFile}");
+}
+
 $patterns = parseInput($text);
 
 echo "Part 1: " . part1($patterns) . "\n";

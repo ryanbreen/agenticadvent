@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
+#
+# Advent of Code 2023 - Day 13: Point of Incidence
+# Find lines of reflection in patterns of ash and rocks
+#
+set -euo pipefail
 
-# Read all patterns from input file
+declare -a patterns
+
+# Read all patterns from input, separated by blank lines
 read_patterns() {
     local input_file="$1"
-    local -n patterns_ref=$2
-    local current_pattern=()
+    local -n patterns_ref="$2"
+    local -a current_pattern=()
+    local line
 
     while IFS= read -r line || [[ -n "$line" ]]; do
         if [[ -z "$line" ]]; then
-            if [[ ${#current_pattern[@]} -gt 0 ]]; then
+            if (( ${#current_pattern[@]} > 0 )); then
                 patterns_ref+=("$(printf '%s\n' "${current_pattern[@]}")")
                 current_pattern=()
             fi
@@ -17,187 +25,130 @@ read_patterns() {
         fi
     done < "$input_file"
 
-    # Add last pattern if exists
-    if [[ ${#current_pattern[@]} -gt 0 ]]; then
+    if (( ${#current_pattern[@]} > 0 )); then
         patterns_ref+=("$(printf '%s\n' "${current_pattern[@]}")")
     fi
 }
 
 # Count character differences between two strings
 count_differences() {
-    local s1="$1"
-    local s2="$2"
-    local diff=0
-    local len1=${#s1}
-    local len2=${#s2}
-    local min_len=$((len1 < len2 ? len1 : len2))
+    local s1="$1" s2="$2"
+    local -n result_ref="$3"
+    local i len1=${#s1} len2=${#s2} min_len
 
-    for ((i=0; i<min_len; i++)); do
-        if [[ "${s1:$i:1}" != "${s2:$i:1}" ]]; then
-            ((diff++))
+    min_len=$((len1 < len2 ? len1 : len2))
+    result_ref=0
+
+    for (( i = 0; i < min_len; i++ )); do
+        if [[ "${s1:i:1}" != "${s2:i:1}" ]]; then
+            result_ref=$((result_ref + 1))
         fi
     done
-    echo "$diff"
 }
 
-# Reverse a string
+# Reverse a string in-place via nameref
 reverse_string() {
     local str="$1"
-    local rev=""
-    for ((i=${#str}-1; i>=0; i--)); do
-        rev="${rev}${str:$i:1}"
+    local -n rev_ref="$2"
+    local i
+
+    rev_ref=""
+    for (( i = ${#str} - 1; i >= 0; i-- )); do
+        rev_ref+="${str:i:1}"
     done
-    echo "$rev"
 }
 
-# Find vertical reflection (returns columns to the left, or 0)
-find_vertical_reflection() {
-    local pattern="$1"
-    local smudge_mode="$2"  # 0 for perfect, 1 for one smudge
+# Find reflection line in pattern
+# smudge_mode: 0 = perfect reflection, 1 = exactly one smudge required
+# Returns: columns left of vertical line, or 100 * rows above horizontal line
+find_reflection() {
+    local pattern="$1" smudge_mode="$2"
+    local -n reflection_result="$3"
+    local -a rows
+    local width height col i
+    local total_diff diff left right left_reversed
+    local left_len right_len min_len top_idx bottom_idx
 
     readarray -t rows <<< "$pattern"
-    local width=${#rows[0]}
+    height=${#rows[@]}
+    width=${#rows[0]}
 
-    for ((col=1; col<width; col++)); do
-        local total_diff=0
+    # Try vertical reflection at each column
+    for (( col = 1; col < width; col++ )); do
+        total_diff=0
 
-        for row in "${rows[@]}"; do
-            local left="${row:0:$col}"
-            local right="${row:$col}"
+        for line in "${rows[@]}"; do
+            left="${line:0:col}"
+            right="${line:col}"
 
-            # Reverse left side
-            left=$(reverse_string "$left")
+            reverse_string "$left" left_reversed
 
-            # Compare overlapping parts
-            local left_len=${#left}
-            local right_len=${#right}
-            local min_len=$((left_len < right_len ? left_len : right_len))
+            left_len=${#left_reversed}
+            right_len=${#right}
+            min_len=$((left_len < right_len ? left_len : right_len))
 
-            left="${left:0:$min_len}"
-            right="${right:0:$min_len}"
-
-            local diff=$(count_differences "$left" "$right")
+            count_differences "${left_reversed:0:min_len}" "${right:0:min_len}" diff
             total_diff=$((total_diff + diff))
 
-            # Early exit if too many differences
-            if [[ $smudge_mode -eq 0 && $total_diff -gt 0 ]]; then
-                break
-            fi
-            if [[ $smudge_mode -eq 1 && $total_diff -gt 1 ]]; then
-                break
-            fi
+            if [[ $total_diff -gt $smudge_mode ]]; then break; fi
         done
 
-        if [[ $smudge_mode -eq 0 && $total_diff -eq 0 ]]; then
-            echo "$col"
-            return
-        fi
-        if [[ $smudge_mode -eq 1 && $total_diff -eq 1 ]]; then
-            echo "$col"
+        if [[ $total_diff -eq $smudge_mode ]]; then
+            reflection_result=$col
             return
         fi
     done
 
-    echo "0"
-}
+    # Try horizontal reflection at each row
+    for (( row_idx = 1; row_idx < height; row_idx++ )); do
+        total_diff=0
+        min_len=$(( (height - row_idx) < row_idx ? (height - row_idx) : row_idx ))
 
-# Find horizontal reflection (returns rows above, or 0)
-find_horizontal_reflection() {
-    local pattern="$1"
-    local smudge_mode="$2"  # 0 for perfect, 1 for one smudge
+        for (( i = 0; i < min_len; i++ )); do
+            top_idx=$((row_idx - 1 - i))
+            bottom_idx=$((row_idx + i))
 
-    readarray -t rows <<< "$pattern"
-    local height=${#rows[@]}
-
-    for ((row=1; row<height; row++)); do
-        local total_diff=0
-
-        # Compare top with bottom (mirrored)
-        local min_len=$(( (height - row) < row ? (height - row) : row ))
-
-        for ((i=0; i<min_len; i++)); do
-            local top_idx=$((row - 1 - i))
-            local bottom_idx=$((row + i))
-
-            local diff=$(count_differences "${rows[$top_idx]}" "${rows[$bottom_idx]}")
+            count_differences "${rows[top_idx]}" "${rows[bottom_idx]}" diff
             total_diff=$((total_diff + diff))
 
-            # Early exit if too many differences
-            if [[ $smudge_mode -eq 0 && $total_diff -gt 0 ]]; then
-                break
-            fi
-            if [[ $smudge_mode -eq 1 && $total_diff -gt 1 ]]; then
-                break
-            fi
+            if [[ $total_diff -gt $smudge_mode ]]; then break; fi
         done
 
-        if [[ $smudge_mode -eq 0 && $total_diff -eq 0 ]]; then
-            echo "$row"
-            return
-        fi
-        if [[ $smudge_mode -eq 1 && $total_diff -eq 1 ]]; then
-            echo "$row"
+        if [[ $total_diff -eq $smudge_mode ]]; then
+            reflection_result=$((row_idx * 100))
             return
         fi
     done
 
-    echo "0"
+    reflection_result=0
 }
 
-# Summarize a pattern
-summarize_pattern() {
-    local pattern="$1"
-    local smudge_mode="$2"
+# Sum reflection values for all patterns
+calculate_total() {
+    local smudge_mode="$1"
+    local -n total_ref="$2"
+    local pattern value
 
-    local v=$(find_vertical_reflection "$pattern" "$smudge_mode")
-    if [[ $v -gt 0 ]]; then
-        echo "$v"
-        return
-    fi
-
-    local h=$(find_horizontal_reflection "$pattern" "$smudge_mode")
-    echo $((h * 100))
-}
-
-# Part 1: Find perfect reflections
-part1() {
-    local total=0
-    local pattern
-
+    total_ref=0
     for pattern in "${patterns[@]}"; do
-        local value=$(summarize_pattern "$pattern" 0)
-        total=$((total + value))
+        find_reflection "$pattern" "$smudge_mode" value
+        total_ref=$((total_ref + value))
     done
-
-    echo "$total"
 }
-
-# Part 2: Find reflections with one smudge
-part2() {
-    local total=0
-    local pattern
-
-    for pattern in "${patterns[@]}"; do
-        local value=$(summarize_pattern "$pattern" 1)
-        total=$((total + value))
-    done
-
-    echo "$total"
-}
-
-# Main
-declare -a patterns
 
 main() {
-    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    local input_file="$script_dir/../input.txt"
+    local script_dir input_file part1 part2
 
-    # Read patterns
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    input_file="$script_dir/../input.txt"
+
     read_patterns "$input_file" patterns
 
-    # Solve
-    echo "Part 1: $(part1)"
-    echo "Part 2: $(part2)"
+    calculate_total 0 part1
+    calculate_total 1 part2
+
+    echo "Part 1: $part1"
+    echo "Part 2: $part2"
 }
 
 main

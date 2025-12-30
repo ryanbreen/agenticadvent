@@ -1,75 +1,14 @@
 use std::fs;
 use std::path::Path;
 
-fn parse_input(text: &str) -> Vec<Vec<String>> {
+fn parse_input(text: &str) -> Vec<Vec<&str>> {
     text.trim()
         .split("\n\n")
-        .map(|block| block.lines().map(String::from).collect())
+        .map(|block| block.lines().collect())
         .collect()
 }
 
-fn find_vertical_reflection(pattern: &[String]) -> usize {
-    if pattern.is_empty() {
-        return 0;
-    }
-    let width = pattern[0].len();
-
-    for col in 1..width {
-        let mut is_reflection = true;
-        for row in pattern {
-            let left: String = row[..col].chars().rev().collect();
-            let right = &row[col..];
-            let min_len = left.len().min(right.len());
-            if &left[..min_len] != &right[..min_len] {
-                is_reflection = false;
-                break;
-            }
-        }
-        if is_reflection {
-            return col;
-        }
-    }
-    0
-}
-
-fn find_horizontal_reflection(pattern: &[String]) -> usize {
-    if pattern.is_empty() {
-        return 0;
-    }
-    let height = pattern.len();
-
-    for row in 1..height {
-        let mut is_reflection = true;
-        let top: Vec<&String> = pattern[..row].iter().rev().collect();
-        let bottom = &pattern[row..];
-        let min_len = top.len().min(bottom.len());
-
-        for i in 0..min_len {
-            if top[i] != &bottom[i] {
-                is_reflection = false;
-                break;
-            }
-        }
-        if is_reflection {
-            return row;
-        }
-    }
-    0
-}
-
-fn summarize_pattern(pattern: &[String]) -> usize {
-    let v = find_vertical_reflection(pattern);
-    if v > 0 {
-        return v;
-    }
-    let h = find_horizontal_reflection(pattern);
-    h * 100
-}
-
-fn part1(patterns: &[Vec<String>]) -> usize {
-    patterns.iter().map(|p| summarize_pattern(p)).sum()
-}
-
+/// Count character differences between two strings
 fn count_differences(s1: &str, s2: &str) -> usize {
     s1.chars()
         .zip(s2.chars())
@@ -77,66 +16,59 @@ fn count_differences(s1: &str, s2: &str) -> usize {
         .count()
 }
 
-fn find_vertical_reflection_with_smudge(pattern: &[String]) -> usize {
-    if pattern.is_empty() {
-        return 0;
-    }
-    let width = pattern[0].len();
+/// Find vertical reflection line where total differences across all rows equals target_diff.
+/// For Part 1: target_diff = 0 (perfect reflection)
+/// For Part 2: target_diff = 1 (exactly one smudge)
+fn find_vertical_reflection(pattern: &[&str], target_diff: usize) -> Option<usize> {
+    let width = pattern.first()?.len();
 
-    for col in 1..width {
-        let mut total_diff = 0;
-        for row in pattern {
-            let left: String = row[..col].chars().rev().collect();
-            let right = &row[col..];
-            let min_len = left.len().min(right.len());
-            total_diff += count_differences(&left[..min_len], &right[..min_len]);
-            if total_diff > 1 {
-                break;
-            }
-        }
-        if total_diff == 1 {
-            return col;
-        }
-    }
-    0
+    (1..width).find(|&col| {
+        let total_diff: usize = pattern
+            .iter()
+            .map(|row| {
+                let left: String = row[..col].chars().rev().collect();
+                let right = &row[col..];
+                let min_len = left.len().min(right.len());
+                count_differences(&left[..min_len], &right[..min_len])
+            })
+            .sum();
+
+        total_diff == target_diff
+    })
 }
 
-fn find_horizontal_reflection_with_smudge(pattern: &[String]) -> usize {
-    if pattern.is_empty() {
-        return 0;
-    }
+/// Find horizontal reflection line where total differences across mirrored rows equals target_diff.
+/// For Part 1: target_diff = 0 (perfect reflection)
+/// For Part 2: target_diff = 1 (exactly one smudge)
+fn find_horizontal_reflection(pattern: &[&str], target_diff: usize) -> Option<usize> {
     let height = pattern.len();
 
-    for row in 1..height {
-        let mut total_diff = 0;
-        let top: Vec<&String> = pattern[..row].iter().rev().collect();
-        let bottom = &pattern[row..];
-        let min_len = top.len().min(bottom.len());
+    (1..height).find(|&row| {
+        let total_diff: usize = pattern[..row]
+            .iter()
+            .rev()
+            .zip(&pattern[row..])
+            .map(|(top, bottom)| count_differences(top, bottom))
+            .sum();
 
-        for i in 0..min_len {
-            total_diff += count_differences(top[i], &bottom[i]);
-            if total_diff > 1 {
-                break;
-            }
-        }
-        if total_diff == 1 {
-            return row;
-        }
-    }
-    0
+        total_diff == target_diff
+    })
 }
 
-fn summarize_pattern_with_smudge(pattern: &[String]) -> usize {
-    let v = find_vertical_reflection_with_smudge(pattern);
-    if v > 0 {
-        return v;
-    }
-    let h = find_horizontal_reflection_with_smudge(pattern);
-    h * 100
+/// Find reflection and compute summary value.
+/// Vertical reflection returns column count, horizontal returns row count * 100.
+fn summarize_pattern(pattern: &[&str], target_diff: usize) -> usize {
+    find_vertical_reflection(pattern, target_diff)
+        .or_else(|| find_horizontal_reflection(pattern, target_diff).map(|h| h * 100))
+        .unwrap_or(0)
 }
 
-fn part2(patterns: &[Vec<String>]) -> usize {
-    patterns.iter().map(|p| summarize_pattern_with_smudge(p)).sum()
+fn part1(patterns: &[Vec<&str>]) -> usize {
+    patterns.iter().map(|p| summarize_pattern(p, 0)).sum()
+}
+
+fn part2(patterns: &[Vec<&str>]) -> usize {
+    patterns.iter().map(|p| summarize_pattern(p, 1)).sum()
 }
 
 fn main() {

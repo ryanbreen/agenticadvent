@@ -1,4 +1,4 @@
-#!/usr/bin/env clojure
+#!/usr/bin/env -S clojure -M
 
 (require '[clojure.string :as str])
 
@@ -11,9 +11,24 @@
 (defn count-differences
   "Count character differences between two strings."
   [s1 s2]
-  (->> (map not= s1 s2)
-       (filter identity)
-       count))
+  (count (filter true? (map not= s1 s2))))
+
+(defn- reflection-diff-at-col
+  "Calculate total character differences when reflecting at the given column."
+  [pattern col smudge-count]
+  (reduce
+   (fn [acc row]
+     (let [left (apply str (reverse (subs row 0 col)))
+           right (subs row col)
+           min-len (min (count left) (count right))
+           diff (count-differences (subs left 0 min-len)
+                                   (subs right 0 min-len))
+           new-acc (+ acc diff)]
+       (if (> new-acc smudge-count)
+         (reduced (inc smudge-count)) ; short-circuit
+         new-acc)))
+   0
+   pattern))
 
 (defn find-vertical-reflection
   "Find vertical line of reflection. Returns columns to the left, or 0 if none.
@@ -21,25 +36,27 @@
    When smudge-count is 1, looks for reflection with exactly one difference."
   [pattern smudge-count]
   (let [width (count (first pattern))]
-    (loop [col 1]
-      (if (>= col width)
-        0
-        (let [total-diff (reduce
-                          (fn [acc row]
-                            (let [left (apply str (reverse (subs row 0 col)))
-                                  right (subs row col)
-                                  min-len (min (count left) (count right))
-                                  diff (count-differences (subs left 0 min-len)
-                                                         (subs right 0 min-len))
-                                  new-acc (+ acc diff)]
-                              (if (> new-acc smudge-count)
-                                (reduced (inc smudge-count)) ; short-circuit
-                                new-acc)))
-                          0
-                          pattern)]
-          (if (= total-diff smudge-count)
-            col
-            (recur (inc col))))))))
+    (or (some (fn [col]
+                (when (= (reflection-diff-at-col pattern col smudge-count) smudge-count)
+                  col))
+              (range 1 width))
+        0)))
+
+(defn- reflection-diff-at-row
+  "Calculate total character differences when reflecting at the given row."
+  [pattern row smudge-count]
+  (let [top (vec (reverse (take row pattern)))
+        bottom (vec (drop row pattern))
+        min-len (min (count top) (count bottom))]
+    (reduce
+     (fn [acc i]
+       (let [diff (count-differences (top i) (bottom i))
+             new-acc (+ acc diff)]
+         (if (> new-acc smudge-count)
+           (reduced (inc smudge-count)) ; short-circuit
+           new-acc)))
+     0
+     (range min-len))))
 
 (defn find-horizontal-reflection
   "Find horizontal line of reflection. Returns rows above, or 0 if none.
@@ -47,30 +64,17 @@
    When smudge-count is 1, looks for reflection with exactly one difference."
   [pattern smudge-count]
   (let [height (count pattern)]
-    (loop [row 1]
-      (if (>= row height)
-        0
-        (let [top (reverse (take row pattern))
-              bottom (drop row pattern)
-              min-len (min (count top) (count bottom))
-              total-diff (reduce
-                          (fn [acc i]
-                            (let [diff (count-differences (nth top i) (nth bottom i))
-                                  new-acc (+ acc diff)]
-                              (if (> new-acc smudge-count)
-                                (reduced (inc smudge-count)) ; short-circuit
-                                new-acc)))
-                          0
-                          (range min-len))]
-          (if (= total-diff smudge-count)
-            row
-            (recur (inc row))))))))
+    (or (some (fn [row]
+                (when (= (reflection-diff-at-row pattern row smudge-count) smudge-count)
+                  row))
+              (range 1 height))
+        0)))
 
 (defn summarize-pattern
   "Get the summary value for a pattern with optional smudge count."
   [pattern smudge-count]
   (let [v (find-vertical-reflection pattern smudge-count)]
-    (if (> v 0)
+    (if (pos? v)
       v
       (* 100 (find-horizontal-reflection pattern smudge-count)))))
 

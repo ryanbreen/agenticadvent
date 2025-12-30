@@ -1,218 +1,135 @@
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <string>
 #include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <numeric>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <vector>
 
-using namespace std;
+// Count character differences between two string views
+int count_differences(std::string_view s1, std::string_view s2) {
+    auto len = std::min(s1.length(), s2.length());
+    return std::transform_reduce(
+        s1.begin(), s1.begin() + len,
+        s2.begin(),
+        0,
+        std::plus<>{},
+        [](char a, char b) { return a != b ? 1 : 0; }
+    );
+}
 
-// Parse input into patterns
-vector<vector<string>> parse_input(const string& text) {
-    vector<vector<string>> patterns;
-    vector<string> current_pattern;
+// Find vertical line of reflection with exactly target_diff differences
+// target_diff=0 for Part 1 (perfect reflection), target_diff=1 for Part 2 (one smudge)
+int find_vertical_reflection(const std::vector<std::string>& pattern, int target_diff) {
+    if (pattern.empty()) return 0;
+    auto width = static_cast<int>(pattern[0].length());
 
-    size_t start = 0;
-    size_t end = text.find('\n');
+    for (int col = 1; col < width; ++col) {
+        int total_diff = 0;
 
-    while (end != string::npos || start < text.length()) {
-        string line = (end == string::npos) ? text.substr(start) : text.substr(start, end - start);
+        for (const auto& row : pattern) {
+            int left = col - 1;
+            int right = col;
 
+            while (left >= 0 && right < width && total_diff <= target_diff) {
+                if (row[left] != row[right]) {
+                    ++total_diff;
+                }
+                --left;
+                ++right;
+            }
+
+            if (total_diff > target_diff) break;
+        }
+
+        if (total_diff == target_diff) return col;
+    }
+
+    return 0;
+}
+
+// Find horizontal line of reflection with exactly target_diff differences
+int find_horizontal_reflection(const std::vector<std::string>& pattern, int target_diff) {
+    if (pattern.empty()) return 0;
+    auto height = static_cast<int>(pattern.size());
+
+    for (int row = 1; row < height; ++row) {
+        int total_diff = 0;
+        int top = row - 1;
+        int bottom = row;
+
+        while (top >= 0 && bottom < height && total_diff <= target_diff) {
+            total_diff += count_differences(pattern[top], pattern[bottom]);
+            --top;
+            ++bottom;
+        }
+
+        if (total_diff == target_diff) return row;
+    }
+
+    return 0;
+}
+
+// Summarize a pattern: vertical reflection returns col, horizontal returns row * 100
+int summarize_pattern(const std::vector<std::string>& pattern, int target_diff) {
+    int v = find_vertical_reflection(pattern, target_diff);
+    if (v > 0) return v;
+    return find_horizontal_reflection(pattern, target_diff) * 100;
+}
+
+// Parse input text into vector of patterns
+std::vector<std::vector<std::string>> parse_input(const std::string& text) {
+    std::vector<std::vector<std::string>> patterns;
+    std::vector<std::string> current_pattern;
+    std::istringstream stream(text);
+    std::string line;
+
+    while (std::getline(stream, line)) {
         if (line.empty()) {
             if (!current_pattern.empty()) {
-                patterns.push_back(current_pattern);
+                patterns.push_back(std::move(current_pattern));
                 current_pattern.clear();
             }
         } else {
-            current_pattern.push_back(line);
+            current_pattern.push_back(std::move(line));
         }
-
-        if (end == string::npos) break;
-        start = end + 1;
-        end = text.find('\n', start);
     }
 
     if (!current_pattern.empty()) {
-        patterns.push_back(current_pattern);
+        patterns.push_back(std::move(current_pattern));
     }
 
     return patterns;
 }
 
-// Find vertical line of reflection
-int find_vertical_reflection(const vector<string>& pattern) {
-    if (pattern.empty()) return 0;
-    int width = pattern[0].length();
-
-    for (int col = 1; col < width; col++) {
-        bool is_reflection = true;
-
-        for (const string& row : pattern) {
-            // Compare left and right sides
-            int left_idx = col - 1;
-            int right_idx = col;
-
-            while (left_idx >= 0 && right_idx < width) {
-                if (row[left_idx] != row[right_idx]) {
-                    is_reflection = false;
-                    break;
-                }
-                left_idx--;
-                right_idx++;
-            }
-
-            if (!is_reflection) break;
+// Solve for given target_diff across all patterns
+int solve(const std::vector<std::vector<std::string>>& patterns, int target_diff) {
+    return std::transform_reduce(
+        patterns.begin(), patterns.end(),
+        0,
+        std::plus<>{},
+        [target_diff](const auto& pattern) {
+            return summarize_pattern(pattern, target_diff);
         }
-
-        if (is_reflection) return col;
-    }
-
-    return 0;
-}
-
-// Find horizontal line of reflection
-int find_horizontal_reflection(const vector<string>& pattern) {
-    if (pattern.empty()) return 0;
-    int height = pattern.size();
-
-    for (int row = 1; row < height; row++) {
-        bool is_reflection = true;
-
-        int top_idx = row - 1;
-        int bottom_idx = row;
-
-        while (top_idx >= 0 && bottom_idx < height) {
-            if (pattern[top_idx] != pattern[bottom_idx]) {
-                is_reflection = false;
-                break;
-            }
-            top_idx--;
-            bottom_idx++;
-        }
-
-        if (is_reflection) return row;
-    }
-
-    return 0;
-}
-
-// Summarize pattern
-int summarize_pattern(const vector<string>& pattern) {
-    int v = find_vertical_reflection(pattern);
-    if (v > 0) return v;
-    int h = find_horizontal_reflection(pattern);
-    return h * 100;
-}
-
-// Count differences between two strings
-int count_differences(const string& s1, const string& s2) {
-    int count = 0;
-    int min_len = min(s1.length(), s2.length());
-    for (int i = 0; i < min_len; i++) {
-        if (s1[i] != s2[i]) count++;
-    }
-    return count;
-}
-
-// Find vertical line with exactly one smudge
-int find_vertical_reflection_with_smudge(const vector<string>& pattern) {
-    if (pattern.empty()) return 0;
-    int width = pattern[0].length();
-
-    for (int col = 1; col < width; col++) {
-        int total_diff = 0;
-
-        for (const string& row : pattern) {
-            int left_idx = col - 1;
-            int right_idx = col;
-
-            while (left_idx >= 0 && right_idx < width) {
-                if (row[left_idx] != row[right_idx]) {
-                    total_diff++;
-                }
-                left_idx--;
-                right_idx++;
-            }
-
-            if (total_diff > 1) break;
-        }
-
-        if (total_diff == 1) return col;
-    }
-
-    return 0;
-}
-
-// Find horizontal line with exactly one smudge
-int find_horizontal_reflection_with_smudge(const vector<string>& pattern) {
-    if (pattern.empty()) return 0;
-    int height = pattern.size();
-
-    for (int row = 1; row < height; row++) {
-        int total_diff = 0;
-
-        int top_idx = row - 1;
-        int bottom_idx = row;
-
-        while (top_idx >= 0 && bottom_idx < height) {
-            total_diff += count_differences(pattern[top_idx], pattern[bottom_idx]);
-            if (total_diff > 1) break;
-            top_idx--;
-            bottom_idx++;
-        }
-
-        if (total_diff == 1) return row;
-    }
-
-    return 0;
-}
-
-// Summarize pattern with smudge
-int summarize_pattern_with_smudge(const vector<string>& pattern) {
-    int v = find_vertical_reflection_with_smudge(pattern);
-    if (v > 0) return v;
-    int h = find_horizontal_reflection_with_smudge(pattern);
-    return h * 100;
-}
-
-// Part 1
-int part1(const vector<vector<string>>& patterns) {
-    int sum = 0;
-    for (const auto& pattern : patterns) {
-        sum += summarize_pattern(pattern);
-    }
-    return sum;
-}
-
-// Part 2
-int part2(const vector<vector<string>>& patterns) {
-    int sum = 0;
-    for (const auto& pattern : patterns) {
-        sum += summarize_pattern_with_smudge(pattern);
-    }
-    return sum;
+    );
 }
 
 int main() {
-    // Read input file
-    ifstream file("../input.txt");
-    if (!file.is_open()) {
-        cerr << "Error: Could not open input.txt" << endl;
+    std::ifstream file("../input.txt");
+    if (!file) {
+        std::cerr << "Error: Could not open input.txt\n";
         return 1;
     }
 
-    string text;
-    string line;
-    while (getline(file, line)) {
-        text += line + "\n";
-    }
-    file.close();
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+    std::string text = buffer.str();
 
-    // Parse patterns
-    vector<vector<string>> patterns = parse_input(text);
+    auto patterns = parse_input(text);
 
-    // Solve both parts
-    cout << "Part 1: " << part1(patterns) << endl;
-    cout << "Part 2: " << part2(patterns) << endl;
+    std::cout << "Part 1: " << solve(patterns, 0) << '\n';
+    std::cout << "Part 2: " << solve(patterns, 1) << '\n';
 
     return 0;
 }

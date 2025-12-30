@@ -1,184 +1,79 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use v5.10;
+use v5.20;
+use feature 'signatures';
+no warnings 'experimental::signatures';
 
-sub parse_input {
-    my ($text) = @_;
-    my @blocks = split /\n\n/, $text;
-    my @patterns;
-    foreach my $block (@blocks) {
-        my @lines = split /\n/, $block;
-        push @patterns, \@lines;
-    }
-    return \@patterns;
+use List::Util qw(min sum);
+
+sub parse_input($text) {
+    return [ map { [ split /\n/, $_ ] } split /\n\n/, $text ];
 }
 
-sub find_vertical_reflection {
-    my ($pattern) = @_;
+sub count_differences($s1, $s2) {
+    my $len = min(length($s1), length($s2));
+    return sum(map { substr($s1, $_, 1) ne substr($s2, $_, 1) ? 1 : 0 } 0 .. $len - 1) // 0;
+}
+
+sub find_vertical_reflection($pattern, $target_diff = 0) {
     return 0 unless @$pattern;
 
     my $width = length($pattern->[0]);
 
-    for (my $col = 1; $col < $width; $col++) {
-        my $is_reflection = 1;
-
-        foreach my $row (@$pattern) {
-            # Get left and right parts
-            my $left = substr($row, 0, $col);
-            my $right = substr($row, $col);
-
-            # Reverse left side
-            $left = reverse($left);
-
-            # Compare overlapping parts
-            my $min_len = length($left) < length($right) ? length($left) : length($right);
-
-            if (substr($left, 0, $min_len) ne substr($right, 0, $min_len)) {
-                $is_reflection = 0;
-                last;
-            }
-        }
-
-        return $col if $is_reflection;
-    }
-
-    return 0;
-}
-
-sub find_horizontal_reflection {
-    my ($pattern) = @_;
-    return 0 unless @$pattern;
-
-    my $height = scalar(@$pattern);
-
-    for (my $row = 1; $row < $height; $row++) {
-        my $is_reflection = 1;
-
-        # Get top and bottom parts
-        my @top = reverse(@$pattern[0..$row-1]);
-        my @bottom = @$pattern[$row..$height-1];
-
-        my $min_len = scalar(@top) < scalar(@bottom) ? scalar(@top) : scalar(@bottom);
-
-        for (my $i = 0; $i < $min_len; $i++) {
-            if ($top[$i] ne $bottom[$i]) {
-                $is_reflection = 0;
-                last;
-            }
-        }
-
-        return $row if $is_reflection;
-    }
-
-    return 0;
-}
-
-sub summarize_pattern {
-    my ($pattern) = @_;
-
-    my $v = find_vertical_reflection($pattern);
-    return $v if $v > 0;
-
-    my $h = find_horizontal_reflection($pattern);
-    return $h * 100;
-}
-
-sub part1 {
-    my ($patterns) = @_;
-    my $total = 0;
-
-    foreach my $pattern (@$patterns) {
-        $total += summarize_pattern($pattern);
-    }
-
-    return $total;
-}
-
-sub count_differences {
-    my ($s1, $s2) = @_;
-    my $count = 0;
-    my $len = length($s1) < length($s2) ? length($s1) : length($s2);
-
-    for (my $i = 0; $i < $len; $i++) {
-        $count++ if substr($s1, $i, 1) ne substr($s2, $i, 1);
-    }
-
-    return $count;
-}
-
-sub find_vertical_reflection_with_smudge {
-    my ($pattern) = @_;
-    return 0 unless @$pattern;
-
-    my $width = length($pattern->[0]);
-
-    for (my $col = 1; $col < $width; $col++) {
+    for my $col (1 .. $width - 1) {
         my $total_diff = 0;
 
-        foreach my $row (@$pattern) {
-            my $left = substr($row, 0, $col);
+        for my $row (@$pattern) {
+            my $left  = reverse(substr($row, 0, $col));
             my $right = substr($row, $col);
+            my $len   = min(length($left), length($right));
 
-            $left = reverse($left);
-
-            my $min_len = length($left) < length($right) ? length($left) : length($right);
-
-            $total_diff += count_differences(substr($left, 0, $min_len), substr($right, 0, $min_len));
-
-            last if $total_diff > 1;
+            $total_diff += count_differences(substr($left, 0, $len), substr($right, 0, $len));
+            last if $total_diff > $target_diff;
         }
 
-        return $col if $total_diff == 1;
+        return $col if $total_diff == $target_diff;
     }
 
     return 0;
 }
 
-sub find_horizontal_reflection_with_smudge {
-    my ($pattern) = @_;
+sub find_horizontal_reflection($pattern, $target_diff = 0) {
     return 0 unless @$pattern;
 
-    my $height = scalar(@$pattern);
+    my $height = @$pattern;
 
-    for (my $row = 1; $row < $height; $row++) {
+    for my $row (1 .. $height - 1) {
+        my @top    = reverse @$pattern[0 .. $row - 1];
+        my @bottom = @$pattern[$row .. $height - 1];
+        my $len    = min(scalar @top, scalar @bottom);
+
         my $total_diff = 0;
-
-        my @top = reverse(@$pattern[0..$row-1]);
-        my @bottom = @$pattern[$row..$height-1];
-
-        my $min_len = scalar(@top) < scalar(@bottom) ? scalar(@top) : scalar(@bottom);
-
-        for (my $i = 0; $i < $min_len; $i++) {
+        for my $i (0 .. $len - 1) {
             $total_diff += count_differences($top[$i], $bottom[$i]);
-            last if $total_diff > 1;
+            last if $total_diff > $target_diff;
         }
 
-        return $row if $total_diff == 1;
+        return $row if $total_diff == $target_diff;
     }
 
     return 0;
 }
 
-sub summarize_pattern_with_smudge {
-    my ($pattern) = @_;
-
-    my $v = find_vertical_reflection_with_smudge($pattern);
+sub summarize_pattern($pattern, $target_diff = 0) {
+    my $v = find_vertical_reflection($pattern, $target_diff);
     return $v if $v > 0;
 
-    my $h = find_horizontal_reflection_with_smudge($pattern);
-    return $h * 100;
+    return find_horizontal_reflection($pattern, $target_diff) * 100;
 }
 
-sub part2 {
-    my ($patterns) = @_;
-    my $total = 0;
+sub part1($patterns) {
+    return sum(map { summarize_pattern($_, 0) } @$patterns);
+}
 
-    foreach my $pattern (@$patterns) {
-        $total += summarize_pattern_with_smudge($pattern);
-    }
-
-    return $total;
+sub part2($patterns) {
+    return sum(map { summarize_pattern($_, 1) } @$patterns);
 }
 
 # Main execution

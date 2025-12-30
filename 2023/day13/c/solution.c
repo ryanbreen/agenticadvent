@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 #define MAX_PATTERNS 100
 #define MAX_LINES 50
@@ -13,215 +12,120 @@ typedef struct {
     int width;
 } Pattern;
 
-Pattern patterns[MAX_PATTERNS];
-int num_patterns = 0;
+typedef struct {
+    Pattern items[MAX_PATTERNS];
+    int count;
+} PatternList;
 
-void parse_input(const char *filename) {
+static int parse_input(const char *filename, PatternList *list) {
     FILE *fp = fopen(filename, "r");
     if (!fp) {
         perror("Error opening file");
-        exit(1);
+        return -1;
     }
 
     char line[MAX_LINE_LEN];
-    int current_pattern = 0;
-    patterns[current_pattern].num_lines = 0;
+    int current = 0;
+    list->items[current].num_lines = 0;
 
     while (fgets(line, sizeof(line), fp)) {
-        // Remove newline
-        line[strcspn(line, "\n")] = 0;
+        line[strcspn(line, "\n")] = '\0';
 
-        if (strlen(line) == 0) {
-            // Empty line - start new pattern
-            if (patterns[current_pattern].num_lines > 0) {
-                current_pattern++;
-                patterns[current_pattern].num_lines = 0;
+        if (line[0] == '\0') {
+            if (list->items[current].num_lines > 0) {
+                current++;
+                list->items[current].num_lines = 0;
             }
         } else {
-            // Add line to current pattern
-            strcpy(patterns[current_pattern].lines[patterns[current_pattern].num_lines], line);
-            patterns[current_pattern].width = strlen(line);
-            patterns[current_pattern].num_lines++;
+            Pattern *p = &list->items[current];
+            strcpy(p->lines[p->num_lines], line);
+            p->width = (int)strlen(line);
+            p->num_lines++;
         }
     }
 
-    // Count the last pattern if it has lines
-    if (patterns[current_pattern].num_lines > 0) {
-        num_patterns = current_pattern + 1;
-    } else {
-        num_patterns = current_pattern;
-    }
-
+    list->count = (list->items[current].num_lines > 0) ? current + 1 : current;
     fclose(fp);
+    return 0;
 }
 
-int find_vertical_reflection(Pattern *p) {
-    if (p->num_lines == 0) return 0;
+static int count_vertical_differences(const Pattern *p, int col) {
+    int total_diff = 0;
+    int left_len = col;
+    int right_len = p->width - col;
+    int check_len = (left_len < right_len) ? left_len : right_len;
 
-    int width = p->width;
-
-    // Try each possible vertical line of reflection
-    for (int col = 1; col < width; col++) {
-        bool is_reflection = true;
-
-        // Check all rows
-        for (int row = 0; row < p->num_lines && is_reflection; row++) {
-            // Compare left side with right side (mirrored)
-            int left_len = col;
-            int right_len = width - col;
-            int min_len = (left_len < right_len) ? left_len : right_len;
-
-            for (int i = 0; i < min_len; i++) {
-                if (p->lines[row][col - 1 - i] != p->lines[row][col + i]) {
-                    is_reflection = false;
-                    break;
-                }
+    for (int row = 0; row < p->num_lines; row++) {
+        for (int i = 0; i < check_len; i++) {
+            if (p->lines[row][col - 1 - i] != p->lines[row][col + i]) {
+                total_diff++;
             }
         }
+    }
+    return total_diff;
+}
 
-        if (is_reflection) {
+static int count_horizontal_differences(const Pattern *p, int row) {
+    int total_diff = 0;
+    int top_len = row;
+    int bottom_len = p->num_lines - row;
+    int check_len = (top_len < bottom_len) ? top_len : bottom_len;
+
+    for (int i = 0; i < check_len; i++) {
+        const char *top_row = p->lines[row - 1 - i];
+        const char *bottom_row = p->lines[row + i];
+        for (int c = 0; c < p->width; c++) {
+            if (top_row[c] != bottom_row[c]) {
+                total_diff++;
+            }
+        }
+    }
+    return total_diff;
+}
+
+static int find_vertical_reflection(const Pattern *p, int target_diff) {
+    for (int col = 1; col < p->width; col++) {
+        if (count_vertical_differences(p, col) == target_diff) {
             return col;
         }
     }
-
     return 0;
 }
 
-int find_horizontal_reflection(Pattern *p) {
-    if (p->num_lines == 0) return 0;
-
-    int height = p->num_lines;
-
-    // Try each possible horizontal line of reflection
-    for (int row = 1; row < height; row++) {
-        bool is_reflection = true;
-
-        // Compare top with bottom (mirrored)
-        int top_len = row;
-        int bottom_len = height - row;
-        int min_len = (top_len < bottom_len) ? top_len : bottom_len;
-
-        for (int i = 0; i < min_len && is_reflection; i++) {
-            if (strcmp(p->lines[row - 1 - i], p->lines[row + i]) != 0) {
-                is_reflection = false;
-            }
-        }
-
-        if (is_reflection) {
+static int find_horizontal_reflection(const Pattern *p, int target_diff) {
+    for (int row = 1; row < p->num_lines; row++) {
+        if (count_horizontal_differences(p, row) == target_diff) {
             return row;
         }
     }
-
     return 0;
 }
 
-int summarize_pattern(Pattern *p) {
-    int v = find_vertical_reflection(p);
-    if (v > 0) return v;
-
-    int h = find_horizontal_reflection(p);
-    return h * 100;
-}
-
-int count_differences(const char *s1, const char *s2, int len) {
-    int diff = 0;
-    for (int i = 0; i < len; i++) {
-        if (s1[i] != s2[i]) {
-            diff++;
-        }
+static int summarize_pattern(const Pattern *p, int target_diff) {
+    int v = find_vertical_reflection(p, target_diff);
+    if (v > 0) {
+        return v;
     }
-    return diff;
+    return find_horizontal_reflection(p, target_diff) * 100;
 }
 
-int find_vertical_reflection_with_smudge(Pattern *p) {
-    if (p->num_lines == 0) return 0;
-
-    int width = p->width;
-
-    // Try each possible vertical line of reflection
-    for (int col = 1; col < width; col++) {
-        int total_diff = 0;
-
-        // Check all rows
-        for (int row = 0; row < p->num_lines; row++) {
-            // Compare left side with right side (mirrored)
-            int left_len = col;
-            int right_len = width - col;
-            int min_len = (left_len < right_len) ? left_len : right_len;
-
-            for (int i = 0; i < min_len; i++) {
-                if (p->lines[row][col - 1 - i] != p->lines[row][col + i]) {
-                    total_diff++;
-                    if (total_diff > 1) break;
-                }
-            }
-            if (total_diff > 1) break;
-        }
-
-        if (total_diff == 1) {
-            return col;
-        }
-    }
-
-    return 0;
-}
-
-int find_horizontal_reflection_with_smudge(Pattern *p) {
-    if (p->num_lines == 0) return 0;
-
-    int height = p->num_lines;
-
-    // Try each possible horizontal line of reflection
-    for (int row = 1; row < height; row++) {
-        int total_diff = 0;
-
-        // Compare top with bottom (mirrored)
-        int top_len = row;
-        int bottom_len = height - row;
-        int min_len = (top_len < bottom_len) ? top_len : bottom_len;
-
-        for (int i = 0; i < min_len; i++) {
-            total_diff += count_differences(p->lines[row - 1 - i], p->lines[row + i], p->width);
-            if (total_diff > 1) break;
-        }
-
-        if (total_diff == 1) {
-            return row;
-        }
-    }
-
-    return 0;
-}
-
-int summarize_pattern_with_smudge(Pattern *p) {
-    int v = find_vertical_reflection_with_smudge(p);
-    if (v > 0) return v;
-
-    int h = find_horizontal_reflection_with_smudge(p);
-    return h * 100;
-}
-
-int part1() {
+static int solve(const PatternList *list, int target_diff) {
     int sum = 0;
-    for (int i = 0; i < num_patterns; i++) {
-        sum += summarize_pattern(&patterns[i]);
+    for (int i = 0; i < list->count; i++) {
+        sum += summarize_pattern(&list->items[i], target_diff);
     }
     return sum;
 }
 
-int part2() {
-    int sum = 0;
-    for (int i = 0; i < num_patterns; i++) {
-        sum += summarize_pattern_with_smudge(&patterns[i]);
+int main(void) {
+    PatternList patterns;
+
+    if (parse_input("../input.txt", &patterns) != 0) {
+        return 1;
     }
-    return sum;
-}
 
-int main() {
-    parse_input("../input.txt");
-
-    printf("Part 1: %d\n", part1());
-    printf("Part 2: %d\n", part2());
+    printf("Part 1: %d\n", solve(&patterns, 0));
+    printf("Part 2: %d\n", solve(&patterns, 1));
 
     return 0;
 }

@@ -1,21 +1,93 @@
 const std = @import("std");
 
 const Pattern = struct {
-    lines: [][]const u8,
+    lines: []const []const u8,
     allocator: std.mem.Allocator,
 
-    pub fn deinit(self: *Pattern) void {
+    fn deinit(self: Pattern) void {
         for (self.lines) |line| {
             self.allocator.free(line);
         }
         self.allocator.free(self.lines);
     }
+
+    fn width(self: Pattern) usize {
+        return if (self.lines.len > 0) self.lines[0].len else 0;
+    }
+
+    fn height(self: Pattern) usize {
+        return self.lines.len;
+    }
+
+    /// Find vertical reflection line with exactly `target_diff` total character differences.
+    /// Part 1 uses target_diff=0 (perfect reflection), Part 2 uses target_diff=1 (smudge).
+    fn findVerticalReflection(self: Pattern, target_diff: usize) usize {
+        const w = self.width();
+        if (w == 0) return 0;
+
+        for (1..w) |col| {
+            var total_diff: usize = 0;
+
+            for (self.lines) |row| {
+                var i: usize = 0;
+                while (i < col and col + i < row.len) : (i += 1) {
+                    if (row[col - 1 - i] != row[col + i]) {
+                        total_diff += 1;
+                        if (total_diff > target_diff) break;
+                    }
+                }
+                if (total_diff > target_diff) break;
+            }
+
+            if (total_diff == target_diff) return col;
+        }
+
+        return 0;
+    }
+
+    /// Find horizontal reflection line with exactly `target_diff` total character differences.
+    /// Part 1 uses target_diff=0 (perfect reflection), Part 2 uses target_diff=1 (smudge).
+    fn findHorizontalReflection(self: Pattern, target_diff: usize) usize {
+        const h = self.height();
+        if (h == 0) return 0;
+
+        for (1..h) |row| {
+            var total_diff: usize = 0;
+
+            var i: usize = 0;
+            while (i < row and row + i < h) : (i += 1) {
+                total_diff += countDifferences(self.lines[row - 1 - i], self.lines[row + i]);
+                if (total_diff > target_diff) break;
+            }
+
+            if (total_diff == target_diff) return row;
+        }
+
+        return 0;
+    }
+
+    /// Summarize pattern by finding reflection line with target_diff differences.
+    /// Returns columns left of vertical reflection, or 100 * rows above horizontal reflection.
+    fn summarize(self: Pattern, target_diff: usize) usize {
+        const v = self.findVerticalReflection(target_diff);
+        if (v > 0) return v;
+        return self.findHorizontalReflection(target_diff) * 100;
+    }
 };
+
+fn countDifferences(s1: []const u8, s2: []const u8) usize {
+    const len = @min(s1.len, s2.len);
+    var count: usize = 0;
+    for (0..len) |i| {
+        if (s1[i] != s2[i]) count += 1;
+    }
+    return count;
+}
 
 fn parseInput(allocator: std.mem.Allocator, text: []const u8) ![]Pattern {
     var patterns: std.ArrayListUnmanaged(Pattern) = .empty;
     errdefer {
-        for (patterns.items) |*pattern| {
+        for (patterns.items) |pattern| {
             pattern.deinit();
         }
         patterns.deinit(allocator);
@@ -36,8 +108,7 @@ fn parseInput(allocator: std.mem.Allocator, text: []const u8) ![]Pattern {
         var line_iter = std.mem.splitScalar(u8, block, '\n');
         while (line_iter.next()) |line| {
             if (line.len == 0) continue;
-            const line_copy = try allocator.dupe(u8, line);
-            try lines.append(allocator, line_copy);
+            try lines.append(allocator, try allocator.dupe(u8, line));
         }
 
         if (lines.items.len > 0) {
@@ -51,149 +122,10 @@ fn parseInput(allocator: std.mem.Allocator, text: []const u8) ![]Pattern {
     return try patterns.toOwnedSlice(allocator);
 }
 
-fn findVerticalReflection(pattern: Pattern) usize {
-    if (pattern.lines.len == 0) return 0;
-    const width = pattern.lines[0].len;
-
-    var col: usize = 1;
-    while (col < width) : (col += 1) {
-        var is_reflection = true;
-
-        for (pattern.lines) |row| {
-            // Compare left side with right side (mirrored)
-            const left_end = col;
-            const right_start = col;
-
-            var i: usize = 0;
-            while (i < left_end and right_start + i < row.len) : (i += 1) {
-                const left_idx = left_end - 1 - i;
-                const right_idx = right_start + i;
-                if (row[left_idx] != row[right_idx]) {
-                    is_reflection = false;
-                    break;
-                }
-            }
-            if (!is_reflection) break;
-        }
-
-        if (is_reflection) return col;
-    }
-
-    return 0;
-}
-
-fn findHorizontalReflection(pattern: Pattern) usize {
-    if (pattern.lines.len == 0) return 0;
-    const height = pattern.lines.len;
-
-    var row: usize = 1;
-    while (row < height) : (row += 1) {
-        var is_reflection = true;
-
-        // Compare top with bottom (mirrored)
-        var i: usize = 0;
-        while (i < row and row + i < height) : (i += 1) {
-            const top_idx = row - 1 - i;
-            const bottom_idx = row + i;
-            if (!std.mem.eql(u8, pattern.lines[top_idx], pattern.lines[bottom_idx])) {
-                is_reflection = false;
-                break;
-            }
-        }
-
-        if (is_reflection) return row;
-    }
-
-    return 0;
-}
-
-fn summarizePattern(pattern: Pattern) usize {
-    const v = findVerticalReflection(pattern);
-    if (v > 0) return v;
-    const h = findHorizontalReflection(pattern);
-    return h * 100;
-}
-
-fn part1(patterns: []Pattern) usize {
+fn solve(patterns: []const Pattern, target_diff: usize) usize {
     var sum: usize = 0;
     for (patterns) |pattern| {
-        sum += summarizePattern(pattern);
-    }
-    return sum;
-}
-
-fn countDifferences(s1: []const u8, s2: []const u8) usize {
-    var count: usize = 0;
-    const min_len = @min(s1.len, s2.len);
-    for (0..min_len) |i| {
-        if (s1[i] != s2[i]) count += 1;
-    }
-    return count;
-}
-
-fn findVerticalReflectionWithSmudge(pattern: Pattern) usize {
-    if (pattern.lines.len == 0) return 0;
-    const width = pattern.lines[0].len;
-
-    var col: usize = 1;
-    while (col < width) : (col += 1) {
-        var total_diff: usize = 0;
-
-        for (pattern.lines) |row| {
-            const left_end = col;
-            const right_start = col;
-
-            var i: usize = 0;
-            while (i < left_end and right_start + i < row.len) : (i += 1) {
-                const left_idx = left_end - 1 - i;
-                const right_idx = right_start + i;
-                if (row[left_idx] != row[right_idx]) {
-                    total_diff += 1;
-                    if (total_diff > 1) break;
-                }
-            }
-            if (total_diff > 1) break;
-        }
-
-        if (total_diff == 1) return col;
-    }
-
-    return 0;
-}
-
-fn findHorizontalReflectionWithSmudge(pattern: Pattern) usize {
-    if (pattern.lines.len == 0) return 0;
-    const height = pattern.lines.len;
-
-    var row: usize = 1;
-    while (row < height) : (row += 1) {
-        var total_diff: usize = 0;
-
-        var i: usize = 0;
-        while (i < row and row + i < height) : (i += 1) {
-            const top_idx = row - 1 - i;
-            const bottom_idx = row + i;
-            total_diff += countDifferences(pattern.lines[top_idx], pattern.lines[bottom_idx]);
-            if (total_diff > 1) break;
-        }
-
-        if (total_diff == 1) return row;
-    }
-
-    return 0;
-}
-
-fn summarizePatternWithSmudge(pattern: Pattern) usize {
-    const v = findVerticalReflectionWithSmudge(pattern);
-    if (v > 0) return v;
-    const h = findHorizontalReflectionWithSmudge(pattern);
-    return h * 100;
-}
-
-fn part2(patterns: []Pattern) usize {
-    var sum: usize = 0;
-    for (patterns) |pattern| {
-        sum += summarizePatternWithSmudge(pattern);
+        sum += pattern.summarize(target_diff);
     }
     return sum;
 }
@@ -203,23 +135,20 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    // Read input file
     const text = try std.fs.cwd().readFileAlloc(allocator, "../input.txt", 1024 * 1024);
     defer allocator.free(text);
 
-    // Parse input
     const patterns = try parseInput(allocator, text);
     defer {
-        for (patterns) |*pattern| {
+        for (patterns) |pattern| {
             pattern.deinit();
         }
         allocator.free(patterns);
     }
 
-    // Solve
-    const p1 = part1(patterns);
-    const p2 = part2(patterns);
-
-    std.debug.print("Part 1: {d}\n", .{p1});
-    std.debug.print("Part 2: {d}\n", .{p2});
+    var buffer: [256]u8 = undefined;
+    var stdout = std.fs.File.stdout().writer(&buffer);
+    try stdout.interface.print("Part 1: {d}\n", .{solve(patterns, 0)});
+    try stdout.interface.print("Part 2: {d}\n", .{solve(patterns, 1)});
+    try stdout.interface.flush();
 }

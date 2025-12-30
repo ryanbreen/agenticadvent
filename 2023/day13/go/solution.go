@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-// parseInput parses the input text into a list of patterns
-func parseInput(text string) [][]string {
-	blocks := strings.Split(strings.TrimSpace(text), "\n\n")
+// parsePatterns parses the input text into a list of patterns
+func parsePatterns(input string) [][]string {
+	blocks := strings.Split(strings.TrimSpace(input), "\n\n")
 	patterns := make([][]string, len(blocks))
 	for i, block := range blocks {
 		patterns[i] = strings.Split(block, "\n")
@@ -16,102 +16,25 @@ func parseInput(text string) [][]string {
 	return patterns
 }
 
-// findVerticalReflection finds vertical line of reflection
-// Returns columns to the left, or 0 if none
-func findVerticalReflection(pattern []string) int {
-	if len(pattern) == 0 {
-		return 0
-	}
-	width := len(pattern[0])
-
-	for col := 1; col < width; col++ {
-		isReflection := true
-		for _, row := range pattern {
-			// Compare left side with right side (mirrored)
-			left := row[:col]
-			right := row[col:]
-
-			// Reverse the left side for comparison
-			leftReversed := reverse(left)
-
-			// Compare the overlapping parts
-			minLen := min(len(leftReversed), len(right))
-			if leftReversed[:minLen] != right[:minLen] {
-				isReflection = false
-				break
-			}
+// countMirrorDifferences counts character differences between mirrored portions
+// of a string split at the given position
+func countMirrorDifferences(s string, splitPos int) int {
+	differences := 0
+	left, right := splitPos-1, splitPos
+	for left >= 0 && right < len(s) {
+		if s[left] != s[right] {
+			differences++
 		}
-		if isReflection {
-			return col
-		}
+		left--
+		right++
 	}
-	return 0
+	return differences
 }
 
-// findHorizontalReflection finds horizontal line of reflection
-// Returns rows above, or 0 if none
-func findHorizontalReflection(pattern []string) int {
-	if len(pattern) == 0 {
-		return 0
-	}
-	height := len(pattern)
-
-	for row := 1; row < height; row++ {
-		isReflection := true
-		// Compare top with bottom (mirrored)
-		top := pattern[:row]
-		bottom := pattern[row:]
-
-		// Reverse the top for comparison
-		topReversed := reverseSlice(top)
-
-		minLen := min(len(topReversed), len(bottom))
-		for i := 0; i < minLen; i++ {
-			if topReversed[i] != bottom[i] {
-				isReflection = false
-				break
-			}
-		}
-		if isReflection {
-			return row
-		}
-	}
-	return 0
-}
-
-// summarizePattern gets the summary value for a pattern
-func summarizePattern(pattern []string) int {
-	v := findVerticalReflection(pattern)
-	if v > 0 {
-		return v
-	}
-	h := findHorizontalReflection(pattern)
-	return h * 100
-}
-
-// part1 calculates the sum of all pattern summaries
-func part1(patterns [][]string) int {
-	total := 0
-	for _, pattern := range patterns {
-		total += summarizePattern(pattern)
-	}
-	return total
-}
-
-// countDifferences counts character differences between two strings
-func countDifferences(s1, s2 string) int {
-	count := 0
-	minLen := min(len(s1), len(s2))
-	for i := 0; i < minLen; i++ {
-		if s1[i] != s2[i] {
-			count++
-		}
-	}
-	return count
-}
-
-// findVerticalReflectionWithSmudge finds vertical line with exactly one smudge fix needed
-func findVerticalReflectionWithSmudge(pattern []string) int {
+// findVerticalReflection finds a vertical line of reflection where the total
+// character differences across all rows equals targetDiff.
+// Returns columns to the left of the reflection line, or 0 if none found.
+func findVerticalReflection(pattern []string, targetDiff int) int {
 	if len(pattern) == 0 {
 		return 0
 	}
@@ -120,94 +43,72 @@ func findVerticalReflectionWithSmudge(pattern []string) int {
 	for col := 1; col < width; col++ {
 		totalDiff := 0
 		for _, row := range pattern {
-			left := row[:col]
-			right := row[col:]
-
-			leftReversed := reverse(left)
-
-			minLen := min(len(leftReversed), len(right))
-			totalDiff += countDifferences(leftReversed[:minLen], right[:minLen])
-
-			if totalDiff > 1 {
+			totalDiff += countMirrorDifferences(row, col)
+			if totalDiff > targetDiff {
 				break
 			}
 		}
-		if totalDiff == 1 {
+		if totalDiff == targetDiff {
 			return col
 		}
 	}
 	return 0
 }
 
-// findHorizontalReflectionWithSmudge finds horizontal line with exactly one smudge fix needed
-func findHorizontalReflectionWithSmudge(pattern []string) int {
-	if len(pattern) == 0 {
+// countRowDifferences counts character differences between two rows
+func countRowDifferences(row1, row2 string) int {
+	differences := 0
+	for i := 0; i < len(row1) && i < len(row2); i++ {
+		if row1[i] != row2[i] {
+			differences++
+		}
+	}
+	return differences
+}
+
+// findHorizontalReflection finds a horizontal line of reflection where the total
+// character differences across mirrored rows equals targetDiff.
+// Returns rows above the reflection line, or 0 if none found.
+func findHorizontalReflection(pattern []string, targetDiff int) int {
+	height := len(pattern)
+	if height == 0 {
 		return 0
 	}
-	height := len(pattern)
 
 	for row := 1; row < height; row++ {
 		totalDiff := 0
-		top := pattern[:row]
-		bottom := pattern[row:]
-
-		topReversed := reverseSlice(top)
-
-		minLen := min(len(topReversed), len(bottom))
-		for i := 0; i < minLen; i++ {
-			totalDiff += countDifferences(topReversed[i], bottom[i])
-			if totalDiff > 1 {
+		above, below := row-1, row
+		for above >= 0 && below < height {
+			totalDiff += countRowDifferences(pattern[above], pattern[below])
+			if totalDiff > targetDiff {
 				break
 			}
+			above--
+			below++
 		}
-		if totalDiff == 1 {
+		if totalDiff == targetDiff {
 			return row
 		}
 	}
 	return 0
 }
 
-// summarizePatternWithSmudge gets the summary value for a pattern with smudge fix
-func summarizePatternWithSmudge(pattern []string) int {
-	v := findVerticalReflectionWithSmudge(pattern)
-	if v > 0 {
+// summarizePattern calculates the summary value for a pattern.
+// targetDiff=0 for perfect reflection (Part 1), targetDiff=1 for smudge (Part 2).
+func summarizePattern(pattern []string, targetDiff int) int {
+	if v := findVerticalReflection(pattern, targetDiff); v > 0 {
 		return v
 	}
-	h := findHorizontalReflectionWithSmudge(pattern)
-	return h * 100
+	return findHorizontalReflection(pattern, targetDiff) * 100
 }
 
-// part2 calculates the sum with smudge fixes
-func part2(patterns [][]string) int {
+// solve calculates the sum of all pattern summaries with the given target difference
+func solve(patterns [][]string, targetDiff int) int {
 	total := 0
 	for _, pattern := range patterns {
-		total += summarizePatternWithSmudge(pattern)
+		total += summarizePattern(pattern, targetDiff)
 	}
 	return total
-}
-
-// Helper functions
-func reverse(s string) string {
-	runes := []rune(s)
-	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-		runes[i], runes[j] = runes[j], runes[i]
-	}
-	return string(runes)
-}
-
-func reverseSlice(s []string) []string {
-	result := make([]string, len(s))
-	for i, v := range s {
-		result[len(s)-1-i] = v
-	}
-	return result
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 func main() {
@@ -217,9 +118,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	text := string(data)
-	patterns := parseInput(text)
+	patterns := parsePatterns(string(data))
 
-	fmt.Printf("Part 1: %d\n", part1(patterns))
-	fmt.Printf("Part 2: %d\n", part2(patterns))
+	fmt.Printf("Part 1: %d\n", solve(patterns, 0))
+	fmt.Printf("Part 2: %d\n", solve(patterns, 1))
 }

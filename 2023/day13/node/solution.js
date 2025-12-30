@@ -4,114 +4,56 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-function parseInput(text) {
-    return text.trim().split('\n\n').map(block => block.split('\n'));
-}
+const parseInput = (text) => text.trim().split('\n\n').map(block => block.split('\n'));
 
-function findVerticalReflection(pattern) {
+const countDifferences = (s1, s2) => {
+    const len = Math.min(s1.length, s2.length);
+    return [...Array(len)].reduce((diff, _, i) => diff + (s1[i] !== s2[i] ? 1 : 0), 0);
+};
+
+const findVerticalReflection = (pattern, targetDiff) => {
     if (!pattern.length) return 0;
-    const width = pattern[0].length;
+    const [firstRow] = pattern;
 
-    for (let col = 1; col < width; col++) {
-        let isReflection = true;
-        for (const row of pattern) {
-            const left = row.slice(0, col).split('').reverse().join('');
+    for (let col = 1; col < firstRow.length; col++) {
+        const totalDiff = pattern.reduce((diff, row) => {
+            const left = [...row.slice(0, col)].reverse().join('');
             const right = row.slice(col);
-            const minLen = Math.min(left.length, right.length);
-            if (left.slice(0, minLen) !== right.slice(0, minLen)) {
-                isReflection = false;
-                break;
-            }
-        }
-        if (isReflection) return col;
+            const len = Math.min(left.length, right.length);
+            return diff + countDifferences(left.slice(0, len), right.slice(0, len));
+        }, 0);
+
+        if (totalDiff === targetDiff) return col;
     }
     return 0;
-}
+};
 
-function findHorizontalReflection(pattern) {
+const findHorizontalReflection = (pattern, targetDiff) => {
     if (!pattern.length) return 0;
-    const height = pattern.length;
 
-    for (let row = 1; row < height; row++) {
-        let isReflection = true;
+    for (let row = 1; row < pattern.length; row++) {
         const top = pattern.slice(0, row).reverse();
         const bottom = pattern.slice(row);
-        const minLen = Math.min(top.length, bottom.length);
-        for (let i = 0; i < minLen; i++) {
-            if (top[i] !== bottom[i]) {
-                isReflection = false;
-                break;
-            }
-        }
-        if (isReflection) return row;
+        const len = Math.min(top.length, bottom.length);
+
+        const totalDiff = [...Array(len)].reduce(
+            (diff, _, i) => diff + countDifferences(top[i], bottom[i]),
+            0
+        );
+
+        if (totalDiff === targetDiff) return row;
     }
     return 0;
-}
+};
 
-function summarizePattern(pattern) {
-    const v = findVerticalReflection(pattern);
-    if (v > 0) return v;
-    return findHorizontalReflection(pattern) * 100;
-}
+const summarizePattern = (pattern, targetDiff) => {
+    const vertical = findVerticalReflection(pattern, targetDiff);
+    return vertical > 0 ? vertical : findHorizontalReflection(pattern, targetDiff) * 100;
+};
 
-function part1(patterns) {
-    return patterns.reduce((sum, p) => sum + summarizePattern(p), 0);
-}
+const part1 = (patterns) => patterns.reduce((sum, p) => sum + summarizePattern(p, 0), 0);
 
-function countDifferences(s1, s2) {
-    let diff = 0;
-    const minLen = Math.min(s1.length, s2.length);
-    for (let i = 0; i < minLen; i++) {
-        if (s1[i] !== s2[i]) diff++;
-    }
-    return diff;
-}
-
-function findVerticalReflectionWithSmudge(pattern) {
-    if (!pattern.length) return 0;
-    const width = pattern[0].length;
-
-    for (let col = 1; col < width; col++) {
-        let totalDiff = 0;
-        for (const row of pattern) {
-            const left = row.slice(0, col).split('').reverse().join('');
-            const right = row.slice(col);
-            const minLen = Math.min(left.length, right.length);
-            totalDiff += countDifferences(left.slice(0, minLen), right.slice(0, minLen));
-            if (totalDiff > 1) break;
-        }
-        if (totalDiff === 1) return col;
-    }
-    return 0;
-}
-
-function findHorizontalReflectionWithSmudge(pattern) {
-    if (!pattern.length) return 0;
-    const height = pattern.length;
-
-    for (let row = 1; row < height; row++) {
-        let totalDiff = 0;
-        const top = pattern.slice(0, row).reverse();
-        const bottom = pattern.slice(row);
-        const minLen = Math.min(top.length, bottom.length);
-        for (let i = 0; i < minLen; i++) {
-            totalDiff += countDifferences(top[i], bottom[i]);
-            if (totalDiff > 1) break;
-        }
-        if (totalDiff === 1) return row;
-    }
-    return 0;
-}
-
-function summarizePatternWithSmudge(pattern) {
-    const v = findVerticalReflectionWithSmudge(pattern);
-    if (v > 0) return v;
-    return findHorizontalReflectionWithSmudge(pattern) * 100;
-}
-
-function part2(patterns) {
-    return patterns.reduce((sum, p) => sum + summarizePatternWithSmudge(p), 0);
-}
+const part2 = (patterns) => patterns.reduce((sum, p) => sum + summarizePattern(p, 1), 0);
 
 const inputFile = join(__dirname, '..', 'input.txt');
 const text = readFileSync(inputFile, 'utf-8');
