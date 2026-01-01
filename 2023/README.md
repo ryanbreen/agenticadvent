@@ -23,6 +23,7 @@ Solutions implemented in 16 languages.
 | 15  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 16  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 17  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 18  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -391,3 +392,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Perl        | 10,167.6     | 140.4       |
 | Bash        | ~150,000     | ~10         |
 | ColdFusion  | 485,505.0    | 1,319.1     |
+
+### Day 18: Lavaduct Lagoon
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| Zig         | 5.8          | 1.9         |
+| ARM64       | 7.5          | 1.9         |
+| Rust        | 7.7          | 1.9         |
+| Go          | 8.8          | 1.9         |
+| C++         | 8.9          | 1.9         |
+| C           | 11.5         | 1.9         |
+| Perl        | 14.7         | 5.1         |
+| Python      | 34.7         | 16.0        |
+| Common Lisp | 42.4         | 40.6        |
+| Node.js     | 53.7         | 41.1        |
+| Java        | 67.0         | 48.8        |
+| Bash        | 67.6         | 6.9         |
+| Ruby        | 77.2         | 28.2        |
+| PHP         | 79.3         | 26.8        |
+| Clojure     | 557.0        | 132.1       |
+| ColdFusion  | 3,965.8      | 991.3       |
