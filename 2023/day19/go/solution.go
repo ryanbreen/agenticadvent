@@ -3,10 +3,17 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+)
+
+// Package-level compiled regexps (compile once, not on each parseInput call)
+var (
+	ruleRe = regexp.MustCompile(`([xmas])([<>])(\d+)`)
+	partRe = regexp.MustCompile(`([xmas])=(\d+)`)
 )
 
 // Rule represents a single rule within a workflow
@@ -35,7 +42,7 @@ type Ranges struct {
 func parseInput(filename string) (map[string][]Rule, []Part) {
 	file, err := os.Open(filename)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	defer file.Close()
 
@@ -44,9 +51,6 @@ func parseInput(filename string) (map[string][]Rule, []Part) {
 
 	scanner := bufio.NewScanner(file)
 	parsingParts := false
-
-	ruleRe := regexp.MustCompile(`([xmas])([<>])(\d+)`)
-	partRe := regexp.MustCompile(`([xmas])=(\d+)`)
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -71,7 +75,10 @@ func parseInput(filename string) (map[string][]Rule, []Part) {
 					matches := ruleRe.FindStringSubmatch(condition)
 					attr := matches[1]
 					op := matches[2]
-					value, _ := strconv.Atoi(matches[3])
+					value, err := strconv.Atoi(matches[3])
+					if err != nil {
+						log.Fatalf("failed to parse rule value %q: %v", matches[3], err)
+					}
 
 					rules = append(rules, Rule{
 						Attr:        attr,
@@ -92,7 +99,10 @@ func parseInput(filename string) (map[string][]Rule, []Part) {
 			part := Part{}
 			for _, match := range partRe.FindAllStringSubmatch(line, -1) {
 				attr := match[1]
-				value, _ := strconv.Atoi(match[2])
+				value, err := strconv.Atoi(match[2])
+				if err != nil {
+					log.Fatalf("failed to parse part value %q: %v", match[2], err)
+				}
 				switch attr {
 				case "x":
 					part.X = value

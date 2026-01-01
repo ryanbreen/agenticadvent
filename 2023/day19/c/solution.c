@@ -51,11 +51,18 @@ static int find_workflow(const char *name) {
 }
 
 static void parse_workflow(char *line) {
+    if (num_workflows >= MAX_WORKFLOWS) {
+        fprintf(stderr, "Error: exceeded maximum number of workflows (%d)\n", MAX_WORKFLOWS);
+        exit(1);
+    }
     Workflow *wf = &workflows[num_workflows++];
 
     /* Parse name */
     char *brace = strchr(line, '{');
     size_t name_len = brace - line;
+    if (name_len >= MAX_NAME_LEN) {
+        name_len = MAX_NAME_LEN - 1;
+    }
     strncpy(wf->name, line, name_len);
     wf->name[name_len] = '\0';
 
@@ -75,13 +82,15 @@ static void parse_workflow(char *line) {
             rule->attr = token[0];
             rule->op = token[1];
             rule->value = atoi(token + 2);
-            strcpy(rule->destination, colon + 1);
+            strncpy(rule->destination, colon + 1, MAX_NAME_LEN - 1);
+            rule->destination[MAX_NAME_LEN - 1] = '\0';
         } else {
             /* Default rule */
             rule->attr = '\0';
             rule->op = '\0';
             rule->value = 0;
-            strcpy(rule->destination, token);
+            strncpy(rule->destination, token, MAX_NAME_LEN - 1);
+            rule->destination[MAX_NAME_LEN - 1] = '\0';
         }
 
         token = strtok(NULL, ",");
@@ -211,6 +220,10 @@ static int64_t count_accepted(const char *workflow_name, Ranges ranges) {
     }
 
     int wf_idx = find_workflow(workflow_name);
+    if (wf_idx < 0) {
+        fprintf(stderr, "Error: workflow '%s' not found\n", workflow_name);
+        return 0;
+    }
     const Workflow *wf = &workflows[wf_idx];
 
     int64_t total = 0;

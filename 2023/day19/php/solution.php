@@ -1,8 +1,14 @@
 #!/usr/bin/env php
 <?php
+declare(strict_types=1);
+
 /**
  * Day 19: Aplenty - Workflow processing and range analysis.
  */
+
+// Regex patterns for parsing
+const PATTERN_CONDITION = '/([xmas])([<>])(\d+)/';
+const PATTERN_PART_RATING = '/([xmas])=(\d+)/';
 
 /**
  * Parse workflows and parts from input.
@@ -20,7 +26,7 @@ function parseInput(string $filename): array {
         foreach (explode(',', $rulesStr) as $rule) {
             if (strpos($rule, ':') !== false) {
                 [$condition, $destination] = explode(':', $rule);
-                preg_match('/([xmas])([<>])(\d+)/', $condition, $matches);
+                preg_match(PATTERN_CONDITION, $condition, $matches);
                 $attr = $matches[1];
                 $op = $matches[2];
                 $value = (int)$matches[3];
@@ -36,7 +42,7 @@ function parseInput(string $filename): array {
     $parts = [];
     foreach (explode("\n", $partsSection) as $line) {
         $part = [];
-        preg_match_all('/([xmas])=(\d+)/', $line, $matches, PREG_SET_ORDER);
+        preg_match_all(PATTERN_PART_RATING, $line, $matches, PREG_SET_ORDER);
         foreach ($matches as $match) {
             $part[$match[1]] = (int)$match[2];
         }
@@ -105,7 +111,6 @@ function countAccepted(array $workflows, string $workflow, array $ranges): \GMP 
     }
 
     $total = gmp_init(0);
-    $ranges = $ranges;  // Copy (PHP arrays are copy-on-write)
 
     foreach ($workflows[$workflow] as [$attr, $op, $value, $destination]) {
         if ($attr === null) {  // Default rule

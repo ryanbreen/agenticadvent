@@ -3,11 +3,49 @@
 use std::collections::HashMap;
 use std::fs;
 
+/// Represents the four part attributes (x, m, a, s)
+#[derive(Clone, Copy, Debug)]
+enum Attr {
+    X,
+    M,
+    A,
+    S,
+}
+
+impl Attr {
+    fn from_char(c: char) -> Option<Attr> {
+        match c {
+            'x' => Some(Attr::X),
+            'm' => Some(Attr::M),
+            'a' => Some(Attr::A),
+            's' => Some(Attr::S),
+            _ => None,
+        }
+    }
+}
+
+/// Comparison operators for rules
+#[derive(Clone, Copy, Debug)]
+enum Op {
+    LessThan,
+    GreaterThan,
+}
+
+impl Op {
+    fn from_char(c: char) -> Option<Op> {
+        match c {
+            '<' => Some(Op::LessThan),
+            '>' => Some(Op::GreaterThan),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 enum Rule {
     Conditional {
-        attr: char,
-        op: char,
+        attr: Attr,
+        op: Op,
         value: i64,
         destination: String,
     },
@@ -27,13 +65,21 @@ struct Part {
 }
 
 impl Part {
-    fn get(&self, attr: char) -> i64 {
+    fn get(&self, attr: Attr) -> i64 {
         match attr {
-            'x' => self.x,
-            'm' => self.m,
-            'a' => self.a,
-            's' => self.s,
-            _ => panic!("Invalid attribute: {}", attr),
+            Attr::X => self.x,
+            Attr::M => self.m,
+            Attr::A => self.a,
+            Attr::S => self.s,
+        }
+    }
+
+    fn set(&mut self, attr: Attr, value: i64) {
+        match attr {
+            Attr::X => self.x = value,
+            Attr::M => self.m = value,
+            Attr::A => self.a = value,
+            Attr::S => self.s = value,
         }
     }
 
@@ -60,24 +106,28 @@ impl Ranges {
         }
     }
 
-    fn get(&self, attr: char) -> (i64, i64) {
+    fn get(&self, attr: Attr) -> (i64, i64) {
         match attr {
-            'x' => self.x,
-            'm' => self.m,
-            'a' => self.a,
-            's' => self.s,
-            _ => panic!("Invalid attribute: {}", attr),
+            Attr::X => self.x,
+            Attr::M => self.m,
+            Attr::A => self.a,
+            Attr::S => self.s,
         }
     }
 
-    fn set(&mut self, attr: char, range: (i64, i64)) {
+    fn set(&mut self, attr: Attr, range: (i64, i64)) {
         match attr {
-            'x' => self.x = range,
-            'm' => self.m = range,
-            'a' => self.a = range,
-            's' => self.s = range,
-            _ => panic!("Invalid attribute: {}", attr),
+            Attr::X => self.x = range,
+            Attr::M => self.m = range,
+            Attr::A => self.a = range,
+            Attr::S => self.s = range,
         }
+    }
+
+    fn with_attr(&self, attr: Attr, range: (i64, i64)) -> Ranges {
+        let mut new_ranges = self.clone();
+        new_ranges.set(attr, range);
+        new_ranges
     }
 
     fn combinations(&self) -> i64 {
@@ -86,15 +136,18 @@ impl Ranges {
     }
 }
 
-fn parse_input(content: &str) -> (Workflows, Vec<Part>) {
+fn parse_input(content: &str) -> Option<(Workflows, Vec<Part>)> {
     let sections: Vec<&str> = content.trim().split("\n\n").collect();
+    if sections.len() < 2 {
+        return None;
+    }
     let workflow_section = sections[0];
     let parts_section = sections[1];
 
     // Parse workflows
     let mut workflows = HashMap::new();
     for line in workflow_section.lines() {
-        let brace_pos = line.find('{').unwrap();
+        let brace_pos = line.find('{')?;
         let name = line[..brace_pos].to_string();
         let rules_str = &line[brace_pos + 1..line.len() - 1]; // Remove { and }
 
@@ -104,9 +157,9 @@ fn parse_input(content: &str) -> (Workflows, Vec<Part>) {
                 let condition = &rule_str[..colon_pos];
                 let destination = rule_str[colon_pos + 1..].to_string();
 
-                let attr = condition.chars().next().unwrap();
-                let op = condition.chars().nth(1).unwrap();
-                let value: i64 = condition[2..].parse().unwrap();
+                let attr = Attr::from_char(condition.chars().next()?)?;
+                let op = Op::from_char(condition.chars().nth(1)?)?;
+                let value: i64 = condition[2..].parse().ok()?;
 
                 rules.push(Rule::Conditional {
                     attr,
@@ -136,27 +189,22 @@ fn parse_input(content: &str) -> (Workflows, Vec<Part>) {
 
         for assignment in inner.split(',') {
             let mut parts_iter = assignment.split('=');
-            let attr = parts_iter.next().unwrap();
-            let value: i64 = parts_iter.next().unwrap().parse().unwrap();
-            match attr {
-                "x" => part.x = value,
-                "m" => part.m = value,
-                "a" => part.a = value,
-                "s" => part.s = value,
-                _ => panic!("Unknown attribute: {}", attr),
-            }
+            let attr_str = parts_iter.next()?;
+            let value: i64 = parts_iter.next()?.parse().ok()?;
+            let attr = Attr::from_char(attr_str.chars().next()?)?;
+            part.set(attr, value);
         }
         parts.push(part);
     }
 
-    (workflows, parts)
+    Some((workflows, parts))
 }
 
-fn process_part(workflows: &Workflows, part: &Part) -> bool {
+fn process_part(workflows: &Workflows, part: &Part) -> Option<bool> {
     let mut current = "in".to_string();
 
     while current != "A" && current != "R" {
-        let rules = workflows.get(&current).unwrap();
+        let rules = workflows.get(&current)?;
 
         for rule in rules {
             match rule {
@@ -172,9 +220,8 @@ fn process_part(workflows: &Workflows, part: &Part) -> bool {
                 } => {
                     let part_value = part.get(*attr);
                     let matches = match op {
-                        '<' => part_value < *value,
-                        '>' => part_value > *value,
-                        _ => panic!("Unknown operator: {}", op),
+                        Op::LessThan => part_value < *value,
+                        Op::GreaterThan => part_value > *value,
                     };
                     if matches {
                         current = destination.clone();
@@ -185,13 +232,13 @@ fn process_part(workflows: &Workflows, part: &Part) -> bool {
         }
     }
 
-    current == "A"
+    Some(current == "A")
 }
 
 fn part1(workflows: &Workflows, parts: &[Part]) -> i64 {
     parts
         .iter()
-        .filter(|p| process_part(workflows, p))
+        .filter(|p| process_part(workflows, p).unwrap_or(false))
         .map(|p| p.sum())
         .sum()
 }
@@ -204,14 +251,20 @@ fn count_accepted(workflows: &Workflows, workflow: &str, ranges: Ranges) -> i64 
         return ranges.combinations();
     }
 
+    let rules = match workflows.get(workflow) {
+        Some(r) => r,
+        None => return 0,
+    };
+
     let mut total = 0;
     let mut ranges = ranges;
-    let rules = workflows.get(workflow).unwrap();
 
     for rule in rules {
         match rule {
             Rule::Default { destination } => {
-                total += count_accepted(workflows, destination, ranges.clone());
+                // Last rule - can move ranges instead of cloning
+                total += count_accepted(workflows, destination, ranges);
+                break;
             }
             Rule::Conditional {
                 attr,
@@ -222,12 +275,11 @@ fn count_accepted(workflows: &Workflows, workflow: &str, ranges: Ranges) -> i64 
                 let (lo, hi) = ranges.get(*attr);
 
                 match op {
-                    '<' => {
+                    Op::LessThan => {
                         // Split: [lo, value-1] goes to destination, [value, hi] continues
                         if lo < *value {
-                            let mut new_ranges = ranges.clone();
-                            new_ranges.set(*attr, (lo, hi.min(*value - 1)));
-                            total += count_accepted(workflows, destination, new_ranges);
+                            let matching_range = (lo, hi.min(*value - 1));
+                            total += count_accepted(workflows, destination, ranges.with_attr(*attr, matching_range));
                         }
                         if hi >= *value {
                             ranges.set(*attr, (lo.max(*value), hi));
@@ -235,12 +287,11 @@ fn count_accepted(workflows: &Workflows, workflow: &str, ranges: Ranges) -> i64 
                             break;
                         }
                     }
-                    '>' => {
+                    Op::GreaterThan => {
                         // Split: [value+1, hi] goes to destination, [lo, value] continues
                         if hi > *value {
-                            let mut new_ranges = ranges.clone();
-                            new_ranges.set(*attr, (lo.max(*value + 1), hi));
-                            total += count_accepted(workflows, destination, new_ranges);
+                            let matching_range = (lo.max(*value + 1), hi);
+                            total += count_accepted(workflows, destination, ranges.with_attr(*attr, matching_range));
                         }
                         if lo <= *value {
                             ranges.set(*attr, (lo, hi.min(*value)));
@@ -248,7 +299,6 @@ fn count_accepted(workflows: &Workflows, workflow: &str, ranges: Ranges) -> i64 
                             break;
                         }
                     }
-                    _ => panic!("Unknown operator: {}", op),
                 }
             }
         }
@@ -263,7 +313,7 @@ fn part2(workflows: &Workflows) -> i64 {
 
 fn main() {
     let content = fs::read_to_string("../input.txt").expect("Failed to read input file");
-    let (workflows, parts) = parse_input(&content);
+    let (workflows, parts) = parse_input(&content).expect("Failed to parse input");
 
     println!("Part 1: {}", part1(&workflows, &parts));
     println!("Part 2: {}", part2(&workflows));

@@ -8,6 +8,10 @@
  *         using range splitting.
  */
 
+// Constants
+NL = chr(10);
+ATTRS = ["x", "m", "a", "s"];
+
 // Read input file
 // Get the directory of the current script
 scriptDir = getDirectoryFromPath(getCurrentTemplatePath());
@@ -15,14 +19,13 @@ inputPath = scriptDir & "../input.txt";
 inputText = fileRead(inputPath).trim();
 
 // Split into workflows and parts sections by finding double newline
-// Use includeEmptyFields=true to preserve empty lines
-blankPos = find(chr(10) & chr(10), inputText);
+blankPos = find(NL & NL, inputText);
 workflowSection = left(inputText, blankPos - 1);
 partsSection = mid(inputText, blankPos + 2, len(inputText) - blankPos - 1);
 
 // Parse workflows
 workflows = {};
-for (line in listToArray(workflowSection, chr(10))) {
+for (line in listToArray(workflowSection, NL)) {
     if (trim(line) == "") continue;
 
     // Format: name{rules...}
@@ -63,7 +66,7 @@ for (line in listToArray(workflowSection, chr(10))) {
 
 // Parse parts
 parts = [];
-for (line in listToArray(partsSection, chr(10))) {
+for (line in listToArray(partsSection, NL)) {
     if (trim(line) == "") continue;
 
     // Format: {x=...,m=...,a=...,s=...}
@@ -80,6 +83,29 @@ for (line in listToArray(partsSection, chr(10))) {
 }
 
 /**
+ * Create a deep copy of ranges struct
+ */
+function copyRanges(required struct ranges) {
+    var copy = {};
+    for (var attr in ATTRS) {
+        copy[attr] = {lo: ranges[attr].lo, hi: ranges[attr].hi};
+    }
+    return copy;
+}
+
+/**
+ * Evaluate a rule condition against a part value
+ */
+function evaluateCondition(required string op, required numeric partValue, required numeric ruleValue) {
+    if (op == "<") {
+        return partValue < ruleValue;
+    } else if (op == ">") {
+        return partValue > ruleValue;
+    }
+    return false;
+}
+
+/**
  * Process a part through workflows and return true if accepted
  */
 function processPart(required struct workflows, required struct part) {
@@ -93,16 +119,7 @@ function processPart(required struct workflows, required struct part) {
                 current = rule.destination;
                 break;
             } else {
-                var partValue = part[rule.attr];
-                var matched = false;
-
-                if (rule.op == "<" && partValue < rule.value) {
-                    matched = true;
-                } else if (rule.op == ">" && partValue > rule.value) {
-                    matched = true;
-                }
-
-                if (matched) {
+                if (evaluateCondition(rule.op, part[rule.attr], rule.value)) {
                     current = rule.destination;
                     break;
                 }
@@ -151,14 +168,7 @@ function countAccepted(required struct workflows, required string workflow, requ
     }
 
     var total = 0;
-    // Make a copy of ranges
-    var currentRanges = {
-        x: {lo: ranges.x.lo, hi: ranges.x.hi},
-        m: {lo: ranges.m.lo, hi: ranges.m.hi},
-        a: {lo: ranges.a.lo, hi: ranges.a.hi},
-        s: {lo: ranges.s.lo, hi: ranges.s.hi}
-    };
-
+    var currentRanges = copyRanges(ranges);
     var rules = workflows[workflow];
 
     for (var rule in rules) {
@@ -172,13 +182,7 @@ function countAccepted(required struct workflows, required string workflow, requ
             if (rule.op == "<") {
                 // Split: [lo, value-1] goes to destination, [value, hi] continues
                 if (lo < rule.value) {
-                    // Part that matches the condition
-                    var newRanges = {
-                        x: {lo: currentRanges.x.lo, hi: currentRanges.x.hi},
-                        m: {lo: currentRanges.m.lo, hi: currentRanges.m.hi},
-                        a: {lo: currentRanges.a.lo, hi: currentRanges.a.hi},
-                        s: {lo: currentRanges.s.lo, hi: currentRanges.s.hi}
-                    };
+                    var newRanges = copyRanges(currentRanges);
                     newRanges[rule.attr].hi = min(hi, rule.value - 1);
                     total = precisionEvaluate(total + countAccepted(workflows, rule.destination, newRanges));
                 }
@@ -192,13 +196,7 @@ function countAccepted(required struct workflows, required string workflow, requ
                 // op == ">"
                 // Split: [value+1, hi] goes to destination, [lo, value] continues
                 if (hi > rule.value) {
-                    // Part that matches the condition
-                    var newRanges = {
-                        x: {lo: currentRanges.x.lo, hi: currentRanges.x.hi},
-                        m: {lo: currentRanges.m.lo, hi: currentRanges.m.hi},
-                        a: {lo: currentRanges.a.lo, hi: currentRanges.a.hi},
-                        s: {lo: currentRanges.s.lo, hi: currentRanges.s.hi}
-                    };
+                    var newRanges = copyRanges(currentRanges);
                     newRanges[rule.attr].lo = max(lo, rule.value + 1);
                     total = precisionEvaluate(total + countAccepted(workflows, rule.destination, newRanges));
                 }
@@ -229,6 +227,6 @@ function part2(required struct workflows) {
 }
 
 // Run solutions
-writeOutput("Part 1: " & part1(workflows, parts) & chr(10));
-writeOutput("Part 2: " & part2(workflows) & chr(10));
+writeOutput("Part 1: " & part1(workflows, parts) & NL);
+writeOutput("Part 2: " & part2(workflows) & NL);
 </cfscript>
