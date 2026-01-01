@@ -24,6 +24,7 @@ Solutions implemented in 16 languages.
 | 16  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 17  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 18  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 19  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -413,3 +414,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | PHP         | 79.3         | 26.8        |
 | Clojure     | 557.0        | 132.1       |
 | ColdFusion  | 3,965.8      | 991.3       |
+
+### Day 19: Aplenty
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| ARM64       | 7.6          | 1.9         |
+| Zig         | 7.7          | 1.9         |
+| Rust        | 8.3          | 1.9         |
+| C           | 8.5          | 1.9         |
+| C++         | 8.5          | 1.9         |
+| Go          | 9.5          | 5.0         |
+| Perl        | 17.9         | 5.7         |
+| Python      | 34.8         | 16.3        |
+| Node.js     | 56.2         | 42.2        |
+| Common Lisp | 64.8         | 55.1        |
+| PHP         | 70.1         | 26.9        |
+| Java        | 74.9         | 49.7        |
+| Ruby        | 77.4         | 29.2        |
+| Clojure     | 493.9        | 134.6       |
+| ColdFusion  | 2,927.9      | 1,089.4     |
+| Bash        | 8,241.7      | 7.2         |
