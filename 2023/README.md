@@ -27,6 +27,7 @@ Solutions implemented in 16 languages.
 | 19  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 20  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 21  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 22  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -479,3 +480,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Bash        | 1,867.9      | 36.6        |
 | ColdFusion  | 4,029.7      | 1,076.6     |
 | Perl        | 37,189.2     | 117.8       |
+
+### Day 22: Sand Slabs
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 11.3         | 18.6        |
+| Rust        | 28.0         | 3.1         |
+| Zig         | 33.7         | 2.1         |
+| Go          | 38.1         | 9.9         |
+| C++         | 41.7         | 2.5         |
+| ARM64       | 80.3         | 5.6         |
+| Common Lisp | 85.2         | 90.4        |
+| Python      | 101.3        | 17.9        |
+| Java        | 108.3        | 100.5       |
+| PHP         | 111.5        | 28.4        |
+| Node.js     | 117.5        | 56.9        |
+| Perl        | 180.4        | 8.4         |
+| Ruby        | 559.9        | 32.7        |
+| Clojure     | 600.3        | 290.1       |
+| Bash        | 2,168.0      | 8.3         |
+| ColdFusion  | 3,021.5      | 1,104.4     |
