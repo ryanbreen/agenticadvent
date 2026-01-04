@@ -58,8 +58,8 @@ The visited set uses a **bitmask** (since V < 64) for O(1) add/remove operations
 - **C++ (159ms)**: Fastest. Uses `unordered_map` with bitmask visited.
 - **Rust (161ms)**: Nearly identical to C++. HashMap with u64 bitmask.
 - **Zig (168ms)**: Competitive with C++/Rust.
+- **C (169ms)**: Compact adjacency lists with bitmask visited tracking.
 - **ARM64 (216ms)**: Hand-written assembly with bitmask tracking.
-- **C (467ms)**: Slower than expected - adjacency matrix approach has more overhead.
 - **Java (1.8s)**: JVM overhead, but respectable for this problem class.
 - **Go (3.2s)**: Map-based visited tracking is slower than bitmask.
 - **Node.js (3.7s)**: Recursive DFS with Set operations.
@@ -79,8 +79,8 @@ The visited set uses a **bitmask** (since V < 64) for O(1) add/remove operations
 | C++         | 159.3        | 1.9         |
 | Rust        | 161.4        | 1.9         |
 | Zig         | 168.1        | 1.9         |
+| C           | 169.2        | 1.7         |
 | ARM64       | 215.9        | 1.4         |
-| C           | 467.4        | 1.9         |
 | Java        | 1,782.5      | 1,284.1     |
 | Go          | 3,219.3      | 6.6         |
 | Node.js     | 3,677.8      | 62.7        |

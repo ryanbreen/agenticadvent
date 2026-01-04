@@ -10,10 +10,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #define MAX_GRID_SIZE 256
 #define MAX_JUNCTIONS 64
 #define MAX_LINE_LEN 256
+#define MAX_EDGES_PER_NODE 10
 
 // Grid storage
 static char grid[MAX_GRID_SIZE][MAX_GRID_SIZE];
@@ -24,15 +26,22 @@ static int junctions[MAX_JUNCTIONS][2];  // (row, col)
 static int num_junctions;
 static int junction_index[MAX_GRID_SIZE][MAX_GRID_SIZE];  // -1 if not junction
 
-// Graph as adjacency matrix with weights
-static int graph[MAX_JUNCTIONS][MAX_JUNCTIONS];
+// Edge structure for adjacency list
+typedef struct {
+    uint8_t to;      // Target junction index
+    uint16_t weight;  // Edge weight (distance)
+} Edge;
+
+// Adjacency list representation
+static Edge adj_list[MAX_JUNCTIONS][MAX_EDGES_PER_NODE];
+static uint8_t adj_count[MAX_JUNCTIONS];  // Number of edges for each node
 
 // Direction vectors
 static const int dr[] = {-1, 1, 0, 0};
 static const int dc[] = {0, 0, -1, 1};
 
 // Slope characters and their required directions
-static int get_slope_dir(char c) {
+static inline int get_slope_dir(char c) {
     switch (c) {
         case '^': return 0;  // up
         case 'v': return 1;  // down
@@ -116,39 +125,53 @@ void find_junctions(void) {
 }
 
 void build_graph(bool respect_slopes) {
-    memset(graph, 0, sizeof(graph));
+    // Clear adjacency list
+    memset(adj_count, 0, sizeof(adj_count));
+
+    // Stack for BFS - use compact structure
+    typedef struct {
+        uint8_t r, c;
+        uint16_t dist;
+    } StackEntry;
+
+    StackEntry *stack = malloc(rows * cols * sizeof(StackEntry));
+    if (!stack) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
+    }
+
+    uint8_t visited[MAX_GRID_SIZE][MAX_GRID_SIZE];
 
     for (int ji = 0; ji < num_junctions; ji++) {
         int start_r = junctions[ji][0];
         int start_c = junctions[ji][1];
 
         // BFS/DFS from this junction to find reachable junctions
-        static int stack_r[MAX_GRID_SIZE * MAX_GRID_SIZE];
-        static int stack_c[MAX_GRID_SIZE * MAX_GRID_SIZE];
-        static int stack_dist[MAX_GRID_SIZE * MAX_GRID_SIZE];
-        static bool visited[MAX_GRID_SIZE][MAX_GRID_SIZE];
-
-        memset(visited, false, sizeof(visited));
+        memset(visited, 0, sizeof(visited));
         int sp = 0;  // stack pointer
 
-        stack_r[sp] = start_r;
-        stack_c[sp] = start_c;
-        stack_dist[sp] = 0;
+        stack[sp].r = start_r;
+        stack[sp].c = start_c;
+        stack[sp].dist = 0;
         sp++;
-        visited[start_r][start_c] = true;
+        visited[start_r][start_c] = 1;
 
         while (sp > 0) {
             sp--;
-            int r = stack_r[sp];
-            int c = stack_c[sp];
-            int dist = stack_dist[sp];
+            int r = stack[sp].r;
+            int c = stack[sp].c;
+            int dist = stack[sp].dist;
 
             // If we've reached another junction (not the start), record edge
             if (dist > 0 && junction_index[r][c] >= 0) {
                 int target_ji = junction_index[r][c];
-                if (graph[ji][target_ji] < dist) {
-                    graph[ji][target_ji] = dist;
-                }
+
+                // Add edge to adjacency list
+                int idx = adj_count[ji];
+                adj_list[ji][idx].to = target_ji;
+                adj_list[ji][idx].weight = dist;
+                adj_count[ji]++;
+
                 continue;  // Don't explore past junctions
             }
 
@@ -170,32 +193,40 @@ void build_graph(bool respect_slopes) {
                     }
                 }
 
-                visited[nr][nc] = true;
-                stack_r[sp] = nr;
-                stack_c[sp] = nc;
-                stack_dist[sp] = dist + 1;
+                visited[nr][nc] = 1;
+                stack[sp].r = nr;
+                stack[sp].c = nc;
+                stack[sp].dist = dist + 1;
                 sp++;
             }
         }
     }
+
+    free(stack);
 }
 
 // DFS with backtracking using bitmask for visited junctions
-static int dfs(int node, int end, long long visited_mask) {
+static int dfs(int node, int end, uint64_t visited_mask) {
     if (node == end) {
         return 0;
     }
 
-    visited_mask |= (1LL << node);
+    visited_mask |= (1ULL << node);
     int max_dist = -1;  // -1 indicates no path found
 
-    for (int neighbor = 0; neighbor < num_junctions; neighbor++) {
-        if (graph[node][neighbor] == 0) continue;
-        if (visited_mask & (1LL << neighbor)) continue;
+    // Iterate through adjacency list instead of all junctions
+    const Edge *edges = adj_list[node];
+    int count = adj_count[node];
+
+    for (int i = 0; i < count; i++) {
+        int neighbor = edges[i].to;
+        int weight = edges[i].weight;
+
+        if (visited_mask & (1ULL << neighbor)) continue;
 
         int result = dfs(neighbor, end, visited_mask);
         if (result >= 0) {
-            int total = graph[node][neighbor] + result;
+            int total = weight + result;
             if (total > max_dist) {
                 max_dist = total;
             }
@@ -207,7 +238,7 @@ static int dfs(int node, int end, long long visited_mask) {
 
 int longest_path(void) {
     // Start is junction 0, end is junction 1 (based on how we add them)
-    return dfs(0, 1, 0LL);
+    return dfs(0, 1, 0ULL);
 }
 
 int solve(bool respect_slopes) {

@@ -510,8 +510,8 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | C++         | 159.3        | 1.9         |
 | Rust        | 161.4        | 1.9         |
 | Zig         | 168.1        | 1.9         |
+| C           | 169.2        | 1.7         |
 | ARM64       | 215.9        | 1.4         |
-| C           | 467.4        | 1.9         |
 | Java        | 1,782.5      | 1,284.1     |
 | Go          | 3,219.3      | 6.6         |
 | Node.js     | 3,677.8      | 62.7        |
