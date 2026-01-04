@@ -29,6 +29,7 @@ Solutions implemented in 16 languages.
 | 21  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 22  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 23  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 24  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -523,3 +524,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Perl        | 15,922.1     | 4.6         |
 | ColdFusion  | 31,407.9     | 1,026.5     |
 | Bash        | >300,000     | ~10         |
+
+### Day 24: Never Tell Me The Odds
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 7.1          | 1.9         |
+| C++         | 7.6          | 1.9         |
+| ARM64       | 7.8          | 1.9         |
+| Rust        | 8.5          | 1.9         |
+| Zig         | 8.8          | 1.9         |
+| Node.js     | 56.1         | 45.8        |
+| Python      | 62.7         | 15.7        |
+| Java        | 68.5         | 49.9        |
+| PHP         | 78.6         | 26.4        |
+| Common Lisp | 87.6         | 71.5        |
+| Ruby        | 92.3         | 28.2        |
+| Go          | 99.7         | 26.8        |
+| Perl        | 110.3        | 17.6        |
+| Clojure     | 604.3        | 294.8       |
+| ColdFusion  | 7,550.1      | 1,129.6     |
+| Bash        | 22,092.1     | 268.5       |
