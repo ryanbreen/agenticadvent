@@ -1,56 +1,59 @@
 // Day 22: Monkey Map - ARM64 Assembly Solution for macOS
 // Navigate a 2D map with wrapping (Part 1: flat, Part 2: cube)
 
-.global _start
+.global _main
 .align 4
 
 // Constants
 .equ BUFFER_SIZE, 65536
 .equ MAX_WIDTH, 200
 .equ MAX_HEIGHT, 250
-.equ MAX_INSTRUCTIONS, 2048
+.equ MAX_INSTRUCTIONS, 8192
 .equ FACE_SIZE, 50
 
-// Data section
-.data
+// Read-only data section
+.section __TEXT,__cstring
 part1_msg:      .asciz "Part 1: "
 part2_msg:      .asciz "Part 2: "
 newline:        .asciz "\n"
 input_path:     .asciz "../input.txt"
 
+// Constant data in __DATA,__const
+.section __DATA,__const
 .align 8
-buffer:         .space BUFFER_SIZE
-grid:           .space MAX_WIDTH * MAX_HEIGHT    // The map grid
-instructions:   .space MAX_INSTRUCTIONS * 8      // Array of instructions (negative = turn, positive = move)
-num_buf:        .space 32
+dr_array:       .quad 0, 1, 0, -1
+dc_array:       .quad 1, 0, -1, 0
 
-// Variables
+// Writable data in __DATA,__data
+.section __DATA,__data
+.align 8
 grid_width:     .quad 0
 grid_height:    .quad 0
 num_instructions: .quad 0
 
-// Direction arrays: right=0, down=1, left=2, up=3
-dr_array:       .quad 0, 1, 0, -1    // Delta row for each direction
-dc_array:       .quad 1, 0, -1, 0    // Delta col for each direction
+// Zero-initialized writable data
+.zerofill __DATA,__bss,buffer,BUFFER_SIZE,3
+.zerofill __DATA,__bss,grid,MAX_WIDTH*MAX_HEIGHT,3
+.zerofill __DATA,__bss,instructions,MAX_INSTRUCTIONS*8,3
+.zerofill __DATA,__bss,num_buf,32,3
 
 .text
 
-// ============================================================
-// _start: Entry point
-// ============================================================
-_start:
+_main:
+    stp x29, x30, [sp, #-16]!
+    mov x29, sp
+
     // Open input file
-    mov x0, #-100               // AT_FDCWD
-    adrp x1, input_path@PAGE
-    add x1, x1, input_path@PAGEOFF
-    mov x2, #0                  // O_RDONLY
-    mov x3, #0
-    mov x16, #463               // openat syscall
-    svc #0
+    adrp x0, input_path@PAGE
+    add x0, x0, input_path@PAGEOFF
+    mov x1, #0                  // O_RDONLY
+    mov x2, #0
+    mov x16, #5                 // open syscall
+    svc #0x80
 
     cmp x0, #0
-    b.lt exit_error
-    mov x19, x0                 // Save fd in x19
+    b.le exit_error
+    mov x19, x0
 
     // Read file
     mov x0, x19
@@ -58,27 +61,24 @@ _start:
     add x1, x1, buffer@PAGEOFF
     mov x2, #BUFFER_SIZE
     mov x16, #3                 // read syscall
-    svc #0
-
-    mov x20, x0                 // Save bytes read in x20
+    svc #0x80
 
     // Close file
     mov x0, x19
     mov x16, #6                 // close syscall
-    svc #0
+    svc #0x80
 
     // Parse input
     bl parse_input
 
     // Part 1
     bl solve_part1
-    mov x21, x0                 // Save part1 result
+    mov x19, x0
 
-    // Print Part 1
     adrp x0, part1_msg@PAGE
     add x0, x0, part1_msg@PAGEOFF
     bl print_string
-    mov x0, x21
+    mov x0, x19
     bl print_number
     adrp x0, newline@PAGE
     add x0, x0, newline@PAGEOFF
@@ -86,27 +86,25 @@ _start:
 
     // Part 2
     bl solve_part2
-    mov x21, x0                 // Save part2 result
+    mov x19, x0
 
-    // Print Part 2
     adrp x0, part2_msg@PAGE
     add x0, x0, part2_msg@PAGEOFF
     bl print_string
-    mov x0, x21
+    mov x0, x19
     bl print_number
     adrp x0, newline@PAGE
     add x0, x0, newline@PAGEOFF
     bl print_string
 
-    // Exit successfully
     mov x0, #0
-    mov x16, #1
-    svc #0
+    ldp x29, x30, [sp], #16
+    ret
 
 exit_error:
     mov x0, #1
-    mov x16, #1
-    svc #0
+    ldp x29, x30, [sp], #16
+    ret
 
 // ============================================================
 // parse_input: Parse the grid and instructions
@@ -120,18 +118,17 @@ parse_input:
     stp x27, x28, [sp, #-16]!
 
     adrp x19, buffer@PAGE
-    add x19, x19, buffer@PAGEOFF           // x19 = buffer ptr
+    add x19, x19, buffer@PAGEOFF
     adrp x20, grid@PAGE
-    add x20, x20, grid@PAGEOFF             // x20 = grid ptr
+    add x20, x20, grid@PAGEOFF
 
-    // First, fill grid with spaces
+    // Fill grid with spaces
     mov x0, x20
     mov x1, #MAX_WIDTH
     mov x2, #MAX_HEIGHT
     mul x1, x1, x2
 fill_grid:
-    cmp x1, #0
-    b.eq fill_done
+    cbz x1, fill_done
     mov w2, #' '
     strb w2, [x0], #1
     sub x1, x1, #1
@@ -143,41 +140,33 @@ fill_done:
     mov x23, #0                 // current column
     mov x24, x19                // current buffer position
 
-    // Parse grid
 parse_grid_loop:
     ldrb w0, [x24]
-
-    // Check for double newline (end of grid)
-    cmp w0, #10                 // newline
+    cmp w0, #10
     b.ne not_newline
 
-    // Check if next is also newline
     ldrb w1, [x24, #1]
     cmp w1, #10
     b.eq end_grid_section
 
-    // End of row - update max width and move to next row
     cmp x23, x22
-    csel x22, x23, x22, gt      // max_width = max(max_width, current_col)
-    add x21, x21, #1            // row++
-    mov x23, #0                 // col = 0
+    csel x22, x23, x22, gt
+    add x21, x21, #1
+    mov x23, #0
     add x24, x24, #1
     b parse_grid_loop
 
 not_newline:
-    // Store character in grid: grid[row * MAX_WIDTH + col] = char
     mov x25, x21
     mov x26, #MAX_WIDTH
     mul x25, x25, x26
-    add x25, x25, x23           // offset = row * MAX_WIDTH + col
+    add x25, x25, x23
     strb w0, [x20, x25]
-
-    add x23, x23, #1            // col++
-    add x24, x24, #1            // buffer++
+    add x23, x23, #1
+    add x24, x24, #1
     b parse_grid_loop
 
 end_grid_section:
-    // Handle last row if it had content
     cmp x23, #0
     b.eq skip_last_row_check
     cmp x23, x22
@@ -185,7 +174,6 @@ end_grid_section:
     add x21, x21, #1
 skip_last_row_check:
 
-    // Store dimensions
     adrp x0, grid_width@PAGE
     add x0, x0, grid_width@PAGEOFF
     str x22, [x0]
@@ -194,41 +182,32 @@ skip_last_row_check:
     add x0, x0, grid_height@PAGEOFF
     str x21, [x0]
 
-    // Skip to instructions (past double newline)
     add x24, x24, #2
 
-    // Parse instructions
     adrp x25, instructions@PAGE
     add x25, x25, instructions@PAGEOFF
-    mov x26, #0                 // instruction count
+    mov x26, #0
 
 parse_instr_loop:
     ldrb w0, [x24]
-
-    // Check for end of input
-    cmp w0, #0
-    b.eq end_parse
+    cbz w0, end_parse
     cmp w0, #10
     b.eq end_parse
     cmp w0, #13
     b.eq end_parse
 
-    // Check if it's a digit
     cmp w0, #'0'
     b.lt check_turn
     cmp w0, #'9'
     b.gt check_turn
 
-    // Parse number
-    mov x27, #0                 // accumulator
+    mov x27, #0
 parse_num:
     ldrb w0, [x24]
     cmp w0, #'0'
     b.lt store_num
     cmp w0, #'9'
     b.gt store_num
-
-    // num = num * 10 + digit
     mov x1, #10
     mul x27, x27, x1
     sub w0, w0, #'0'
@@ -237,7 +216,6 @@ parse_num:
     b parse_num
 
 store_num:
-    // Store positive number (move forward)
     str x27, [x25, x26, lsl #3]
     add x26, x26, #1
     b parse_instr_loop
@@ -251,14 +229,16 @@ check_turn:
     b parse_instr_loop
 
 turn_right:
-    mov x27, #-1                // -1 for right turn
+    mov x27, #1
+    neg x27, x27
     str x27, [x25, x26, lsl #3]
     add x26, x26, #1
     add x24, x24, #1
     b parse_instr_loop
 
 turn_left:
-    mov x27, #-2                // -2 for left turn
+    mov x27, #2
+    neg x27, x27
     str x27, [x25, x26, lsl #3]
     add x26, x26, #1
     add x24, x24, #1
@@ -280,78 +260,67 @@ end_parse:
 // ============================================================
 // get_grid_char: Get character at (row, col)
 // x0 = row, x1 = col
-// Returns char in w0 (space if out of bounds)
+// Returns char in w0
 // ============================================================
 get_grid_char:
-    stp x19, x20, [sp, #-16]!
-
-    // Check bounds
     cmp x0, #0
-    b.lt return_space
+    b.lt ggc_return_space
 
     adrp x2, grid_height@PAGE
     add x2, x2, grid_height@PAGEOFF
     ldr x2, [x2]
     cmp x0, x2
-    b.ge return_space
+    b.ge ggc_return_space
 
     cmp x1, #0
-    b.lt return_space
+    b.lt ggc_return_space
 
     adrp x2, grid_width@PAGE
     add x2, x2, grid_width@PAGEOFF
     ldr x2, [x2]
     cmp x1, x2
-    b.ge return_space
+    b.ge ggc_return_space
 
-    // Calculate offset: row * MAX_WIDTH + col
     mov x2, #MAX_WIDTH
     mul x2, x0, x2
     add x2, x2, x1
 
-    adrp x3, grid@PAGE
-    add x3, x3, grid@PAGEOFF
-    ldrb w0, [x3, x2]
-    b done_get_char
+    adrp x9, grid@PAGE
+    add x9, x9, grid@PAGEOFF
+    ldrb w0, [x9, x2]
+    ret
 
-return_space:
+ggc_return_space:
     mov w0, #' '
-
-done_get_char:
-    ldp x19, x20, [sp], #16
     ret
 
 // ============================================================
-// find_start: Find starting position (leftmost '.' on row 0)
+// find_start: Find starting position
 // Returns: x0 = col
 // ============================================================
 find_start:
     stp x29, x30, [sp, #-16]!
     stp x19, x20, [sp, #-16]!
 
-    mov x19, #0                 // col = 0
+    mov x19, #0
 
-find_start_loop:
-    mov x0, #0                  // row = 0
-    mov x1, x19                 // col
+fs_loop:
+    mov x0, #0
+    mov x1, x19
     bl get_grid_char
-
     cmp w0, #'.'
-    b.eq found_start
-
+    b.eq fs_found
     add x19, x19, #1
-    b find_start_loop
+    b fs_loop
 
-found_start:
+fs_found:
     mov x0, x19
-
     ldp x19, x20, [sp], #16
     ldp x29, x30, [sp], #16
     ret
 
 // ============================================================
 // solve_part1: Part 1 with flat wrapping
-// Returns: x0 = password
 // ============================================================
 solve_part1:
     stp x29, x30, [sp, #-16]!
@@ -361,202 +330,181 @@ solve_part1:
     stp x25, x26, [sp, #-16]!
     stp x27, x28, [sp, #-16]!
 
-    // Find starting position
     bl find_start
-    mov x20, #0                 // row = 0
-    mov x21, x0                 // col = starting col
-    mov x22, #0                 // facing = 0 (right)
+    mov x19, #0                 // row
+    mov x20, x0                 // col
+    mov x21, #0                 // facing
 
-    // Load dimensions
-    adrp x23, grid_height@PAGE
-    add x23, x23, grid_height@PAGEOFF
-    ldr x23, [x23]              // height
+    adrp x22, grid_height@PAGE
+    add x22, x22, grid_height@PAGEOFF
+    ldr x22, [x22]
 
-    adrp x24, grid_width@PAGE
-    add x24, x24, grid_width@PAGEOFF
-    ldr x24, [x24]              // width
+    adrp x23, grid_width@PAGE
+    add x23, x23, grid_width@PAGEOFF
+    ldr x23, [x23]
 
-    // Load instruction count and pointer
-    adrp x25, num_instructions@PAGE
-    add x25, x25, num_instructions@PAGEOFF
-    ldr x25, [x25]
+    adrp x24, num_instructions@PAGE
+    add x24, x24, num_instructions@PAGEOFF
+    ldr x24, [x24]
 
-    adrp x26, instructions@PAGE
-    add x26, x26, instructions@PAGEOFF
+    adrp x25, instructions@PAGE
+    add x25, x25, instructions@PAGEOFF
 
-    mov x27, #0                 // instruction index
+    mov x26, #0
 
-part1_instr_loop:
-    cmp x27, x25
-    b.ge part1_done
+sp1_instr_loop:
+    cmp x26, x24
+    b.ge sp1_done
 
-    ldr x0, [x26, x27, lsl #3]
-    add x27, x27, #1
+    ldr x27, [x25, x26, lsl #3]
+    add x26, x26, #1
 
-    // Check if turn or move
-    cmp x0, #0
-    b.lt part1_turn
+    cmp x27, #0
+    b.lt sp1_turn
 
-    // Move forward x0 steps
-    mov x28, x0                 // steps remaining
+    mov x28, x27
 
-part1_move_loop:
-    cmp x28, #0
-    b.le part1_instr_loop
+sp1_move_loop:
+    cbz x28, sp1_instr_loop
 
-    // Get delta for current facing
     adrp x0, dr_array@PAGE
     add x0, x0, dr_array@PAGEOFF
-    ldr x1, [x0, x22, lsl #3]   // dr
+    ldr x10, [x0, x21, lsl #3]
 
     adrp x0, dc_array@PAGE
     add x0, x0, dc_array@PAGEOFF
-    ldr x2, [x0, x22, lsl #3]   // dc
+    ldr x11, [x0, x21, lsl #3]
 
-    // Calculate new position
-    add x3, x20, x1             // nr = row + dr
-    add x4, x21, x2             // nc = col + dc
+    add x12, x19, x10
+    add x13, x20, x11
 
-    // Check if we need to wrap based on facing
-    cmp x22, #0                 // facing right
-    b.ne p1_check_facing_1
+    cmp x21, #0
+    b.ne sp1_cf1
 
-    // Facing right: check if nc >= width or space
-    cmp x4, x24
-    b.ge p1_wrap_right
-    mov x0, x3
-    mov x1, x4
+    cmp x13, x23
+    b.ge sp1_wr
+    mov x0, x12
+    mov x1, x13
     bl get_grid_char
     cmp w0, #' '
-    b.eq p1_wrap_right
-    b p1_check_wall
+    b.eq sp1_wr
+    b sp1_wall
 
-p1_wrap_right:
-    mov x4, #0
-p1_wrap_right_loop:
-    mov x0, x3
-    mov x1, x4
+sp1_wr:
+    mov x13, #0
+sp1_wr_l:
+    mov x0, x12
+    mov x1, x13
     bl get_grid_char
     cmp w0, #' '
-    b.ne p1_check_wall
-    add x4, x4, #1
-    b p1_wrap_right_loop
+    b.ne sp1_wall
+    add x13, x13, #1
+    b sp1_wr_l
 
-p1_check_facing_1:
-    cmp x22, #1                 // facing down
-    b.ne p1_check_facing_2
+sp1_cf1:
+    cmp x21, #1
+    b.ne sp1_cf2
 
-    // Facing down: check if nr >= height or space
-    cmp x3, x23
-    b.ge p1_wrap_down
-    mov x0, x3
-    mov x1, x4
+    cmp x12, x22
+    b.ge sp1_wd
+    mov x0, x12
+    mov x1, x13
     bl get_grid_char
     cmp w0, #' '
-    b.eq p1_wrap_down
-    b p1_check_wall
+    b.eq sp1_wd
+    b sp1_wall
 
-p1_wrap_down:
-    mov x3, #0
-p1_wrap_down_loop:
-    mov x0, x3
-    mov x1, x4
+sp1_wd:
+    mov x12, #0
+sp1_wd_l:
+    mov x0, x12
+    mov x1, x13
     bl get_grid_char
     cmp w0, #' '
-    b.ne p1_check_wall
-    add x3, x3, #1
-    b p1_wrap_down_loop
+    b.ne sp1_wall
+    add x12, x12, #1
+    b sp1_wd_l
 
-p1_check_facing_2:
-    cmp x22, #2                 // facing left
-    b.ne p1_check_facing_3
+sp1_cf2:
+    cmp x21, #2
+    b.ne sp1_cf3
 
-    // Facing left: check if nc < 0 or space
-    cmp x4, #0
-    b.lt p1_wrap_left
-    mov x0, x3
-    mov x1, x4
+    cmp x13, #0
+    b.lt sp1_wl
+    mov x0, x12
+    mov x1, x13
     bl get_grid_char
     cmp w0, #' '
-    b.eq p1_wrap_left
-    b p1_check_wall
+    b.eq sp1_wl
+    b sp1_wall
 
-p1_wrap_left:
-    sub x4, x24, #1
-p1_wrap_left_loop:
-    mov x0, x3
-    mov x1, x4
+sp1_wl:
+    sub x13, x23, #1
+sp1_wl_l:
+    mov x0, x12
+    mov x1, x13
     bl get_grid_char
     cmp w0, #' '
-    b.ne p1_check_wall
-    sub x4, x4, #1
-    b p1_wrap_left_loop
+    b.ne sp1_wall
+    sub x13, x13, #1
+    b sp1_wl_l
 
-p1_check_facing_3:
-    // Facing up: check if nr < 0 or space
-    cmp x3, #0
-    b.lt p1_wrap_up
-    mov x0, x3
-    mov x1, x4
+sp1_cf3:
+    cmp x12, #0
+    b.lt sp1_wu
+    mov x0, x12
+    mov x1, x13
     bl get_grid_char
     cmp w0, #' '
-    b.eq p1_wrap_up
-    b p1_check_wall
+    b.eq sp1_wu
+    b sp1_wall
 
-p1_wrap_up:
-    sub x3, x23, #1
-p1_wrap_up_loop:
-    mov x0, x3
-    mov x1, x4
+sp1_wu:
+    sub x12, x22, #1
+sp1_wu_l:
+    mov x0, x12
+    mov x1, x13
     bl get_grid_char
     cmp w0, #' '
-    b.ne p1_check_wall
-    sub x3, x3, #1
-    b p1_wrap_up_loop
+    b.ne sp1_wall
+    sub x12, x12, #1
+    b sp1_wu_l
 
-p1_check_wall:
-    // Check if new position is a wall
-    mov x0, x3
-    mov x1, x4
+sp1_wall:
+    mov x0, x12
+    mov x1, x13
     bl get_grid_char
     cmp w0, #'#'
-    b.eq part1_instr_loop       // Hit wall, stop moving
+    b.eq sp1_instr_loop
 
-    // Move to new position
-    mov x20, x3
-    mov x21, x4
+    mov x19, x12
+    mov x20, x13
     sub x28, x28, #1
-    b part1_move_loop
+    b sp1_move_loop
 
-part1_turn:
-    // x0 is -1 (right) or -2 (left) -- need to reload since bl clobbered
-    sub x1, x27, #1
-    ldr x0, [x26, x1, lsl #3]
-    cmp x0, #-1
-    b.ne turn_left_p1
+sp1_turn:
+    mov x0, #1
+    neg x0, x0
+    cmp x27, x0
+    b.ne sp1_tl
 
-    // Turn right: facing = (facing + 1) % 4
-    add x22, x22, #1
-    and x22, x22, #3
-    b part1_instr_loop
+    add x21, x21, #1
+    and x21, x21, #3
+    b sp1_instr_loop
 
-turn_left_p1:
-    // Turn left: facing = (facing + 3) % 4
-    add x22, x22, #3
-    and x22, x22, #3
-    b part1_instr_loop
+sp1_tl:
+    add x21, x21, #3
+    and x21, x21, #3
+    b sp1_instr_loop
 
-part1_done:
-    // Calculate password: 1000 * (row + 1) + 4 * (col + 1) + facing
-    add x0, x20, #1             // row + 1
+sp1_done:
+    add x0, x19, #1
     mov x1, #1000
     mul x0, x0, x1
-
-    add x1, x21, #1             // col + 1
-    lsl x1, x1, #2              // * 4
+    add x1, x20, #1
+    lsl x1, x1, #2
     add x0, x0, x1
-
-    add x0, x0, x22             // + facing
+    add x0, x0, x21
 
     ldp x27, x28, [sp], #16
     ldp x25, x26, [sp], #16
@@ -567,78 +515,65 @@ part1_done:
     ret
 
 // ============================================================
-// get_cube_face: Determine which face based on (row, col)
+// get_cube_face: Determine face and local coords
 // x0 = row, x1 = col
-// Returns: x0 = face (1-6), x1 = local_r, x2 = local_c
+// Returns: x0 = face, x1 = local_r, x2 = local_c
 // ============================================================
 get_cube_face:
-    // face_row = row / FACE_SIZE
-    // face_col = col / FACE_SIZE
     mov x3, #FACE_SIZE
-    udiv x4, x0, x3             // face_row
-    udiv x5, x1, x3             // face_col
-
-    // local_r = row % FACE_SIZE
-    // local_c = col % FACE_SIZE
-    msub x6, x4, x3, x0         // local_r
-    msub x7, x5, x3, x1         // local_c
-
-    // Map (face_row, face_col) to face number
-    // Layout:
-    //   12  (row 0, cols 1,2)
-    //   3   (row 1, col 1)
-    //  45   (row 2, cols 0,1)
-    //  6    (row 3, col 0)
+    udiv x4, x0, x3
+    udiv x5, x1, x3
+    msub x6, x4, x3, x0
+    msub x7, x5, x3, x1
 
     cmp x4, #0
-    b.ne gcf_face_row_1
-
-    // face_row == 0
+    b.ne gcf_r1
     cmp x5, #1
-    b.ne gcf_face_0_2
-    mov x0, #1                  // Face 1: (0,1)
-    b gcf_face_found
-gcf_face_0_2:
+    b.ne gcf_02
+    mov x0, #1
+    b gcf_found
+gcf_02:
     cmp x5, #2
-    b.ne gcf_face_invalid
-    mov x0, #2                  // Face 2: (0,2)
-    b gcf_face_found
+    b.ne gcf_inv
+    mov x0, #2
+    b gcf_found
 
-gcf_face_row_1:
+gcf_r1:
     cmp x4, #1
-    b.ne gcf_face_row_2
+    b.ne gcf_r2
     cmp x5, #1
-    b.ne gcf_face_invalid
-    mov x0, #3                  // Face 3: (1,1)
-    b gcf_face_found
+    b.ne gcf_inv
+    mov x0, #3
+    b gcf_found
 
-gcf_face_row_2:
+gcf_r2:
     cmp x4, #2
-    b.ne gcf_face_row_3
+    b.ne gcf_r3
     cmp x5, #0
-    b.ne gcf_face_2_1
-    mov x0, #4                  // Face 4: (2,0)
-    b gcf_face_found
-gcf_face_2_1:
+    b.ne gcf_21
+    mov x0, #4
+    b gcf_found
+gcf_21:
     cmp x5, #1
-    b.ne gcf_face_invalid
-    mov x0, #5                  // Face 5: (2,1)
-    b gcf_face_found
+    b.ne gcf_inv
+    mov x0, #5
+    b gcf_found
 
-gcf_face_row_3:
+gcf_r3:
     cmp x4, #3
-    b.ne gcf_face_invalid
+    b.ne gcf_inv
     cmp x5, #0
-    b.ne gcf_face_invalid
-    mov x0, #6                  // Face 6: (3,0)
-    b gcf_face_found
+    b.ne gcf_inv
+    mov x0, #6
+    b gcf_found
 
-gcf_face_invalid:
-    mov x0, #-1
+gcf_inv:
+    mov x0, #0
+    sub x0, x0, #1
 
-gcf_face_found:
-    mov x1, x6                  // local_r
-    mov x2, x7                  // local_c
+gcf_found:
+    mov x1, x6
+    mov x2, x7
     ret
 
 // ============================================================
@@ -652,223 +587,191 @@ wrap_cube:
     stp x21, x22, [sp, #-16]!
     stp x23, x24, [sp, #-16]!
 
-    mov x19, x0                 // row
-    mov x20, x1                 // col
-    mov x21, x2                 // facing
+    mov x19, x0
+    mov x20, x1
+    mov x21, x2
 
-    // Get face and local coordinates
-    mov x0, x19
-    mov x1, x20
     bl get_cube_face
-    mov x22, x0                 // face
-    mov x23, x1                 // lr (local_r)
-    mov x24, x2                 // lc (local_c)
+    mov x22, x0
+    mov x23, x1
+    mov x24, x2
 
-    // Face 1 transitions
     cmp x22, #1
-    b.ne wc_try_face_2
+    b.ne wc_f2
 
-    cmp x21, #3                 // Up
-    b.ne wc_face1_left
-    // Face 1, Up -> Face 6, left edge, facing right
-    // new_row = 3*S + lc, new_col = 0, new_facing = 0
+    cmp x21, #3
+    b.ne wc_f1l
     mov x0, #FACE_SIZE
     mov x1, #3
-    mul x0, x0, x1              // 3*S
-    add x0, x0, x24             // 3*S + lc
+    mul x0, x0, x1
+    add x0, x0, x24
     mov x1, #0
     mov x2, #0
-    b wc_wrap_done
+    b wc_done
 
-wc_face1_left:
-    cmp x21, #2                 // Left
-    b.ne wc_wrap_unchanged
-    // Face 1, Left -> Face 4, left edge, facing right (inverted)
-    // new_row = 3*S - 1 - lr, new_col = 0, new_facing = 0
+wc_f1l:
+    cmp x21, #2
+    b.ne wc_unch
     mov x0, #FACE_SIZE
     mov x1, #3
-    mul x0, x0, x1              // 3*S
-    sub x0, x0, #1              // 3*S - 1
-    sub x0, x0, x23             // 3*S - 1 - lr
+    mul x0, x0, x1
+    sub x0, x0, #1
+    sub x0, x0, x23
     mov x1, #0
     mov x2, #0
-    b wc_wrap_done
+    b wc_done
 
-wc_try_face_2:
+wc_f2:
     cmp x22, #2
-    b.ne wc_try_face_3
+    b.ne wc_f3
 
-    cmp x21, #0                 // Right
-    b.ne wc_face2_down
-    // Face 2, Right -> Face 5, right edge, facing left (inverted)
-    // new_row = 3*S - 1 - lr, new_col = 2*S - 1, new_facing = 2
+    cmp x21, #0
+    b.ne wc_f2d
     mov x0, #FACE_SIZE
     mov x1, #3
-    mul x0, x0, x1              // 3*S
-    sub x0, x0, #1              // 3*S - 1
-    sub x0, x0, x23             // 3*S - 1 - lr
+    mul x0, x0, x1
+    sub x0, x0, #1
+    sub x0, x0, x23
     mov x1, #FACE_SIZE
-    lsl x1, x1, #1              // 2*S
-    sub x1, x1, #1              // 2*S - 1
+    lsl x1, x1, #1
+    sub x1, x1, #1
     mov x2, #2
-    b wc_wrap_done
+    b wc_done
 
-wc_face2_down:
-    cmp x21, #1                 // Down
-    b.ne wc_face2_up
-    // Face 2, Down -> Face 3, right edge, facing left
-    // new_row = S + lc, new_col = 2*S - 1, new_facing = 2
+wc_f2d:
+    cmp x21, #1
+    b.ne wc_f2u
     mov x0, #FACE_SIZE
-    add x0, x0, x24             // S + lc
+    add x0, x0, x24
     mov x1, #FACE_SIZE
-    lsl x1, x1, #1              // 2*S
-    sub x1, x1, #1              // 2*S - 1
+    lsl x1, x1, #1
+    sub x1, x1, #1
     mov x2, #2
-    b wc_wrap_done
+    b wc_done
 
-wc_face2_up:
-    cmp x21, #3                 // Up
-    b.ne wc_wrap_unchanged
-    // Face 2, Up -> Face 6, bottom, facing up
-    // new_row = 4*S - 1, new_col = lc, new_facing = 3
+wc_f2u:
+    cmp x21, #3
+    b.ne wc_unch
     mov x0, #FACE_SIZE
-    lsl x0, x0, #2              // 4*S
-    sub x0, x0, #1              // 4*S - 1
-    mov x1, x24                 // lc
+    lsl x0, x0, #2
+    sub x0, x0, #1
+    mov x1, x24
     mov x2, #3
-    b wc_wrap_done
+    b wc_done
 
-wc_try_face_3:
+wc_f3:
     cmp x22, #3
-    b.ne wc_try_face_4
+    b.ne wc_f4
 
-    cmp x21, #0                 // Right
-    b.ne wc_face3_left
-    // Face 3, Right -> Face 2, bottom, facing up
-    // new_row = S - 1, new_col = 2*S + lr, new_facing = 3
+    cmp x21, #0
+    b.ne wc_f3l
     mov x0, #FACE_SIZE
-    sub x0, x0, #1              // S - 1
+    sub x0, x0, #1
     mov x1, #FACE_SIZE
-    lsl x1, x1, #1              // 2*S
-    add x1, x1, x23             // 2*S + lr
+    lsl x1, x1, #1
+    add x1, x1, x23
     mov x2, #3
-    b wc_wrap_done
+    b wc_done
 
-wc_face3_left:
-    cmp x21, #2                 // Left
-    b.ne wc_wrap_unchanged
-    // Face 3, Left -> Face 4, top, facing down
-    // new_row = 2*S, new_col = lr, new_facing = 1
+wc_f3l:
+    cmp x21, #2
+    b.ne wc_unch
     mov x0, #FACE_SIZE
-    lsl x0, x0, #1              // 2*S
-    mov x1, x23                 // lr
+    lsl x0, x0, #1
+    mov x1, x23
     mov x2, #1
-    b wc_wrap_done
+    b wc_done
 
-wc_try_face_4:
+wc_f4:
     cmp x22, #4
-    b.ne wc_try_face_5
+    b.ne wc_f5
 
-    cmp x21, #3                 // Up
-    b.ne wc_face4_left
-    // Face 4, Up -> Face 3, left edge, facing right
-    // new_row = S + lc, new_col = S, new_facing = 0
+    cmp x21, #3
+    b.ne wc_f4l
     mov x0, #FACE_SIZE
-    add x0, x0, x24             // S + lc
-    mov x1, #FACE_SIZE          // S
+    add x0, x0, x24
+    mov x1, #FACE_SIZE
     mov x2, #0
-    b wc_wrap_done
+    b wc_done
 
-wc_face4_left:
-    cmp x21, #2                 // Left
-    b.ne wc_wrap_unchanged
-    // Face 4, Left -> Face 1, left edge, facing right (inverted)
-    // new_row = S - 1 - lr, new_col = S, new_facing = 0
+wc_f4l:
+    cmp x21, #2
+    b.ne wc_unch
     mov x0, #FACE_SIZE
-    sub x0, x0, #1              // S - 1
-    sub x0, x0, x23             // S - 1 - lr
-    mov x1, #FACE_SIZE          // S
+    sub x0, x0, #1
+    sub x0, x0, x23
+    mov x1, #FACE_SIZE
     mov x2, #0
-    b wc_wrap_done
+    b wc_done
 
-wc_try_face_5:
+wc_f5:
     cmp x22, #5
-    b.ne wc_try_face_6
+    b.ne wc_f6
 
-    cmp x21, #0                 // Right
-    b.ne wc_face5_down
-    // Face 5, Right -> Face 2, right edge, facing left (inverted)
-    // new_row = S - 1 - lr, new_col = 3*S - 1, new_facing = 2
+    cmp x21, #0
+    b.ne wc_f5d
     mov x0, #FACE_SIZE
-    sub x0, x0, #1              // S - 1
-    sub x0, x0, x23             // S - 1 - lr
+    sub x0, x0, #1
+    sub x0, x0, x23
     mov x1, #FACE_SIZE
     mov x3, #3
-    mul x1, x1, x3              // 3*S
-    sub x1, x1, #1              // 3*S - 1
+    mul x1, x1, x3
+    sub x1, x1, #1
     mov x2, #2
-    b wc_wrap_done
+    b wc_done
 
-wc_face5_down:
-    cmp x21, #1                 // Down
-    b.ne wc_wrap_unchanged
-    // Face 5, Down -> Face 6, right edge, facing left
-    // new_row = 3*S + lc, new_col = S - 1, new_facing = 2
+wc_f5d:
+    cmp x21, #1
+    b.ne wc_unch
     mov x0, #FACE_SIZE
     mov x3, #3
-    mul x0, x0, x3              // 3*S
-    add x0, x0, x24             // 3*S + lc
+    mul x0, x0, x3
+    add x0, x0, x24
     mov x1, #FACE_SIZE
-    sub x1, x1, #1              // S - 1
+    sub x1, x1, #1
     mov x2, #2
-    b wc_wrap_done
+    b wc_done
 
-wc_try_face_6:
+wc_f6:
     cmp x22, #6
-    b.ne wc_wrap_unchanged
+    b.ne wc_unch
 
-    cmp x21, #0                 // Right
-    b.ne wc_face6_down
-    // Face 6, Right -> Face 5, bottom, facing up
-    // new_row = 3*S - 1, new_col = S + lr, new_facing = 3
+    cmp x21, #0
+    b.ne wc_f6d
     mov x0, #FACE_SIZE
     mov x3, #3
-    mul x0, x0, x3              // 3*S
-    sub x0, x0, #1              // 3*S - 1
+    mul x0, x0, x3
+    sub x0, x0, #1
     mov x1, #FACE_SIZE
-    add x1, x1, x23             // S + lr
+    add x1, x1, x23
     mov x2, #3
-    b wc_wrap_done
+    b wc_done
 
-wc_face6_down:
-    cmp x21, #1                 // Down
-    b.ne wc_face6_left
-    // Face 6, Down -> Face 2, top, facing down
-    // new_row = 0, new_col = 2*S + lc, new_facing = 1
+wc_f6d:
+    cmp x21, #1
+    b.ne wc_f6l
     mov x0, #0
     mov x1, #FACE_SIZE
-    lsl x1, x1, #1              // 2*S
-    add x1, x1, x24             // 2*S + lc
+    lsl x1, x1, #1
+    add x1, x1, x24
     mov x2, #1
-    b wc_wrap_done
+    b wc_done
 
-wc_face6_left:
-    cmp x21, #2                 // Left
-    b.ne wc_wrap_unchanged
-    // Face 6, Left -> Face 1, top, facing down
-    // new_row = 0, new_col = S + lr, new_facing = 1
+wc_f6l:
+    cmp x21, #2
+    b.ne wc_unch
     mov x0, #0
     mov x1, #FACE_SIZE
-    add x1, x1, x23             // S + lr
+    add x1, x1, x23
     mov x2, #1
-    b wc_wrap_done
+    b wc_done
 
-wc_wrap_unchanged:
+wc_unch:
     mov x0, x19
     mov x1, x20
     mov x2, x21
 
-wc_wrap_done:
+wc_done:
     ldp x23, x24, [sp], #16
     ldp x21, x22, [sp], #16
     ldp x19, x20, [sp], #16
@@ -877,7 +780,6 @@ wc_wrap_done:
 
 // ============================================================
 // solve_part2: Part 2 with cube wrapping
-// Returns: x0 = password
 // ============================================================
 solve_part2:
     stp x29, x30, [sp, #-16]!
@@ -887,22 +789,19 @@ solve_part2:
     stp x25, x26, [sp, #-16]!
     stp x27, x28, [sp, #-16]!
 
-    // Find starting position
     bl find_start
-    mov x19, #0                 // row = 0
-    mov x20, x0                 // col = starting col
-    mov x21, #0                 // facing = 0 (right)
+    mov x19, #0
+    mov x20, x0
+    mov x21, #0
 
-    // Load dimensions
     adrp x22, grid_height@PAGE
     add x22, x22, grid_height@PAGEOFF
-    ldr x22, [x22]              // height
+    ldr x22, [x22]
 
     adrp x23, grid_width@PAGE
     add x23, x23, grid_width@PAGEOFF
-    ldr x23, [x23]              // width
+    ldr x23, [x23]
 
-    // Load instruction count and pointer
     adrp x24, num_instructions@PAGE
     add x24, x24, num_instructions@PAGEOFF
     ldr x24, [x24]
@@ -910,123 +809,103 @@ solve_part2:
     adrp x25, instructions@PAGE
     add x25, x25, instructions@PAGEOFF
 
-    mov x26, #0                 // instruction index
+    mov x26, #0
 
-p2_instr_loop:
+sp2_instr_loop:
     cmp x26, x24
-    b.ge p2_done
+    b.ge sp2_done
 
-    ldr x0, [x25, x26, lsl #3]
+    ldr x27, [x25, x26, lsl #3]
     add x26, x26, #1
 
-    // Check if turn or move
-    cmp x0, #0
-    b.lt p2_turn
-
-    // Move forward x0 steps
-    mov x27, x0                 // steps remaining
-
-p2_move_loop:
     cmp x27, #0
-    b.le p2_instr_loop
+    b.lt sp2_turn
 
-    // Get delta for current facing
+    mov x28, x27
+
+sp2_move_loop:
+    cbz x28, sp2_instr_loop
+
     adrp x0, dr_array@PAGE
     add x0, x0, dr_array@PAGEOFF
-    ldr x1, [x0, x21, lsl #3]   // dr
+    ldr x10, [x0, x21, lsl #3]
 
     adrp x0, dc_array@PAGE
     add x0, x0, dc_array@PAGEOFF
-    ldr x2, [x0, x21, lsl #3]   // dc
+    ldr x11, [x0, x21, lsl #3]
 
-    // Calculate new position
-    add x3, x19, x1             // nr = row + dr
-    add x4, x20, x2             // nc = col + dc
-    mov x5, x21                 // nf = facing
+    add x12, x19, x10
+    add x13, x20, x11
+    mov x14, x21
 
-    // Check if we need to wrap
-    mov x28, #0                 // need_wrap flag
+    mov x15, #0
 
-    // Check row bounds
-    cmp x3, #0
-    b.lt p2_set_need_wrap
-    cmp x3, x22
-    b.ge p2_set_need_wrap
+    cmp x12, #0
+    b.lt sp2_snw
+    cmp x12, x22
+    b.ge sp2_snw
+    cmp x13, #0
+    b.lt sp2_snw
+    cmp x13, x23
+    b.ge sp2_snw
 
-    // Check col bounds
-    cmp x4, #0
-    b.lt p2_set_need_wrap
-    cmp x4, x23
-    b.ge p2_set_need_wrap
-
-    // Check if space
-    mov x0, x3
-    mov x1, x4
+    mov x0, x12
+    mov x1, x13
     bl get_grid_char
     cmp w0, #' '
-    b.eq p2_set_need_wrap
-    b p2_skip_wrap_check
+    b.eq sp2_snw
+    b sp2_swc
 
-p2_set_need_wrap:
-    mov x28, #1
+sp2_snw:
+    mov x15, #1
 
-p2_skip_wrap_check:
-    cmp x28, #0
-    b.eq p2_check_wall
+sp2_swc:
+    cbz x15, sp2_wall
 
-    // Need to wrap - use cube wrapping
-    mov x0, x19                 // current row
-    mov x1, x20                 // current col
-    mov x2, x21                 // current facing
+    mov x0, x19
+    mov x1, x20
+    mov x2, x21
     bl wrap_cube
-    mov x3, x0                  // new row
-    mov x4, x1                  // new col
-    mov x5, x2                  // new facing
+    mov x12, x0
+    mov x13, x1
+    mov x14, x2
 
-p2_check_wall:
-    // Check if new position is a wall
-    mov x0, x3
-    mov x1, x4
+sp2_wall:
+    mov x0, x12
+    mov x1, x13
     bl get_grid_char
     cmp w0, #'#'
-    b.eq p2_instr_loop          // Hit wall, stop moving
+    b.eq sp2_instr_loop
 
-    // Move to new position
-    mov x19, x3
-    mov x20, x4
-    mov x21, x5
-    sub x27, x27, #1
-    b p2_move_loop
+    mov x19, x12
+    mov x20, x13
+    mov x21, x14
+    sub x28, x28, #1
+    b sp2_move_loop
 
-p2_turn:
-    // Reload instruction since bl clobbered x0
-    sub x1, x26, #1
-    ldr x0, [x25, x1, lsl #3]
-    cmp x0, #-1
-    b.ne p2_turn_left
+sp2_turn:
+    mov x0, #1
+    neg x0, x0
+    cmp x27, x0
+    b.ne sp2_tl
 
-    // Turn right: facing = (facing + 1) % 4
     add x21, x21, #1
     and x21, x21, #3
-    b p2_instr_loop
+    b sp2_instr_loop
 
-p2_turn_left:
-    // Turn left: facing = (facing + 3) % 4
+sp2_tl:
     add x21, x21, #3
     and x21, x21, #3
-    b p2_instr_loop
+    b sp2_instr_loop
 
-p2_done:
-    // Calculate password: 1000 * (row + 1) + 4 * (col + 1) + facing
-    add x0, x19, #1             // row + 1
+sp2_done:
+    add x0, x19, #1
     mov x1, #1000
     mul x0, x0, x1
-
-    add x1, x20, #1             // col + 1
-    lsl x1, x1, #2              // * 4
+    add x1, x20, #1
+    lsl x1, x1, #2
     add x0, x0, x1
-
-    add x0, x0, x21             // + facing
+    add x0, x0, x21
 
     ldp x27, x28, [sp], #16
     ldp x25, x26, [sp], #16
@@ -1038,29 +917,25 @@ p2_done:
 
 // ============================================================
 // print_string: Print null-terminated string
-// x0 = string pointer
 // ============================================================
 print_string:
     stp x29, x30, [sp, #-16]!
     stp x19, x20, [sp, #-16]!
 
     mov x19, x0
-
-    // Find string length
     mov x20, #0
-ps_strlen_loop:
+ps_len:
     ldrb w1, [x19, x20]
-    cmp w1, #0
-    b.eq ps_strlen_done
+    cbz w1, ps_done
     add x20, x20, #1
-    b ps_strlen_loop
+    b ps_len
 
-ps_strlen_done:
-    mov x0, #1                  // stdout
+ps_done:
+    mov x0, #1
     mov x1, x19
     mov x2, x20
-    mov x16, #4                 // write syscall
-    svc #0
+    mov x16, #4
+    svc #0x80
 
     ldp x19, x20, [sp], #16
     ldp x29, x30, [sp], #16
@@ -1068,7 +943,6 @@ ps_strlen_done:
 
 // ============================================================
 // print_number: Print integer
-// x0 = number to print
 // ============================================================
 print_number:
     stp x29, x30, [sp, #-16]!
@@ -1078,38 +952,34 @@ print_number:
     add x19, x19, num_buf@PAGEOFF
 
     mov x1, x0
-    add x0, x19, #20            // Start from end of buffer
-    mov x2, #0                  // digit count
+    add x0, x19, #20
+    mov x2, #0
 
-    // Handle zero specially
-    cmp x1, #0
-    b.ne pn_convert_loop
-    mov w3, #'0'
-    sub x0, x0, #1
-    strb w3, [x0]
-    mov x2, #1
-    b pn_print_num_str
+    cbz x1, pn_zero
 
-pn_convert_loop:
-    cmp x1, #0
-    b.eq pn_print_num_str
-
+pn_loop:
+    cbz x1, pn_print
     mov x3, #10
-    udiv x4, x1, x3             // x4 = x1 / 10
-    msub x5, x4, x3, x1         // x5 = x1 - (x4 * 10) = x1 % 10
-
+    udiv x4, x1, x3
+    msub x5, x4, x3, x1
     add w5, w5, #'0'
     sub x0, x0, #1
     strb w5, [x0]
     add x2, x2, #1
     mov x1, x4
-    b pn_convert_loop
+    b pn_loop
 
-pn_print_num_str:
+pn_zero:
+    mov w3, #'0'
+    sub x0, x0, #1
+    strb w3, [x0]
+    mov x2, #1
+
+pn_print:
     mov x1, x0
-    mov x0, #1                  // stdout
-    mov x16, #4                 // write syscall
-    svc #0
+    mov x0, #1
+    mov x16, #4
+    svc #0x80
 
     ldp x19, x20, [sp], #16
     ldp x29, x30, [sp], #16

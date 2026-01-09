@@ -28,6 +28,7 @@ Solutions implemented in 16 languages.
 | 20  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 21  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 22  | ⭐⭐   | C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 23  | ⭐⭐   | C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -501,3 +502,23 @@ Note: Day 21 is a simple expression tree evaluation. Scripting languages excel h
 | Clojure     | 510.8        | 202.0       |
 | ColdFusion  | 2,492.3      | 1,061.6     |
 | ARM64 asm   | TBD          | TBD         |
+
+### Day 23: Unstable Diffusion
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 239.5        | 2.7         |
+| Rust        | 391.8        | 2.3         |
+| Zig         | 529.3        | 1.9         |
+| C++         | 573.6        | 2.1         |
+| Go          | 591.9        | 26.8        |
+| Common Lisp | 905.5        | 99.4        |
+| Java        | 1,704.3      | 1,271.7     |
+| PHP         | 2,088.9      | 27.5        |
+| Node.js     | 2,234.3      | 90.0        |
+| Python      | 2,856.7      | 16.5        |
+| Clojure     | 3,081.6      | 1,340.7     |
+| Perl        | 4,543.2      | 7.3         |
+| Ruby        | 14,295.2     | 31.9        |
+| Bash        | 14,688.8     | 6.7         |
+| ColdFusion  | 15,920.7     | 1,072.1     |
