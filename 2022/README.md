@@ -25,6 +25,7 @@ Solutions implemented in 16 languages.
 | 17  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 18  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 19  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Clojure, Common Lisp, ColdFusion |
+| 20  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -433,3 +434,24 @@ Note: Go implementation has a memory issue that needs investigation.
 | Bash        | TBD          | TBD         |
 
 Note: Day 19 is one of the slowest AoC problems - requires DFS with aggressive pruning.
+
+### Day 20: Grove Positioning System
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| Zig         | 102.5        | 1.7         |
+| ARM64 asm   | 148.0        | 35.7        |
+| C           | 205.4        | 47.3        |
+| Go          | 369.4        | 27.2        |
+| Rust        | 373.1        | 102.9       |
+| Java        | 532.8        | 118.4       |
+| C++         | 541.8        | 118.7       |
+| Node.js     | 1,148.0      | 53.2        |
+| Common Lisp | 1,381.0      | 44.1        |
+| PHP         | 2,875.5      | 26.9        |
+| Python      | 3,807.7      | 16.1        |
+| Ruby        | 3,879.6      | 28.2        |
+| Perl        | 4,247.3      | 6.7         |
+| Clojure     | 14,729.6     | 2,225.1     |
+| ColdFusion  | 17,848.5     | 1,036.7     |
+| Bash        | 59,131.9     | 6.7         |

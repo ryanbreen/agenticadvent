@@ -2,26 +2,25 @@
 
 # Day 19: Not Enough Minerals
 # Robot factory optimization - Uses AWK for heavy computation
+# WARNING: This solution is extremely slow (30+ minutes expected)
 
 cd "$(dirname "$0")"
 
-# Parse input and run computation using AWK
-awk '
+# Parse input using tr to convert non-digits (avoids awk regex compatibility issues)
+# Then run computation in AWK
+tr -cs '0-9\n' ' ' < ../input.txt | awk '
 BEGIN {
     bp_count = 0
 }
 
-/Blueprint/ {
-    # Parse using field splitting - extract numbers from known positions
-    gsub(/[^0-9 ]/, " ")  # Replace non-digits with spaces
-    n = split($0, nums)
-    bp_id[bp_count] = nums[1]
-    oreOre[bp_count] = nums[2]
-    clayOre[bp_count] = nums[3]
-    obsOre[bp_count] = nums[4]
-    obsClay[bp_count] = nums[5]
-    geoOre[bp_count] = nums[6]
-    geoObs[bp_count] = nums[7]
+NF >= 7 {
+    bp_id[bp_count] = $1
+    oreOre[bp_count] = $2
+    clayOre[bp_count] = $3
+    obsOre[bp_count] = $4
+    obsClay[bp_count] = $5
+    geoOre[bp_count] = $6
+    geoObs[bp_count] = $7
     bp_count++
 }
 
@@ -33,14 +32,13 @@ function min(a, b) {
     return a < b ? a : b
 }
 
-# State encoding: pack values into a single string key
 function makeKey(t, o, c, ob, oR, cR, obR, gR) {
     return t "," o "," c "," ob "," oR "," cR "," obR "," gR
 }
 
 function maxGeodes(idx, timeLimit,
     _oreOre, _clayOre, _obsOre, _obsClay, _geoOre, _geoObs,
-    maxOre, maxClay, maxObs, best, stack, stack_size, seen, i,
+    maxOre, maxClay, maxObs, best, stack, stack_size, seen,
     state, time, ore, clay, obs, geodes, oreR, clayR, obsR, geoR,
     remaining, upperBound, cappedOre, cappedClay, cappedObs, key,
     newOre, newClay, newObs, newGeodes, nextTime, s) {
@@ -100,18 +98,14 @@ function maxGeodes(idx, timeLimit,
         newGeodes = geodes + geoR
         nextTime = time + 1
 
-        # If we can build a geode robot, always do it
+        # Try building geode robot
         if (cappedOre >= _geoOre && cappedObs >= _geoObs) {
             stack[stack_size++] = nextTime " " (newOre - _geoOre) " " newClay " " (newObs - _geoObs) " " newGeodes " " oreR " " clayR " " obsR " " (geoR + 1)
-            continue
         }
 
-        # Do nothing (wait)
-        stack[stack_size++] = nextTime " " newOre " " newClay " " newObs " " newGeodes " " oreR " " clayR " " obsR " " geoR
-
-        # Try building ore robot
-        if (cappedOre >= _oreOre && oreR < maxOre) {
-            stack[stack_size++] = nextTime " " (newOre - _oreOre) " " newClay " " newObs " " newGeodes " " (oreR + 1) " " clayR " " obsR " " geoR
+        # Try building obsidian robot
+        if (cappedOre >= _obsOre && cappedClay >= _obsClay && obsR < maxObs) {
+            stack[stack_size++] = nextTime " " (newOre - _obsOre) " " (newClay - _obsClay) " " newObs " " newGeodes " " oreR " " clayR " " (obsR + 1) " " geoR
         }
 
         # Try building clay robot
@@ -119,10 +113,13 @@ function maxGeodes(idx, timeLimit,
             stack[stack_size++] = nextTime " " (newOre - _clayOre) " " newClay " " newObs " " newGeodes " " oreR " " (clayR + 1) " " obsR " " geoR
         }
 
-        # Try building obsidian robot
-        if (cappedOre >= _obsOre && cappedClay >= _obsClay && obsR < maxObs) {
-            stack[stack_size++] = nextTime " " (newOre - _obsOre) " " (newClay - _obsClay) " " newObs " " newGeodes " " oreR " " clayR " " (obsR + 1) " " geoR
+        # Try building ore robot
+        if (cappedOre >= _oreOre && oreR < maxOre) {
+            stack[stack_size++] = nextTime " " (newOre - _oreOre) " " newClay " " newObs " " newGeodes " " (oreR + 1) " " clayR " " obsR " " geoR
         }
+
+        # Do nothing (wait)
+        stack[stack_size++] = nextTime " " newOre " " newClay " " newObs " " newGeodes " " oreR " " clayR " " obsR " " geoR
     }
 
     return best
@@ -146,4 +143,4 @@ END {
     }
     print "Part 2:", result
 }
-' ../input.txt
+'
