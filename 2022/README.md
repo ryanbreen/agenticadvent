@@ -10,6 +10,7 @@ Solutions implemented in 16 languages.
 | 2   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 3   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 4   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 5   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -98,3 +99,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Go          | 75.2         | 27.1        |
 | Clojure     | 425.6        | 129.2       |
 | ColdFusion  | 2,704.9      | 1,144.1     |
+
+### Day 5: Supply Stacks
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| Rust        | 5.6          | 1.9         |
+| C++         | 6.2          | 1.9         |
+| Zig         | 6.4          | 1.9         |
+| ARM64 asm   | 6.9          | 1.9         |
+| C           | 8.1          | 1.9         |
+| Perl        | 16.9         | 5.7         |
+| Bash        | 17.9         | 6.7         |
+| Python      | 23.8         | 15.2        |
+| Common Lisp | 27.4         | 43.5        |
+| Node.js     | 47.5         | 39.9        |
+| Ruby        | 57.7         | 28.1        |
+| Java        | 60.4         | 47.7        |
+| PHP         | 62.1         | 26.0        |
+| Go          | 73.5         | 27.9        |
+| Clojure     | 418.2        | 133.3       |
+| ColdFusion  | 2,577.5      | 1,128.1     |
