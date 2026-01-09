@@ -27,6 +27,7 @@ Solutions implemented in 16 languages.
 | 19  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Clojure, Common Lisp, ColdFusion |
 | 20  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 21  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 22  | ⭐⭐   | C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -479,3 +480,24 @@ Note: Day 19 is one of the slowest AoC problems - requires DFS with aggressive p
 | Bash        | 13,984.1     | 7.3         |
 
 Note: Day 21 is a simple expression tree evaluation. Scripting languages excel here due to easy hash table usage and minimal overhead.
+
+### Day 22: Monkey Map
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| Zig         | 6.8          | 1.9         |
+| C           | 7.2          | 1.9         |
+| Rust        | 7.2          | 2.0         |
+| C++         | 7.2          | 1.9         |
+| Perl        | 30.5         | 6.6         |
+| Python      | 32.3         | 15.7        |
+| Common Lisp | 34.3         | 47.0        |
+| Bash        | 55.7         | 6.8         |
+| Node.js     | 69.2         | 50.2        |
+| PHP         | 71.5         | 25.9        |
+| Java        | 71.6         | 48.5        |
+| Ruby        | 77.0         | 28.7        |
+| Go          | 85.9         | 27.3        |
+| Clojure     | 510.8        | 202.0       |
+| ColdFusion  | 2,492.3      | 1,061.6     |
+| ARM64 asm   | TBD          | TBD         |
