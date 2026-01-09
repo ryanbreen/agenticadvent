@@ -24,6 +24,7 @@ Solutions implemented in 16 languages.
 | 16  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 17  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 18  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 19  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -408,3 +409,27 @@ Note: Go implementation has a memory issue that needs investigation.
 | Clojure     | 465.5        | 168.8       |
 | Bash        | 848.4        | 8.0         |
 | ColdFusion  | 2,536.5      | 951.1       |
+
+
+### Day 19: Not Enough Minerals
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 632.0        | 61.7        |
+| Go          | 790.6        | 78.3        |
+| Rust        | 882.0        | 152.3       |
+| C++         | 985.8        | 108.0       |
+| Java        | 1,934.9      | 1,319.2     |
+| Common Lisp | 4,556.0      | 711.6       |
+| PHP         | 6,308.7      | 176.9       |
+| Clojure     | 7,973.8      | 2,215.4     |
+| Node.js     | 8,172.2      | 889.1       |
+| ARM64 asm   | 13,896.4     | 1.3         |
+| Perl        | 23,143.3     | 869.4       |
+| Zig         | 24,483.8     | 1.5         |
+| Python      | 46,846.7     | 2,680.1     |
+| Ruby        | 47,328.9     | 417.6       |
+| ColdFusion  | 53,752.6     | 2,899.7     |
+| Bash        | TBD          | TBD         |
+
+Note: Day 19 is one of the slowest AoC problems - requires DFS with aggressive pruning.
