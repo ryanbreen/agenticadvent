@@ -22,6 +22,7 @@ Solutions implemented in 16 languages.
 | 14  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 15  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 16  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 17  | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -362,3 +363,26 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Perl        | 94,767.1     | 2,849.7     |
 | Ruby        | 141,826.6    | 47.6        |
 | ColdFusion  | TBD          | TBD         |
+
+### Day 17: Pyroclastic Flow
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 6.1          | 1.9         |
+| C++         | 9.6          | 2.3         |
+| Zig         | 10.4         | 1.9         |
+| Rust        | 12.0         | 2.8         |
+| Common Lisp | 36.1         | 43.4        |
+| Python      | 54.1         | 17.5        |
+| Perl        | 63.3         | 6.4         |
+| Java        | 74.2         | 59.9        |
+| Node.js     | 79.7         | 51.6        |
+| PHP         | 84.3         | 26.5        |
+| Ruby        | 213.1        | 30.1        |
+| Clojure     | 496.9        | 189.5       |
+| Go          | 1,440.1      | 9,587.7     |
+| Bash        | 49,566.7     | 6.8         |
+| ARM64 asm   | 7.3          | 13.3        |
+| ColdFusion  | 2,655.0      | 1,059.4     |
+
+Note: Go implementation has a memory issue that needs investigation.
