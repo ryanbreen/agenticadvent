@@ -14,6 +14,7 @@ Solutions implemented in 16 languages.
 | 6   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 7   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 | 8   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
+| 9   | ⭐⭐   | ARM64, C, C++, Rust, Zig, Go, Java, Node.js, Python, Ruby, PHP, Perl, Bash, Clojure, Common Lisp, ColdFusion |
 
 ## Benchmarks
 
@@ -186,3 +187,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Clojure     | 507.1        | 204.4       |
 | ColdFusion  | 2,633.3      | 1,127.9     |
 | Bash        | 188,810      | 6.9         |
+
+### Day 9: Rope Bridge
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| C           | 5.9          | 1.9         |
+| Zig         | 6.1          | 1.9         |
+| Rust        | 6.2          | 1.9         |
+| ARM64 asm   | 6.5          | 2.3         |
+| C++         | 7.4          | 1.9         |
+| Common Lisp | 34.9         | 44.4        |
+| Python      | 48.6         | 15.8        |
+| Node.js     | 54.0         | 47.1        |
+| Java        | 57.2         | 56.3        |
+| Go          | 72.0         | 27.9        |
+| Perl        | 74.1         | 6.8         |
+| PHP         | 76.2         | 26.2        |
+| Ruby        | 101.8        | 28.6        |
+| Clojure     | 461.6        | 182.9       |
+| ColdFusion  | 2,768.4      | 1,087.6     |
+| Bash        | 57,188       | 6.7         |
