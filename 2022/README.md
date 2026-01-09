@@ -544,7 +544,7 @@ Note: Day 21 is a simple expression tree evaluation. Scripting languages excel h
 | Perl        | 3,899.5      | 136.4       |
 | Ruby        | 6,866.3      | 196.8       |
 | ColdFusion  | 8,388.3      | 1,414.5     |
-| Bash        | TBD          | TBD         |
+| Bash        | 7,128.9      | 114.9       |
 
 ### Day 25: Full of Hot Air
 

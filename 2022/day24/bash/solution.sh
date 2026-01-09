@@ -26,7 +26,7 @@ function mod(a, m) {
 }
 
 # Precompute all blizzard positions for all times in one period
-function precompute_blizzards(    i, r, c, d, ir, ic, nr, nc, t) {
+function precompute_blizzards(    i, r, c, d, ir, ic, nr, nc, t, cell) {
     for (t = 0; t < period; t++) {
         for (i = 0; i < num_blizzards; i++) {
             r = bliz_r[i]
@@ -51,14 +51,15 @@ function precompute_blizzards(    i, r, c, d, ir, ic, nr, nc, t) {
                 nc = mod(ic + t, inner_w)
             }
 
-            # Store as "time,row,col" -> 1 (convert back to 1-indexed grid coords)
-            bliz_cache[t, nr + 2, nc + 2] = 1
+            # Store as numeric key: time*cell_count + cell_id
+            cell = (nr + 1) * width + (nc + 2)
+            bliz_cache[t * cell_count + cell] = 1
         }
     }
 }
 
 # BFS from (sr, sc) to (er, ec) starting at time start_t
-function bfs(sr, sc, er, ec, start_t,    queue_t, queue_r, queue_c, head, tail, t, r, c, nt, nr, nc, di, tm) {
+function bfs(sr, sc, er, ec, start_t,    t, nt, tm, list_len, next_len, i, cell, r, c, di, nr, nc, ncell, key, goal_cell) {
     # Directions: wait, up, down, left, right
     dr[0] = 0; dc[0] = 0
     dr[1] = -1; dc[1] = 0
@@ -66,60 +67,68 @@ function bfs(sr, sc, er, ec, start_t,    queue_t, queue_r, queue_c, head, tail, 
     dr[3] = 0; dc[3] = -1
     dr[4] = 0; dc[4] = 1
 
-    delete visited
-    head = 0
-    tail = 0
+    delete seen
+    list_len = 1
+    curr[0] = (sr - 1) * width + sc
+    goal_cell = (er - 1) * width + ec
+    t = start_t
+    tm = mod(t, period)
+    seen[tm * cell_count + curr[0]] = 1
 
-    # Push start state
-    queue_t[tail] = start_t
-    queue_r[tail] = sr
-    queue_c[tail] = sc
-    tail++
-    visited[mod(start_t, period), sr, sc] = 1
-
-    while (head < tail) {
-        t = queue_t[head]
-        r = queue_r[head]
-        c = queue_c[head]
-        head++
-
-        if (r == er && c == ec) {
-            return t
+    while (1) {
+        for (i = 0; i < list_len; i++) {
+            if (curr[i] == goal_cell) {
+                return t
+            }
         }
 
         nt = t + 1
         tm = mod(nt, period)
+        next_len = 0
 
-        for (di = 0; di < 5; di++) {
-            nr = r + dr[di]
-            nc = c + dc[di]
+        for (i = 0; i < list_len; i++) {
+            cell = curr[i]
+            r = row_of[cell]
+            c = col_of[cell]
 
-            # Check if valid position
-            # Start/end positions are valid
-            if ((nr == sr && nc == sc) || (nr == er && nc == ec)) {
-                # Start or end position - always valid
-            } else if (nr < 2 || nr > height - 1 || nc < 2 || nc > width - 1) {
-                # Wall position (1-indexed: row 1 and row height are walls,
-                # col 1 and col width are walls)
-                continue
-            }
+            for (di = 0; di < 5; di++) {
+                nr = r + dr[di]
+                nc = c + dc[di]
 
-            # Check if blizzard blocks this position
-            if ((tm, nr, nc) in bliz_cache) {
-                continue
-            }
+                if ((nr == sr && nc == sc) || (nr == er && nc == ec)) {
+                    # Start or end position - always valid
+                } else if (nr < 2 || nr > height - 1 || nc < 2 || nc > width - 1) {
+                    # Wall position (1-indexed: row 1 and row height are walls,
+                    # col 1 and col width are walls)
+                    continue
+                }
 
-            if (!((tm, nr, nc) in visited)) {
-                visited[tm, nr, nc] = 1
-                queue_t[tail] = nt
-                queue_r[tail] = nr
-                queue_c[tail] = nc
-                tail++
+                ncell = (nr - 1) * width + nc
+                if ((tm * cell_count + ncell) in bliz_cache) {
+                    continue
+                }
+
+                key = tm * cell_count + ncell
+                if (!(key in seen)) {
+                    seen[key] = 1
+                    nxt[next_len] = ncell
+                    next_len++
+                }
             }
         }
-    }
 
-    return -1
+        if (next_len == 0) {
+            return -1
+        }
+
+        delete curr
+        for (i = 0; i < next_len; i++) {
+            curr[i] = nxt[i]
+        }
+        delete nxt
+        list_len = next_len
+        t = nt
+    }
 }
 
 BEGIN {
@@ -136,6 +145,7 @@ END {
     inner_h = height - 2
     inner_w = width - 2
     period = lcm(inner_h, inner_w)
+    cell_count = height * width
 
     # Parse blizzards
     for (r = 1; r <= height; r++) {
@@ -173,6 +183,14 @@ END {
         }
     }
 
+    # Precompute row/col from cell id
+    for (r = 1; r <= height; r++) {
+        for (c = 1; c <= width; c++) {
+            cell = (r - 1) * width + c
+            row_of[cell] = r
+            col_of[cell] = c
+        }
+    }
     # Part 1: start to end
     t1 = bfs(start_r, start_c, end_r, end_c, 0)
     print "Part 1:", t1
