@@ -98,3 +98,24 @@ All benchmarks run on Apple Silicon (M-series), averaged over multiple runs.
 | Bash        | 102.4        | 2.2         |
 | Clojure     | 431.7        | 128.4       |
 | ColdFusion  | 2,462.7      | 1,125.8     |
+
+### Day 4: Giant Squid
+
+| Language    | Runtime (ms) | Memory (MB) |
+|-------------|--------------|-------------|
+| ARM64 asm   | 5.6          | 1.9         |
+| Zig         | 5.8          | 1.9         |
+| C++         | 6.4          | 1.9         |
+| C           | 7.3          | 1.9         |
+| Rust        | 7.8          | 1.9         |
+| Go          | 8.9          | 4.4         |
+| Common Lisp | 25.3         | 40.3        |
+| Perl        | 27.0         | 8.6         |
+| Node.js     | 45.4         | 44.4        |
+| Python      | 46.5         | 15.0        |
+| Java        | 50.5         | 52.6        |
+| Ruby        | 71.6         | 28.1        |
+| PHP         | 96.5         | 26.1        |
+| Clojure     | 519.6        | 143.9       |
+| Bash        | 1,058.3      | 13.7        |
+| ColdFusion  | 2,425.4      | 1,035.5     |
